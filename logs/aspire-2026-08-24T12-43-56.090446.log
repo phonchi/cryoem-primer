@@ -1,0 +1,32 @@
+2026-08-24 12:43:56,090 DEBUG [root] ASPIRE configuration directory is /home/phonchi/.config/ASPIRE
+2026-08-24 12:43:56,090 DEBUG [root] ASPIRE configuration resolution details [({'logging': {'log_dir': '/home/phonchi/cryoem-primer/logs'}}, ConfigSource(<super: <class 'ConfigSource'>, <ConfigSource object>>, None, False, False)), ({}, ConfigSource(<super: <class 'ConfigSource'>, <YamlSource object>>, '/home/phonchi/.config/ASPIRE/config.yaml', False, False)), ({'version': '0.14.3', 'common': OrderedDict([('numeric', 'numpy'), ('fft', 'scipy')]), 'cache': OrderedDict([('cache_dir', ''), ('grid_cache_size', None), ('filter_cache_size', 2)]), 'logging': OrderedDict([('log_dir', 'logs'), ('log_exceptions', 1), ('tqdm_disable', False), ('console_level', 'INFO'), ('log_file_level', 'DEBUG'), ('log_prefix', 'aspire')]), 'nufft': OrderedDict([('backends', ['cufinufft', 'finufft', 'pynfft'])])}, ConfigSource(<super: <class 'ConfigSource'>, <YamlSource object>>, '/home/phonchi/miniconda3/envs/cryoem-book/lib/python3.11/site-packages/aspire/config_default.yaml', True, False))]
+2026-08-24 12:43:56,091 DEBUG [root] Resolved config.yaml:
+
+logging:
+    log_dir: /home/phonchi/cryoem-primer/logs
+    log_exceptions: 1
+    tqdm_disable: no
+    console_level: INFO
+    log_file_level: DEBUG
+    log_prefix: aspire
+version: 0.14.3
+common:
+    numeric: numpy
+    fft: scipy
+
+cache:
+    cache_dir: ''
+    grid_cache_size:
+    filter_cache_size: 2
+
+nufft:
+    backends: [cufinufft, finufft, pynfft]
+
+
+2026-08-24 12:43:56,794 DEBUG [matplotlib] matplotlib data path: /home/phonchi/miniconda3/envs/cryoem-book/lib/python3.11/site-packages/matplotlib/mpl-data
+2026-08-24 12:43:56,796 DEBUG [matplotlib] CONFIGDIR=/home/phonchi/.config/matplotlib
+2026-08-24 12:43:56,797 DEBUG [matplotlib] interactive is False
+2026-08-24 12:43:56,797 DEBUG [matplotlib] platform is linux
+2026-08-24 12:43:56,807 DEBUG [matplotlib] CACHEDIR=/home/phonchi/.cache/matplotlib
+2026-08-24 12:43:56,809 DEBUG [matplotlib.font_manager] Using fontManager instance from /home/phonchi/.cache/matplotlib/fontlist-v3.11.0.json
+2026-08-24 12:43:57,004 INFO [aspire.source.image] Creating Simulation with 10 images.

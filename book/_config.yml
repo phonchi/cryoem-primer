@@ -1,0 +1,25 @@
+title: Cryo-EM 單顆粒分析入門
+author: Szu-Chi Chung
+copyright: "2026"
+language: zh-TW
+
+execute:
+  execute_notebooks: cache
+  timeout: 1800
+
+only_build_toc_files: true
+
+repository:
+  url: https://github.com/phonchi/cryoem-primer
+  branch: main
+
+html:
+  use_repository_button: false
+  use_issues_button: false
+  home_page_in_navbar: true
+
+sphinx:
+  config:
+    html_show_copyright: false
+    nb_merge_streams: true
+    suppress_warnings: ["mystnb.unknown_mime_type"]

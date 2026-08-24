@@ -1,0 +1,11 @@
+format: jb-book
+root: 00_intro
+chapters:
+  - file: 01_image_basics
+  - file: 02_filter_segment
+  - file: 03_fourier
+  - file: 04_wavelet
+  - file: 05_background
+  - file: 06_workflow
+  - file: 07_synthetic_data
+  - file: 08_resources

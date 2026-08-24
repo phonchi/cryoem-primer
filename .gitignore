@@ -1,0 +1,7 @@
+book/_build/
+book/data/output/
+.ipynb_checkpoints/
+__pycache__/
+*.pyc
+.virtual_documents/
+.env
