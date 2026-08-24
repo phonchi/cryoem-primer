@@ -10,7 +10,7 @@
 | particle | 粒子 | 指裁切影像時仍用「粒子影像」 |
 | defocus | 離焦 | 欠焦與過焦需另外說明正負號慣例 |
 | denoising | 去雜訊 | 不把增強後影像直接當成無偏的重建輸入 |
-| visualization | 視覺化 | 圖像增強與定量分析必須分開 |
+| visualization | 視覺化 | 影像增強與定量分析必須分開 |
 | threshold | 閾值 | 程式參數可保留原英文名稱 |
 | template matching | 模板匹配 | 必須交代正規化、搜尋角度與 template bias |
 | review article | 綜述 | 第一次出現時可附英文 |
@@ -31,7 +31,7 @@
 
 ## Euler 角與旋轉
 
-Euler 角不是單一標準。RELION、cryoSPARC、EMAN2 與程式庫可能使用不同的軸順序、主動／被動旋轉及座標手性。本書保存 ground truth 時，同時寫入：
+Euler 角不是單一標準。RELION、cryoSPARC、EMAN2 與程式庫可能使用不同的軸順序、主動／被動旋轉及座標手性。本書輸出已知真值時，同時記錄：
 
 - 角度數值與單位；
 - Euler convention 名稱；
@@ -39,7 +39,7 @@ Euler 角不是單一標準。RELION、cryoSPARC、EMAN2 與程式庫可能使�
 - matrix 的作用方向與明確座標方程；
 - image-plane-to-volume 或 volume-to-image 的方向。
 
-只保存三個角度、不保存 convention，之後通常無法可靠重現投影。
+只記錄三個角度、卻沒有記錄 convention，之後通常無法可靠重現投影。
 
 ## Movie、micrograph 與 particle stack
 
@@ -48,13 +48,13 @@ Euler 角不是單一標準。RELION、cryoSPARC、EMAN2 與程式庫可能使�
 3. **Particle stack** 是依 picking 座標從 micrograph 裁出的粒子影像集合。
 4. **3D map／volume** 是由大量未知方向的粒子影像估計出的三維密度。
 
-這四個資料層級的雜訊、metadata 與可做的校正不同，不應都簡稱為「原始影像」。
+這四個資料層級的雜訊、中繼資料與可做的校正不同，不應都簡稱為「原始影像」。
 
 ## MRC、MRCS 與 STAR
 
 - MRC header 的 `mode` 決定資料型別；`nx, ny, nz` 是檔案維度，不自動保證生物學軸向。
 - `.mrcs` 通常表示 2D 影像 stack，但副檔名本身不是完整 schema。
-- STAR 保存表格型 metadata。影像位置常寫成 `index@stack.mrcs`，而 index 是否從 0 或 1 起算必須依格式規格確認。
+- STAR 儲存表格型中繼資料。影像位置常寫成 `index@stack.mrcs`，而 index 是否從 0 或 1 起算必須依格式規格確認。
 - 讀回測試至少核對 shape、dtype、pixel size、影像順序、CTF 群組與抽樣像素值。
 
 ## 理解檢查

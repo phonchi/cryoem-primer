@@ -1,4 +1,4 @@
-title: Cryo-EM 單顆粒分析入門
+title: 從影像處理到 Cryo-EM 單粒子分析
 author: Szu-Chi Chung
 copyright: "2026"
 language: zh-TW
@@ -18,7 +18,7 @@ html:
   use_issues_button: false
   home_page_in_navbar: true
   extra_footer: >-
-    本教材以可重現的程式與可追溯的文獻為準；教學模型的假設會在正文中明列。
+    公式、程式與例子會標明採用的假設，引用文獻列於各章與書末。
 
 sphinx:
   extra_extensions:

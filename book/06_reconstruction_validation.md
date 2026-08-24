@@ -31,7 +31,7 @@ $$
 2. 為每張粒子影像找最相似的方向與位移。
 3. 以估計姿態重建新模型，再重複。
 
-這是 hard projection matching 的近似。當單張影像訊噪很低，最佳與次佳姿態可能幾乎同樣合理；只保留最高相關者會丟掉不確定性，也可能放大初始模型偏差。
+這是 hard projection matching 的近似。當單張影像的訊雜比很低，最佳與次佳姿態可能幾乎同樣合理；只保留最高相關者會丟掉不確定性，也可能放大初始模型偏差。
 
 Maximum-likelihood 方法改為對姿態、位移與類別做邊際化。若 $z$ 表示這些 latent variables，一張影像的 responsibility 可概念化為
 
@@ -93,7 +93,7 @@ Overfitting 也可能來自把一半資料估出的高頻姿態資訊帶到另�
 ## 理解檢查
 
 1. Preferred orientation 會在 3D Fourier 空間留下什麼取樣問題？
-2. 為什麼 soft assignment 在低訊噪資料中比單一最佳方向更能表達不確定性？
+2. 為什麼 soft assignment 在低訊雜比資料中比單一最佳方向更能表達不確定性？
 3. 哪些資訊若跨 half-set 傳遞，會讓 FSC 過度樂觀？
 4. Masked FSC 比 unmasked FSC 高時，還需要哪些資訊才能判斷這是合理去除溶劑，還是 mask-induced correlation？
 5. FSC 0.143 crossing 能支持什麼主張？不能單獨支持什麼主張？

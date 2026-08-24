@@ -1,36 +1,33 @@
-# Cryo-EM 單顆粒分析入門
+# 從影像處理到 Cryo-EM 單粒子分析
 
-這是一套給大三以上專題生使用的繁體中文教材。主線從數位影像與 Fourier 分析出發，接到 cryo-EM 的成像模型、單顆粒分析流程、3D 重建與驗證，最後用 ASPIRE 產生一套具有 ground truth 的合成資料。
+這是一套給大三以上專題生使用的繁體中文教材。第 1–4 章完整介紹數位影像處理，第 5–7 章再把這些工具用於 Cryo-EM 單粒子分析與合成資料。
 
 - 公開網站：https://phonchi.github.io/cryoem-primer/
 - 教材來源：`book/`
-- 文獻摘要與 provenance：`notes/ref_digest/`、`notes/reference_catalog/`
-- `.py` 是可執行章節的 single source of truth；`.ipynb` 由 Jupytext 同步產生。
+- 每個可執行章節皆提供 Jupyter notebook。
 
-## 建立環境
+## 學生：建立環境與執行教材
 
 ```bash
 conda env create -f environment.yml
 conda activate cryoem-book
 python -m ipykernel install --user --name cryoem-book
+jupyter notebook
 ```
 
-## 常用命令
-
-```bash
-make sync          # 將 book/*.py 同步到 paired notebooks
-make qa-fast       # 100 張模擬影像：測試、同步檢查與零警告 build
-make build-full    # 5,000 張模擬影像：發布前完整 build
-make linkcheck     # 外部連結檢查
-make ingest        # 更新本機 References/document_cache（不會發布全文）
-```
-
-第 7 章的完整模擬會寫出約數百 MB 的 MRCS 與 provenance 檔。預設輸出位於 repo 外的暫存目錄；可用 `CRYOEM_OUTPUT_DIR` 指定位置。生成資料不會進入網站 artifact。
+第一次執行第 7 章時，可先把影像數設為 100；確認流程後再生成完整的 5,000 張影像。輸出資料夾內會包含 STAR、MRCS、已知真值與執行參數紀錄。
 
 ## 引用與版權
 
-原始 PDF 與抽取全文只保留在本機 `References/document_cache/`。公開 repo 僅保存來源 registry、自行撰寫的摘要、claim map、短引文與 BibTeX。教材中的數值、公式、方法比較與限制性主張，均應能回溯到原始頁碼、式號或官方文件。
+教材使用自行撰寫的解釋與可執行範例，引用來源列在各章與書末。原始教科書、論文與資料集的權利仍屬原作者及發布單位。
 
-## 發布
+## 維護者：測試與發布
 
-推送 `main` 後，GitHub Actions 會建立完整網站並部署同一份已驗收的 artifact 至 GitHub Pages。不要手動執行 `ghp-import`，以免發布內容與 CI 驗證內容不同。
+```bash
+make sync
+make qa-fast
+make build-full
+make linkcheck
+```
+
+`.py` 是可執行章節的 Jupytext 來源，修改後需同步 `.ipynb`。推送 `main` 後，GitHub Actions 會建立並部署網站。

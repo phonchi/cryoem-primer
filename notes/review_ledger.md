@@ -52,10 +52,10 @@
 | N07-02 | major | ASPIRE offset 分布說錯 | fixed | 明列預設為無界常態、σ=L/16；本章固定 0 |
 | N07-03 | major | 缺檔與未定義 purity 練習 | fixed | 移除不可執行承諾 |
 | N07-04 | major | 研究協定表沒有可追溯來源 | fixed | 改成可解析 citations 與 claim boundaries |
-| N07-05 | major | 宣稱 ground truth 但未輸出 | fixed | E2E 產生 JSONL 與 run manifest |
+| N07-05 | major | 宣稱 ground truth 但未輸出 | fixed | E2E 產生並讀回 `ground_truth.jsonl` |
 | N07-06 | minor | 固定 seed 卻稱每次方向不同 | fixed | 改為可重現抽樣 |
 | N07-07 | minor | 分布均勻與有限樣本均勻覆蓋混淆 | fixed | 文字與 sampler test 分開兩種主張 |
-| N07-08 | major | global AWGN 邊界未說明 | fixed | manifest 記錄定義、realized SNR 與 limitations |
+| N07-08 | major | global AWGN 邊界未說明 | fixed | 正文定義、realized SNR 輸出與數值測試 |
 | N07-09 | major | 使用 ASPIRE 私有 `_metadata` | fixed | public `get_metadata(as_dict=True)` E2E 通過 |
 | A01 | major | DQE 對 power-SNR 重複平方 | fixed | 改為 SNR_out／SNR_in，並說明 amplitude S/N 寫法 |
 | A02 | major | ground truth 缺 rotation matrix 語意 | fixed | 每筆保存 matrix 與 image-plane-to-volume 方程 |

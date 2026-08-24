@@ -16,13 +16,14 @@
 # %% [markdown]
 # # 頻域影像處理：從 DFT 到 CTF correction
 #
-# 傅立葉轉換把「影像裡哪裡亮」改寫成「各空間頻率有多少振幅與相位」。Cryo-EM 的 projection、CTF、平移與 reconstruction 都在這套語言中變得比較直接；前提是索引、正規化與 boundary convention 沒有混用。
+# 傅立葉轉換把「影像裡哪裡亮」改寫成「各空間頻率有多少振幅與相位」。這是一般影像濾波、復原與取樣的共通語言，也讓 cryo-EM 的投影、對比傳遞函數（contrast transfer function, CTF）、平移與重建變得比較直接。本章先建立通用頻域工具，再把它們用於 cryo-EM。索引、正規化與邊界慣例必須全章一致。頻域濾波與影像復原的更完整討論可參考 {cite}`szeliski2022,forsyth2012,penczek2010restoration`。
 #
 # ```{admonition} 學習目標
 # :class: important
 #
 # - 寫出矩形影像的 2D DFT／inverse DFT，核對 DC、Parseval 與 Hermitian symmetry。
-# - 解釋有限視窗造成的 spectral leakage，以及 padding 為何影響 convolution。
+# - 解釋頻率軸、振幅、相位、有限視窗與 zero-padding。
+# - 比較空間域與頻域卷積，並設計低通、高通、帶通與 notch filters。
 # - 分清 inverse filtering、regularized inversion、phase flipping 與 Wiener-style CTF correction。
 # - 用 Fourier slice theorem 連結 2D projections 與 3D reconstruction。
 # - 說出簡化 CTF 省略了哪些物理因素。
@@ -155,6 +156,70 @@ imshow_all(camera, log_magnitude, phase,
 
 
 # %% [markdown]
+# ## 二維 Fourier basis、頻率軸與方向
+#
+# 二維 DFT 的每個 basis image 是
+#
+# $$b_{k_y,k_x}[y,x]=e^{i2\pi(k_y y/N+k_x x/M)}.$$
+#
+# 實數的 cosine 需要一對共軷頻率來表示。`fftfreq` 會依取樣間隔產生正確頻率軸；對 pixel size 為 $p$ 的影像，單位為 cycles per physical length，Nyquist frequency 為 $1/(2p)$。條紋的空間方向與頻率向量 $(f_y,f_x)$ 垂直；因此讀取頻譜方向時，不能把「亮點的方向」當成「條紋延伸的方向」。
+
+# %%
+n_rows, n_cols = 96, 144
+pixel_size = 1.5
+fy0, fx0 = 8 / (n_rows * pixel_size), 15 / (n_cols * pixel_size)
+y_A = np.arange(n_rows)[:, None] * pixel_size
+x_A = np.arange(n_cols)[None, :] * pixel_size
+oriented_grating = np.cos(2 * np.pi * (fy0 * y_A + fx0 * x_A) + 0.4)
+grating_fft = np.fft.fftshift(np.fft.fft2(oriented_grating))
+fy_axis = np.fft.fftshift(np.fft.fftfreq(n_rows, d=pixel_size))
+fx_axis = np.fft.fftshift(np.fft.fftfreq(n_cols, d=pixel_size))
+
+peak_indices = np.argpartition(np.abs(grating_fft).ravel(), -2)[-2:]
+peak_coordinates = np.array(np.unravel_index(peak_indices, grating_fft.shape)).T
+measured_peaks = {(round(fy_axis[i], 8), round(fx_axis[j], 8))
+                  for i, j in peak_coordinates}
+expected_peaks = {(round(fy0, 8), round(fx0, 8)),
+                  (round(-fy0, 8), round(-fx0, 8))}
+assert measured_peaks == expected_peaks
+
+fig, axes = plt.subplots(1, 2, figsize=(10, 3.5))
+axes[0].imshow(oriented_grating)
+axes[0].set_title("oriented cosine basis")
+axes[0].axis("off")
+axes[1].imshow(np.log1p(np.abs(grating_fft)), extent=[fx_axis[0], fx_axis[-1],
+                                                     fy_axis[-1], fy_axis[0]])
+axes[1].set_xlabel("$f_x$ [cycles/Å]")
+axes[1].set_ylabel("$f_y$ [cycles/Å]")
+axes[1].set_title("conjugate frequency pair")
+fig.tight_layout()
+
+
+# %% [markdown]
+# ## Magnitude、phase 與 translation theorem
+#
+# 頻譜的 magnitude $|H|$ 表示每個 basis 的強度，phase $\arg H$ 決定這些 basis 在空間中如何對齊。將影像平移 $(\Delta y,\Delta x)$ 時，magnitude 不變，但頻譜會乘上線性 phase ramp：
+#
+# $$h[y-\Delta y,x-\Delta x]\ \longleftrightarrow\
+# H[k_y,k_x]e^{-i2\pi(k_y\Delta y/N+k_x\Delta x/M)}.$$
+#
+# 所以「magnitude 比 phase 重要」或「phase 比 magnitude 重要」都過度簡化：它們承載不同資訊，完整影像需要兩者。在 cryo-EM 中，particle translation 正是以這個 phase ramp 來處理。
+
+# %%
+translation = (13, -9)
+shifted_camera = np.roll(camera, translation, axis=(0, 1))
+fy = np.fft.fftfreq(camera.shape[0])[:, None]
+fx = np.fft.fftfreq(camera.shape[1])[None, :]
+phase_ramp = np.exp(-2j * np.pi * (fy * translation[0] + fx * translation[1]))
+predicted_shift_fft = camera_fft * phase_ramp
+
+assert np.allclose(np.abs(np.fft.fft2(shifted_camera)), np.abs(camera_fft))
+assert np.allclose(np.fft.fft2(shifted_camera), predicted_shift_fft, atol=1e-9)
+imshow_all(camera, shifted_camera,
+           titles=["original", f"circular shift {translation}"])
+
+
+# %% [markdown]
 # ## 有限觀測與 spectral leakage
 #
 # DFT 把有限長度訊號視為週期重複。若觀測窗內不是整數週期，首尾接合會產生不連續，能量便散到鄰近 frequency bins，稱為 spectral leakage。加窗能降低遠端 leakage，但會拓寬主峰；zero-padding 只把頻譜取樣畫得更密，不會提高由觀測長度決定的真實解析力。
@@ -165,6 +230,7 @@ sample_index = np.arange(n)
 non_bin_tone = np.sin(2 * np.pi * 10.35 * sample_index / n)
 rect_spectrum = np.abs(np.fft.rfft(non_bin_tone))
 hann_spectrum = np.abs(np.fft.rfft(non_bin_tone * np.hanning(n)))
+zero_padded_spectrum = np.abs(np.fft.rfft(non_bin_tone, n=8 * n))
 
 fig, ax = plt.subplots(figsize=(8, 3.5))
 ax.semilogy(rect_spectrum / rect_spectrum.max(), label="rectangular window")
@@ -173,6 +239,13 @@ ax.set_xlabel("frequency bin")
 ax.set_ylabel("normalized magnitude")
 ax.legend()
 fig.tight_layout()
+
+assert zero_padded_spectrum.size == 4 * n + 1
+assert np.isclose(np.fft.rfftfreq(n)[1], 1 / n)
+assert np.isclose(np.fft.rfftfreq(8 * n)[1], 1 / (8 * n))
+
+# %% [markdown]
+# Hann window 以較寬的 main lobe 換取較低的 side lobes，因此適合減少遠離主峰的 leakage，卻不會無償提高頻率解析度。將 128 點補零成 1024 點只是在同一個有限視窗的 discrete-time Fourier transform 上取得更密的樣本；真正分開相近頻率的能力仍由原始觀測長度與 window 決定 {cite}`szeliski2022`。
 
 
 # %% [markdown]
@@ -195,6 +268,125 @@ circular = np.fft.ifft(np.fft.fft(x_small) * np.fft.fft(h_small, len(x_small))).
 assert np.allclose(linear, np.convolve(x_small, h_small, mode="full"))
 assert not np.allclose(circular, linear[: len(circular)])
 print("linear:", linear, "circular:", circular)
+
+
+# %% [markdown]
+# ### 二維空間卷積與 FFT 卷積
+#
+# 卷積定理在二維一樣成立：$g=h*f$ 對應 $G=HF$。空間域直接卷積和 FFT 卷積可以得到相同的 linear-convolution 結果，但必須具有相同的 padding、裁切與 boundary 定義。小 kernel 的直接法常常較快；大 kernel 或重複使用同一 transfer function 時，FFT 法才逐漸有利。切換點受影像大小、kernel 大小、硬體與實作影響，不存在「FFT 永遠較快」的通則。
+
+# %%
+small_image = ski.util.img_as_float(ski.data.camera())[::8, ::8]
+kernel_2d = np.outer(signal.windows.gaussian(9, 1.5),
+                     signal.windows.gaussian(9, 1.5))
+kernel_2d /= kernel_2d.sum()
+spatial_full = signal.convolve2d(small_image, kernel_2d, mode="full")
+fft_full = signal.fftconvolve(small_image, kernel_2d, mode="full")
+assert np.allclose(spatial_full, fft_full, atol=1e-12)
+
+
+# %% [markdown]
+# ## 頻域濾波：從 transfer function 讀出空間效應
+#
+# 頻域濾波器直接乘在影像頻譜上。Low-pass 保留緩慢變化，high-pass 保留快速變化，band-pass 只保留一段尺度，notch filter 則壓低特定方向與頻率。這些名稱描述的是 transfer function，不是特定的實作。例如 ideal low-pass 的截止邊界不連續，其 impulse response 具有長距離振盪，因而在強邊緣附近產生 ringing；Gaussian 轉換平滑，空間域也不會產生同類的負 lobes。Butterworth 的 order 則提供兩者之間的過渡 {cite}`szeliski2022,forsyth2012`。
+
+# %%
+def frequency_radius(shape):
+    """Return an unshifted radial-frequency grid in cycles/pixel."""
+    fy = np.fft.fftfreq(shape[0])[:, None]
+    fx = np.fft.fftfreq(shape[1])[None, :]
+    return np.sqrt(fy**2 + fx**2)
+
+
+def lowpass_transfer(shape, cutoff, kind="gaussian", order=3):
+    """Construct ideal, Gaussian, or Butterworth radial low-pass transfer."""
+    if not 0 < cutoff <= 0.5:
+        raise ValueError("cutoff must be in (0, 0.5]")
+    radius = frequency_radius(shape)
+    if kind == "ideal":
+        return (radius <= cutoff).astype(float)
+    if kind == "gaussian":
+        return np.exp(-0.5 * (radius / cutoff) ** 2)
+    if kind == "butterworth":
+        return 1.0 / (1.0 + (radius / cutoff) ** (2 * order))
+    raise ValueError("kind must be ideal, gaussian, or butterworth")
+
+
+def apply_transfer(image, transfer_function):
+    """Apply a same-shape transfer function under circular boundary conditions."""
+    if image.shape != transfer_function.shape:
+        raise ValueError("image and transfer_function must have the same shape")
+    return np.fft.ifft2(np.fft.fft2(image) * transfer_function).real
+
+
+filter_image = ski.transform.resize(camera, (192, 192), anti_aliasing=True)
+lowpasses = {kind: lowpass_transfer(filter_image.shape, 0.08, kind, order=4)
+             for kind in ("ideal", "gaussian", "butterworth")}
+filtered = {kind: apply_transfer(filter_image, transfer_function)
+            for kind, transfer_function in lowpasses.items()}
+
+fig, axes = plt.subplots(3, 3, figsize=(10, 9))
+for row, kind in enumerate(("ideal", "gaussian", "butterworth")):
+    transfer_function = lowpasses[kind]
+    impulse_response = np.fft.fftshift(np.fft.ifft2(transfer_function).real)
+    axes[row, 0].imshow(np.fft.fftshift(transfer_function), vmin=0, vmax=1)
+    axes[row, 0].set_title(f"{kind}: transfer")
+    center = tuple(size // 2 for size in impulse_response.shape)
+    crop = impulse_response[center[0]-16:center[0]+17,
+                            center[1]-16:center[1]+17]
+    axes[row, 1].imshow(crop)
+    axes[row, 1].set_title("impulse response")
+    axes[row, 2].imshow(filtered[kind])
+    axes[row, 2].set_title("filtered image")
+for ax in axes.ravel():
+    ax.axis("off")
+fig.tight_layout()
+
+ideal_impulse = np.fft.fftshift(np.fft.ifft2(lowpasses["ideal"]).real)
+gaussian_impulse = np.fft.fftshift(np.fft.ifft2(lowpasses["gaussian"]).real)
+assert ideal_impulse.min() < 0
+assert gaussian_impulse.min() > -1e-10
+
+
+# %% [markdown]
+# ### Low-pass、high-pass、band-pass 與 notch 是可組合的工具
+#
+# High-pass 可以用 $1-L$ 從 low-pass $L$ 建立；band-pass 可由兩個不同截止頻率的 low-pass 相減。Notch filter 必須成對放在 $(f_y,f_x)$ 與 $(-f_y,-f_x)$，才會對應實數輸出。頻率濾波可壓低已知干擾，但無法分辨「同頻率的物件細節」與「干擾」；被 notch 移除的頻率資訊不會自動復原。
+
+# %%
+radius = frequency_radius(filter_image.shape)
+butter_low = lowpass_transfer(filter_image.shape, 0.08, "butterworth", order=4)
+butter_high = 1.0 - butter_low
+butter_band = (
+    lowpass_transfer(filter_image.shape, 0.16, "butterworth", order=4)
+    - lowpass_transfer(filter_image.shape, 0.04, "butterworth", order=4)
+)
+
+fy_grid = np.fft.fftfreq(filter_image.shape[0])[:, None]
+fx_grid = np.fft.fftfreq(filter_image.shape[1])[None, :]
+notch_center = (0.12, 0.18)
+notch_width = 0.015
+notch = np.ones(filter_image.shape)
+for sign_value in (-1, 1):
+    distance_squared = ((fy_grid - sign_value * notch_center[0]) ** 2
+                        + (fx_grid - sign_value * notch_center[1]) ** 2)
+    notch *= 1.0 - np.exp(-distance_squared / (2 * notch_width**2))
+
+transfer_examples = [butter_low, butter_high, butter_band, notch]
+transfer_titles = ["low-pass", "high-pass", "band-pass", "paired notch"]
+fig, axes = plt.subplots(2, 4, figsize=(13, 6))
+for column, (transfer_function, title) in enumerate(zip(transfer_examples, transfer_titles)):
+    axes[0, column].imshow(np.fft.fftshift(transfer_function), vmin=0, vmax=1)
+    axes[0, column].set_title(title)
+    axes[1, column].imshow(apply_transfer(filter_image, transfer_function))
+    axes[1, column].set_title("output")
+for ax in axes.ravel():
+    ax.axis("off")
+fig.tight_layout()
+
+notch_complex_output = np.fft.ifft2(np.fft.fft2(filter_image) * notch)
+notch_output = notch_complex_output.real
+assert np.max(np.abs(notch_complex_output.imag)) < 1e-12
 
 
 # %% [markdown]
@@ -239,6 +431,9 @@ print("retained frequency fraction:", retained.mean())
 imshow_all(original, noisy_blurred, restored_truncated,
            titles=["original", "blurred + noise", "truncated inverse"])
 
+# %% [markdown]
+# Point-spread function（PSF）描述系統對單一點的空間域響應；它的 Fourier transform 是 optical transfer function（OTF）。程式中 PSF 的中心通常畫在陣列中央，但 FFT 的 origin 在 `[0,0]`，因此 `psf_to_otf` 必須先 padding，再把 PSF 中心移到 origin。少了這步會多出一個 phase ramp，造成復原影像平移。影像復原的前向模型、邊界與正則化必須配套解讀 {cite}`penczek2010restoration`。
+
 
 # %% [markdown]
 # ## Wiener regularization
@@ -262,6 +457,43 @@ restored_wiener = wiener_frequency(noisy_blurred, transfer, regularization=2e-3)
 assert np.isfinite(restored_wiener).all()
 imshow_all(noisy_blurred, restored_truncated, restored_wiener,
            titles=["observed", "truncated inverse", "Wiener-style"])
+
+
+# %% [markdown]
+# ### Regularization 強度決定 bias–variance trade-off
+#
+# $K$ 太小時，弱 transfer 處的雜訊被大幅放大；$K$ 太大時，復原過度平滑。下例因為有已知參考影像，可以計算均方誤差（mean squared error, MSE）與峰值訊雜比（peak signal-to-noise ratio, PSNR）。處理真實資料時並沒有未模糊的已知真值，所以不能照抄這裡的最佳 $K$；必須依雜訊模型與獨立驗證選擇。PSNR 也只衡量像素誤差，不會單獨保證科學結構正確。
+
+# %%
+regularization_values = np.array([1e-6, 1e-4, 2e-3, 5e-2])
+restoration_candidates = [
+    wiener_frequency(noisy_blurred, transfer, value)
+    for value in regularization_values
+]
+mse_values = np.array([
+    np.mean((candidate - original) ** 2)
+    for candidate in restoration_candidates
+])
+psnr_values = np.array([
+    ski.metrics.peak_signal_noise_ratio(original, candidate, data_range=1.0)
+    for candidate in restoration_candidates
+])
+observed_mse = np.mean((noisy_blurred - original) ** 2)
+
+assert np.isfinite(mse_values).all()
+assert np.allclose(psnr_values, 10 * np.log10(1.0 / mse_values))
+assert mse_values.min() < observed_mse
+
+fig, axes = plt.subplots(1, 2, figsize=(10, 3.5))
+axes[0].semilogx(regularization_values, mse_values, "o-")
+axes[0].set_xlabel("regularization $K$")
+axes[0].set_ylabel("MSE")
+axes[0].set_title("lower is better")
+axes[1].semilogx(regularization_values, psnr_values, "o-")
+axes[1].set_xlabel("regularization $K$")
+axes[1].set_ylabel("PSNR [dB]")
+axes[1].set_title("higher is better")
+fig.tight_layout()
 
 
 # %% [markdown]
@@ -421,6 +653,8 @@ imshow_all(true_projection, observed, phase_flipped, wiener_corrected,
 #
 # 1. 對 shape `(N, M)` 的影像，為什麼 `k_y` 必須除以 `N`、`k_x` 必須除以 `M`？
 # 2. `H[0,0]` 與影像平均值差一個什麼因子？
-# 3. 加 Hann window 與 zero-padding 分別改變頻譜的哪個部分？
-# 4. 為什麼 `G/(H+eps)` 不能稱為 exact inverse filter？
-# 5. Phase flipping 是否會復原 CTF 壓低的振幅？Wiener regularization 又付出什麼代價？
+# 3. 將影像平移時，為什麼 Fourier magnitude 不變，phase 卻會改變？
+# 4. 加 Hann window 與 zero-padding 分別改變頻譜的哪個部分？
+# 5. 為什麼 ideal low-pass 比 Gaussian low-pass 更容易在邊緣附近產生 ringing？
+# 6. 為什麼 `G/(H+eps)` 不能稱為 exact inverse filter？
+# 7. Phase flipping 是否會復原 CTF 壓低的振幅？Wiener regularization 又付出什麼代價？

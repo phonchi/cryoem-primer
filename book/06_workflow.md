@@ -1,4 +1,4 @@
-# Cryo-EM 單顆粒分析：從 movie 到 3D 密度圖
+# Cryo-EM 單粒子分析：從 movie 到 3D 密度圖
 
 ```{admonition} 讀完本章，你應該能
 :class: important
@@ -11,7 +11,7 @@
 (workflow)=
 ## SPA 主線與資料層級
 
-單顆粒分析（single-particle analysis, SPA）的資料通常沿著這條路徑前進：
+單粒子分析（single-particle analysis, SPA）的資料通常沿著這條路徑前進：
 
 **movie frames → motion-corrected micrograph → particle stack → 2D／3D estimates → 3D density map**。
 
@@ -23,9 +23,9 @@ Movie 是一次曝光拆成的多個時間 frame；micrograph 是 frame 對齊�
 SPA 主流程：Movie Alignment → CTF Estimation → Particle Picking → 2D Classification → Initial Model → 3D Classification → 3D Refinement。
 ```
 
-老師維護的 [Computational-CryoEM](https://github.com/phonchi/Computational-CryoEM) 收錄更廣的方法地圖。本章只走 SPA；tomographic reconstruction 屬於 cryo-electron tomography 的分支，不是一般 SPA 的必經階段。
+[Computational-CryoEM](https://github.com/phonchi/Computational-CryoEM) 整理了各處理階段的論文、軟體與教學資源。本章只走 SPA；tomographic reconstruction 屬於 cryo-electron tomography 的分支，不是一般 SPA 的必經階段。
 
-一個資料集可含數百到數千部 movie，以及 $10^5$ 到 $10^6$ 張粒子影像。真正困難的不只是檔案大，而是每張粒子的三維取向、平面內旋轉、位移、CTF 與構形都可能未知，且單張影像訊噪很低 {cite}`singer2020`（pp. 171–180）。
+一個資料集可含數百到數千部 movie，以及 $10^5$ 到 $10^6$ 張粒子影像。除了檔案量大，每張粒子的三維取向、平面內旋轉、位移、CTF 與構形也可能未知，且單張影像的訊雜比很低 {cite}`singer2020`（pp. 171–180）。
 
 ```{figure} images/pptx/s10_2.png
 :width: 70%
@@ -42,7 +42,7 @@ SPA 主流程：Movie Alignment → CTF Estimation → Particle Picking → 2D C
 ```{figure} images/pptx/s06_2.png
 :width: 30%
 :name: fig-frame-raw
-單一 movie frame 的電子計數有限，訊噪通常很低。
+單一 movie frame 的電子計數有限，訊雜比通常很低。
 ```
 
 ```{figure} images/pptx/s06_3.png
@@ -81,7 +81,7 @@ frames 經對齊與加權後形成 micrograph。可見度改善不等於所有�
 
 ## Particle picking：找候選座標，不是宣告真實粒子
 
-Particle picking 需要在 micrograph 找出候選中心並避開污染。常見方法包括簡單 blob／DoG template、以資料統計量驅動的無監督方法，以及 Topaz、crYOLO 等監督式模型。詳細參考模板若來自同一批低訊噪資料，可能把 template bias 帶回結果；候選數量也會受閾值、最小距離、冰厚與粒子大小影響 {cite}`sigworth2016`（p. 62）。
+Particle picking 需要在 micrograph 找出候選中心並避開污染。常見方法包括簡單 blob／DoG template、以資料統計量驅動的無監督方法，以及 Topaz、crYOLO 等監督式模型。詳細參考模板若來自同一批低訊雜比資料，可能把 template bias 帶回結果；候選數量也會受閾值、最小距離、冰厚與粒子大小影響 {cite}`sigworth2016`（p. 62）。
 
 ```{figure} images/pptx/s09_1.png
 :width: 60%
@@ -115,7 +115,7 @@ Particle picking 需要在 micrograph 找出候選中心並避開污染。常見
 
 Fourier slice theorem 說明了已知取向的 2D 投影如何約束 3D Fourier volume。SPA 的取向未知，因此這是一個非線性反問題。最簡化的 projection matching 會從目前模型產生許多參考投影，為每張影像挑出相關最高的方向與位移，再重建新模型。這個 hard assignment 適合建立直覺，卻不是現代 maximum-likelihood／Bayesian refinement 的完整描述。
 
-以 RELION 類方法為例，演算法會對候選方向、位移與類別計算後驗權重，更新時用機率加權，不必把每張低訊噪影像過早鎖定在單一姿態。先驗與正則化會抑制資料不足頻帶中的不穩定解；它們也會影響結果，因此不能把收斂等同於真實 {cite}`scheres2010,singer2020`（Sigworth et al., pp. 273–277；Singer & Sigworth, pp. 175–180）。
+以 RELION 類方法為例，演算法會對候選方向、位移與類別計算後驗權重，更新時用機率加權，不必把每張低訊雜比影像過早鎖定在單一姿態。先驗與正則化會抑制資料不足頻帶中的不穩定解；它們也會影響結果，因此不能把收斂等同於真實 {cite}`scheres2010,singer2020`（Sigworth et al., pp. 273–277；Singer & Sigworth, pp. 175–180）。
 
 3D classification 用離散類別描述構形混合，但類別數要事先選擇，小族群可能因訊號不足而漏掉。連續異質性方法屬於進階延伸；本書不展開 cryo-ET、helical reconstruction 或 atomic fitting。
 
@@ -131,5 +131,5 @@ Fourier slice theorem 說明了已知取向的 2D 投影如何約束 3D Fourier 
 
 1. 為什麼徑向平均後的 power spectrum 不足以估計散光方向？
 2. Phase flipping、Wiener-style correction 與多離焦合併各自處理什麼問題？
-3. Hard projection matching 在低訊噪資料中會忽略哪一類不確定性？
+3. Hard projection matching 在低訊雜比資料中會忽略哪一類不確定性？
 4. 一個 class average 看起來模糊時，至少列出三種可能原因，以及可用來區分它們的證據。

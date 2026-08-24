@@ -1,5 +1,6 @@
 book/_build/
 book/data/output/
+book/synthetic_data_output/
 book/_build_scratch/
 .jupyter_cache/
 .pytest_cache/

@@ -1,13 +1,13 @@
 format: jb-book
 root: 00_intro
 parts:
-  - caption: 影像與訊號基礎
+  - caption: 一般影像處理
     chapters:
       - file: 01_image_basics
       - file: 02_filter_segment
       - file: 03_fourier
       - file: 04_wavelet
-  - caption: 單顆粒分析
+  - caption: Cryo-EM 單粒子分析
     chapters:
       - file: 05_background
       - file: 05_image_formation

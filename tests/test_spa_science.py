@@ -53,7 +53,7 @@ def test_ctf_dc_and_200_kv_wavelength_match_chapter_convention():
     electron_wavelength, ctf_1d = _load_functions("electron_wavelength", "ctf_1d")
 
     assert abs(electron_wavelength(200) - 0.02508) < 2e-4
-    assert ctf_1d(np.array([0.0]), 15_000, w=0.1)[0] == -0.1
+    assert ctf_1d(np.array([0.0]), 15_000, w=0.15)[0] == -0.15
 
 
 def test_global_awgn_realizes_requested_variance_snr():
@@ -76,18 +76,21 @@ def test_synthetic_chapter_declares_reproducibility_contract():
         "CRYOEM_NUM_IMAGES",
         "CRYOEM_OUTPUT_DIR",
         "ground_truth.jsonl",
-        "run_manifest.json",
-        "schema_version",
         "euler_convention",
         "rotation_matrix",
         "rotation_semantics",
-        "volume_sha256",
-        "software_versions",
         "get_metadata(as_dict=True)",
+        "amplitude_contrast = 0.15",
+        "synthetic_data_output",
+        "3DEM-conventions",
     }
     assert not {term for term in required_terms if term not in source}
     assert "relion_source._metadata" not in source
     assert "預設 ±L/16" not in source
+    assert "hashlib" not in source
+    assert "run_manifest" not in source
+    assert "教材目前" not in source
+    assert "不會假裝" not in source
 
 
 def test_new_spa_pages_state_key_claim_boundaries():

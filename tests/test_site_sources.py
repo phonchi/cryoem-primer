@@ -22,10 +22,21 @@ def test_no_ai_tool_residue_or_mainland_terms():
         "turn0search",
         "utm_source=chatgpt",
         "以下是修改後的版本",
+        "單顆粒",
+        "訊噪",
         "可視化",
         "基於區域",
         "冷凍電顯",
         "模板比對",
+        "教材目前",
+        "不會假裝",
+        "老師維護",
+        "provenance",
+        "run_manifest",
+        "sha256_file",
+        "volume_sha256",
+        "Jupyter Book",
+        "_build/synthetic",
     )
     sources = list(BOOK.glob("*.md")) + list(BOOK.glob("*.py"))
     for source in sources:
@@ -35,6 +46,13 @@ def test_no_ai_tool_residue_or_mainland_terms():
             assert token not in text, f"{source.name}: forbidden token {token}"
         if source.name != "appendix_conventions.md":
             assert not re.search(r"(?<!演)算法", text), f"{source.name}: 中國用語「算法」"
+
+
+def test_student_facing_title_and_toc_terms():
+    config = yaml.safe_load((BOOK / "_config.yml").read_text(encoding="utf-8"))
+    toc = yaml.safe_load((BOOK / "_toc.yml").read_text(encoding="utf-8"))
+    assert config["title"] == "從影像處理到 Cryo-EM 單粒子分析"
+    assert any(part["caption"] == "Cryo-EM 單粒子分析" for part in toc["parts"])
 
 
 def test_generated_outputs_are_not_in_book_tree():

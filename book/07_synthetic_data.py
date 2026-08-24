@@ -21,7 +21,7 @@
 # - 在實空間與 Fourier 空間正確寫出 projection、CTF、平移與雜訊。
 # - 說明有限個隨機方向只是球面均勻分布的樣本，不是「完美均勻覆蓋」。
 # - 說清楚本章 global AWGN 的 SNR 定義與限制。
-# - 產生影像時，同步保存 `ground_truth.jsonl` 與 `run_manifest.json`。
+# - 產生影像時，同步輸出 `ground_truth.jsonl`，記錄每張影像的已知真值。
 # ```
 #
 # ```{figure} images/pptx/s22_1.png
@@ -53,22 +53,18 @@
 # 這個線性模型是薄樣品 SPA 的教學近似；它沒有模擬多重散射、空間非平穩背景、逐 frame 輻射損傷，
 # 也沒有模擬 beam-induced motion（{cite}`singer2020`, Eq. 10；詳見 {doc}`05_image_formation`）。
 #
-# 合成資料的用途不是做出「像真的」圖片，而是保存已知答案，讓方向、CTF、平移、雜訊與構形的誤差可以分開量化。
+# 合成資料保留已知答案，讓方向、CTF、平移、雜訊與構形的誤差可以分開量化。
 
 # %% [markdown]
-# ## 參數與輸出位置
+# ## 設定影像數量與輸出資料夾
 #
-# 預設產生 5,000 張。網站快速建置可設 `CRYOEM_NUM_IMAGES=100`；大型 MRCS 與 provenance 檔
-# 寫到 `CRYOEM_OUTPUT_DIR`，未設定時放在 Jupyter Book 的 `_build/synthetic_data`，不寫進原始資料目錄。
+# 第一次執行時，可把 `num_imgs_default` 改成 100，先確認完整流程與輸出格式；正式生成時再使用 5,000。
+# `output_dir_default` 指定輸出資料夾，STAR、MRCS 與 `ground_truth.jsonl` 都會寫到該處。
 
 # %%
-import hashlib
-import importlib.metadata
 import json
 import logging
 import os
-import platform
-import sys
 from pathlib import Path
 
 import matplotlib.pyplot as plt
@@ -83,12 +79,13 @@ from aspire.volume import Volume
 logging.getLogger("aspire").setLevel(logging.WARNING)
 
 # %%
-schema_version = "1.0.0"
 seed = 0
 rng = np.random.default_rng(seed)
 
 img_size = 130
-num_imgs = int(os.environ.get("CRYOEM_NUM_IMAGES", "5000"))
+num_imgs_default = 5000
+output_dir_default = Path("synthetic_data_output")
+num_imgs = int(os.environ.get("CRYOEM_NUM_IMAGES", str(num_imgs_default)))
 if num_imgs < 1:
     raise ValueError("CRYOEM_NUM_IMAGES 必須是正整數")
 
@@ -102,36 +99,27 @@ defocus_min = 1.5e4     # Å = 1.5 µm
 defocus_max = 2.0e4     # Å = 2.0 µm
 defocus_ct = 50
 Cs = 2.0                # mm
-alpha = 0.1             # amplitude contrast ratio
+amplitude_contrast = 0.15  # RELION classification example: rlnAmplitudeContrast=0.15
 envelope_B = 0.0        # 本章不額外模擬 envelope decay
 
 volume_path = Path("data/70S_Conform1.mrc")
-out_dir = Path(os.environ.get("CRYOEM_OUTPUT_DIR", "_build/synthetic_data"))
+out_dir = Path(os.environ.get("CRYOEM_OUTPUT_DIR", str(output_dir_default)))
 out_dir.mkdir(parents=True, exist_ok=True)
 
 print(f"n={num_imgs}, views={num_views}, output={out_dir.resolve()}")
 
 # %% [markdown]
-# ## 載入 3D density 並記錄來源雜湊
+# ## 載入 3D density map
 #
 # MRC header 能記錄 voxel size，但把 NumPy array 傳給 `Volume` 時，ASPIRE 不會自動沿用該 header。
-# 因此稍後仍要把 `pixel_size` 明確傳給 `Simulation`。SHA-256 用來確認本次 ground truth 對應哪一個輸入檔。
+# 因此稍後仍要把 `pixel_size` 明確傳給 `Simulation`。
 
 # %%
-def sha256_file(path, chunk_size=1024 * 1024):
-    digest = hashlib.sha256()
-    with Path(path).open("rb") as stream:
-        for chunk in iter(lambda: stream.read(chunk_size), b""):
-            digest.update(chunk)
-    return digest.hexdigest()
-
-
-volume_sha256 = sha256_file(volume_path)
 with mrcfile.open(volume_path) as infile:
     volume_array = np.asarray(infile.data).copy()
 
 volume = Volume(volume_array)
-print(f"volume={volume_array.shape}, dtype={volume_array.dtype}, sha256={volume_sha256[:12]}…")
+print(f"volume={volume_array.shape}, dtype={volume_array.dtype}")
 
 # %%
 fig, axes = plt.subplots(1, 3, figsize=(12, 4))
@@ -146,13 +134,23 @@ plt.show()
 # ## 取向：從等向分布抽出有限樣本
 #
 # ASPIRE 接受 ZYZ Euler angles `(rot, tilt, psi)`，單位是 radians。`rot` 與 `tilt` 決定 viewing direction，
-# `psi` 是平面內旋轉。本章讓 $\alpha\sim U(0,2\pi)$、$\cos\beta\sim U(-1,1)$，所以每個 viewing direction
+# `psi` 是平面內旋轉。本章讓 $\mathrm{rot}\sim U(0,2\pi)$、$\cos(\mathrm{tilt})\sim U(-1,1)$，所以每個 viewing direction
 # 都來自球面上的等向分布。不過 50 個方向只是有限的蒙地卡羅樣本；固定 seed 會得到同一批方向，
 # 不能宣稱每次都不同，也不能說它們形成完全均勻的球格。
+#
+# 不同軟體的 Euler angle 順序與 active／passive rotation 定義可能不同。
+# [3DEM conventions](https://github.com/azazellochg/3DEM-conventions) 整理了常見軟體的慣例；跨軟體交換角度時，
+# 應同時確認角度順序、單位與 rotation matrix 的作用方向。
+#
+# | 本章欄位 | 定義 |
+# |---|---|
+# | `rot, tilt, psi` | ASPIRE 使用的 ZYZ Euler angles |
+# | 單位 | radians |
+# | `rotation_matrix` | $\mathbf q_{volume}=R[k_x,k_y,0]^{\mathsf T}$ 的 image-plane-to-volume mapping |
 
 # %%
 def sample_isotropic_view_angles(random_generator, n_views):
-    """Sample viewing directions with alpha uniform and cos(beta) uniform."""
+    """Sample viewing directions with rot uniform and cos(tilt) uniform."""
     rot_view = random_generator.uniform(0.0, 2 * np.pi, size=n_views)
     cos_tilt = random_generator.uniform(-1.0, 1.0, size=n_views)
     tilt_view = np.arccos(cos_tilt)
@@ -188,23 +186,23 @@ plt.tight_layout()
 plt.show()
 
 # %% [markdown]
-# 對照錯誤取法：若讓 $\beta\sim U(0,\pi)$，球面面積元素中的 $\sin\beta$ 沒有被補償，樣本會偏向兩極。
+# 對照錯誤取法：若讓 $\mathrm{tilt}\sim U(0,\pi)$，球面面積元素中的 $\sin(\mathrm{tilt})$ 沒有被補償，樣本會偏向兩極。
 
 # %%
 n_demo = 1500
-alpha_demo = rng.uniform(0.0, 2 * np.pi, size=n_demo)
+rot_demo = rng.uniform(0.0, 2 * np.pi, size=n_demo)
 u_demo = rng.uniform(0.0, 1.0, size=n_demo)
-beta_naive = np.pi * u_demo
-beta_isotropic = np.arccos(2 * u_demo - 1)
+tilt_naive = np.pi * u_demo
+tilt_isotropic = np.arccos(2 * u_demo - 1)
 
 fig = plt.figure(figsize=(11, 5))
-for panel, (beta_demo, title) in enumerate(
-    [(beta_naive, "tilt uniform: pole-biased"),
-     (beta_isotropic, "cos(tilt) uniform: isotropic draws")]
+for panel, (tilt_demo, title) in enumerate(
+    [(tilt_naive, "tilt uniform: pole-biased"),
+     (tilt_isotropic, "cos(tilt) uniform: isotropic draws")]
 ):
-    x = np.sin(beta_demo) * np.cos(alpha_demo)
-    y = np.sin(beta_demo) * np.sin(alpha_demo)
-    z = np.cos(beta_demo)
+    x = np.sin(tilt_demo) * np.cos(rot_demo)
+    y = np.sin(tilt_demo) * np.sin(rot_demo)
+    z = np.cos(tilt_demo)
     ax = fig.add_subplot(1, 2, panel + 1, projection="3d")
     ax.scatter(x, y, z, s=3, alpha=0.5)
     ax.set_title(title)
@@ -226,6 +224,8 @@ plt.show()
 #
 # 不同離焦讓 CTF 零點錯開，但「50 組離焦」不保證任何有限頻帶都沒有共同弱點；是否互補要看實際參數、
 # envelope 與取樣。本章也沒有模擬散光或額外 envelope，不能拿來驗證依賴這些效應的方法。
+# [RELION classification example](https://www3.mrc-lmb.cam.ac.uk/relion/index.php?title=Classification_example)
+# 將這組 70S benchmark 的 `rlnAmplitudeContrast` 設為 0.15；本章採用相同的 amplitude contrast ratio。
 
 # %%
 def electron_wavelength(voltage_kv):
@@ -234,7 +234,7 @@ def electron_wavelength(voltage_kv):
     return 12.2639 / np.sqrt(voltage_v + 0.97845e-6 * voltage_v**2)
 
 
-def ctf_1d(spatial_frequency, defocus_A, voltage_kv=200, cs_mm=2.0, w=0.1):
+def ctf_1d(spatial_frequency, defocus_A, voltage_kv=200, cs_mm=2.0, w=0.15):
     """Radial CTF using the sign convention used in this chapter."""
     wavelength = electron_wavelength(voltage_kv)
     cs_A = cs_mm * 1e7
@@ -251,7 +251,7 @@ plt.figure(figsize=(9, 4))
 for defocus, style in [(defocus_min, "-"), (defocus_max, "--")]:
     plt.plot(
         frequency,
-        ctf_1d(frequency, defocus, voltage, Cs, alpha),
+        ctf_1d(frequency, defocus, voltage, Cs, amplitude_contrast),
         style,
         label=f"defocus={defocus / 1e4:.1f} µm",
     )
@@ -269,7 +269,7 @@ ctf_filters = [
         voltage=voltage,
         defocus=defocus,
         Cs=Cs,
-        alpha=alpha,
+        alpha=amplitude_contrast,
         B=envelope_B,
     )
     for defocus in defocus_values
@@ -315,7 +315,7 @@ plt.show()
 # ## 三層影像與 global AWGN
 #
 # - `sim.projections[...]`：純投影 $P_RV$。
-# - `sim.clean_images[...]`：套用 CTF、平移與 amplitude 後，尚未加噪。
+# - `sim.clean_images[...]`：套用 CTF、平移與 amplitude 後，尚未加入雜訊。
 # - `noisy_images`：本章另加的白高斯雜訊。
 #
 # 本章把整疊 CTF-filtered images 視為一個母體，先扣除全域平均，以
@@ -383,10 +383,10 @@ plt.tight_layout()
 plt.show()
 
 # %% [markdown]
-# ## 輸出影像、ground truth 與 run manifest
+# ## 輸出影像與已知真值
 #
-# STAR 保存儀器與處理軟體可使用的 metadata；`ground_truth.jsonl` 另存模擬時才知道的答案，
-# 避免評估程式無意間讀到 label。`run_manifest.json` 記錄全域參數、版本、SNR 定義與輸出路徑。
+# STAR 儲存分析軟體可讀取的中繼資料；`ground_truth.jsonl` 另存模擬時才知道的方向、CTF、位移與狀態標籤。
+# 將已知真值和觀測資料分開，可避免後續分析程式無意間讀到答案。
 
 # %%
 star_path = out_dir / "simulate.star"
@@ -406,22 +406,6 @@ with mrcfile.new(ctf_clean_path, overwrite=True) as mrc:
     mrc.set_data(ctf_clean_images)
     mrc.voxel_size = pixel_size
 
-
-def package_version(distribution_name):
-    try:
-        return importlib.metadata.version(distribution_name)
-    except importlib.metadata.PackageNotFoundError:
-        return "not-installed"
-
-
-software_versions = {
-    "python": platform.python_version(),
-    "aspire": package_version("aspire"),
-    "numpy": np.__version__,
-    "mrcfile": package_version("mrcfile"),
-    "matplotlib": package_version("matplotlib"),
-    "platform": platform.platform(),
-}
 euler_convention = (
     "ASPIRE ZYZ Euler angles (rot, tilt, psi), radians; "
     "passed directly to Simulation(angles=...)"
@@ -432,7 +416,6 @@ with ground_truth_path.open("w", encoding="utf-8") as stream:
     for image_index in range(num_imgs):
         filter_index = int(sim.filter_indices[image_index])
         record = {
-            "schema_version": schema_version,
             "seed": seed,
             "image_index": image_index,
             "view_id": int(view_ids[image_index]),
@@ -455,7 +438,7 @@ with ground_truth_path.open("w", encoding="utf-8") as stream:
                 "defocus_v_A": float(defocus_values[filter_index]),
                 "defocus_angle_rad": 0.0,
                 "Cs_mm": Cs,
-                "amplitude_contrast": alpha,
+                "amplitude_contrast": amplitude_contrast,
                 "B": envelope_B,
             },
             "offset_px": [
@@ -464,69 +447,11 @@ with ground_truth_path.open("w", encoding="utf-8") as stream:
             ],
             "state": {"aspire_index": 1, "label": "70S_Conform1"},
             "pixel_size_A": pixel_size,
-            "volume_sha256": volume_sha256,
         }
-        stream.write(json.dumps(record, ensure_ascii=False, sort_keys=True) + "\n")
-
-manifest = {
-    "schema_version": schema_version,
-    "created_by": "book/07_synthetic_data.py",
-    "command_environment": {
-        "CRYOEM_NUM_IMAGES": os.environ.get("CRYOEM_NUM_IMAGES"),
-        "CRYOEM_OUTPUT_DIR": os.environ.get("CRYOEM_OUTPUT_DIR"),
-    },
-    "seed": seed,
-    "num_images": num_imgs,
-    "image_size_px": img_size,
-    "num_views": num_views,
-    "euler_convention": euler_convention,
-    "volume": {
-        "path": str(volume_path),
-        "sha256": volume_sha256,
-        "state_label": "70S_Conform1",
-    },
-    "pixel_size_A": pixel_size,
-    "ctf": {
-        "filter_count": defocus_ct,
-        "defocus_min_A": defocus_min,
-        "defocus_max_A": defocus_max,
-        "voltage_kv": voltage,
-        "Cs_mm": Cs,
-        "amplitude_contrast": alpha,
-        "B": envelope_B,
-        "astigmatism": False,
-    },
-    "offset_model": {"enabled": False, "offset_px": [0.0, 0.0]},
-    "amplitude_model": {"enabled": False, "amplitude": 1.0},
-    "noise_model": {
-        "family": "global additive white Gaussian noise",
-        "definition": "Var(mean-centered CTF-clean stack) / Var(noise)",
-        "target_snr": sn_ratio,
-        "realized_snr": achieved_snr,
-        "noise_sigma": float(noise_sigma),
-        "limitations": [
-            "SNR is global, not per-image or per-shell",
-            "noise is iid and spatially stationary",
-            "clean target is CTF-filtered projection",
-        ],
-    },
-    "outputs": {
-        "star": str(star_path.resolve()),
-        "noisy_mrcs": str(noisy_mrcs_path.resolve()),
-        "clean_projection_mrcs": str(projection_path.resolve()),
-        "clean_ctf_mrcs": str(ctf_clean_path.resolve()),
-        "ground_truth_jsonl": str(ground_truth_path.resolve()),
-    },
-    "software_versions": software_versions,
-}
-manifest_path = out_dir / "run_manifest.json"
-with manifest_path.open("w", encoding="utf-8") as stream:
-    json.dump(manifest, stream, ensure_ascii=False, indent=2, sort_keys=True)
-    stream.write("\n")
+        stream.write(json.dumps(record, ensure_ascii=False) + "\n")
 
 print(f"saved noisy images: {noisy_mrcs_path}")
 print(f"saved ground truth: {ground_truth_path}")
-print(f"saved run manifest: {manifest_path}")
 
 # %% [markdown]
 # 用公開的 `get_metadata()` 讀取 STAR metadata；不要依賴 `_metadata` 這類私有屬性。
@@ -540,27 +465,26 @@ print(sorted(public_metadata))
 print(f"round-trip images: {reloaded_images.shape}")
 
 # %% [markdown]
-# ## 文獻如何約束模擬協定
+# ## 模型與參數的參考來源
 #
-# | 來源 | 可支持的模擬設計 | 不能從該來源延伸出的主張 |
+# | 來源 | 提供的概念 | 本章的使用方式 |
 # |---|---|---|
-# | {cite}`sigworth2016`, p. 58, Fig. 1 | projection → CTF → noise 的教學骨架 | 不指定本章的 50 個方向、50 組離焦或 SNR 0.1 |
-# | {cite}`singer2020`, Eq. 10 | pose、投影、PSF／CTF 與加成雜訊的線性模型 | 不保證真實雜訊是 global iid AWGN |
-# | {cite}`penczek2010`, pp. 5–8 | ZYZ Euler 慣例、方向覆蓋與重建幾何 | 不表示有限隨機方向能達到均勻球格的確定性覆蓋 |
-# | {cite}`scheres2010`, pp. 273–286 | 以高斯雜訊建立 ML 模型及其 hidden variables | 作者也明確提醒加成、獨立、白高斯等假設可能不符合真實資料 |
+# | {cite}`sigworth2016`, p. 58, Fig. 1 | projection → CTF → noise | 建立合成影像的基本順序 |
+# | {cite}`singer2020`, Eq. 10 | pose、投影、PSF／CTF 與加成雜訊 | 寫成實空間與 Fourier 空間的前向模型 |
+# | {cite}`penczek2010`, pp. 5–8；[3DEM conventions](https://github.com/azazellochg/3DEM-conventions) | ZYZ Euler angles 與重建幾何 | 定義 `rot, tilt, psi` 與 rotation matrix |
+# | {cite}`scheres2010`, pp. 273–286 | 高斯雜訊模型 | 建立可控制訊雜比的基準資料 |
+# | [RELION classification example](https://www3.mrc-lmb.cam.ac.uk/relion/index.php?title=Classification_example) | 70S benchmark 的 `rlnAmplitudeContrast=0.15` | 將 amplitude contrast ratio 設為 0.15 |
 #
-# 這張表只連結「來源實際支持的 claim」。本章數值是可重現的教學設定，不冒充任何一篇論文的原始 protocol。
+# 50 個方向、50 組離焦與 SNR 0.1 是本章的教學設定。改變這些值會直接改變方向覆蓋、CTF 互補程度與資料難度。
 
 # %% [markdown]
-# ## 這份資料能驗證什麼
+# ## 這組合成資料的適用範圍
 #
-# 本章只有一個 70S 構形，而且平移、亮度變化、散光與 colored noise 都被關閉。因此它適合測試 I/O、
-# CTF-aware forward model、已知 view labels 的分群或去雜訊基線；它不能單獨支持方法已能處理真實資料、
-# 異質性、preferred orientation 或 alignment error 的主張。
+# 本章使用單一 70S 核糖體狀態，將平移固定為零、亮度縮放固定為一，並關閉散光；雜訊採全域白高斯模型。
+# 這組資料可用來檢查檔案讀寫、已知取向下的投影、CTF 模擬，以及在上述理想條件下比較去雜訊結果。
 #
-# 教材目前沒有附 `70S_Conform2.mrc`，也沒有預先定義的分群輸出，所以不會假裝提供可直接執行的 purity 練習。
-# 若要加入第二構形，必須先保存兩個 volume hashes 與每張影像的 state label，再明確定義如何把 cluster labels
-# 對應到 state labels；purity 只衡量分群與已知狀態的一致性，不衡量姿態或重建是否正確。
+# 這組資料不含構形異質性、偏好取向、姿態估計誤差、散光或空間相關雜訊，因此不能用來評估這些問題，
+# 也不能取代真實 micrograph 的驗證。
 
 # %% [markdown]
 # ## 理解檢查
@@ -569,7 +493,8 @@ print(f"round-trip images: {reloaded_images.shape}")
 # 2. 固定 seed 後，50 個方向的「隨機」與「可重現」如何同時成立？為什麼仍不能稱為完美均勻球格？
 # 3. ASPIRE 預設 offset 的 $L/16$ 是標準差還是範圍？無界常態分布對模擬可能造成什麼邊界情況？
 # 4. `realized_snr` 接近 0.1 能證明哪些事？為什麼不能推出每張影像或每個 frequency shell 都是 0.1？
-# 5. 若要設計兩構形 purity 實驗，除了第二個 volume，還必須新增哪些 ground-truth 欄位與評估約定？
-# 6. 比較 phase flipping 與 Wiener-style correction 時，兩個輸出的目標與所需先驗資訊有何不同？
+# 5. `rlnAmplitudeContrast=0.15` 如何改變 CTF 在零頻率附近的值？
+# 6. 跨軟體交換 ZYZ Euler angles 時，為什麼不能只複製三個角度數字？
+# 7. 比較 phase flipping 與 Wiener-style correction 時，兩個輸出的目標與所需先驗資訊有何不同？
 #
 # 更多 SPA 成像與驗證限制見 {doc}`05_image_formation` 與 {doc}`06_reconstruction_validation`。
