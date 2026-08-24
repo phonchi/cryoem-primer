@@ -1,0 +1,803 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="./" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>小波轉換 &#8212; Cryo-EM 單顆粒分析入門</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  <!--
+    this give us a css class that will be invisible only if js is disabled
+  -->
+  <noscript>
+    <style>
+      .pst-js-only { display: none !important; }
+
+    </style>
+  </noscript>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="_static/styles/theme.css?digest=55c26ed414f5f8a31ebb" rel="stylesheet" />
+<link href="_static/styles/pydata-sphinx-theme.css?digest=55c26ed414f5f8a31ebb" rel="stylesheet" />
+
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=03e43079" />
+    <link rel="stylesheet" type="text/css" href="_static/styles/sphinx-book-theme.css?v=3c74b3bc" />
+    <link rel="stylesheet" type="text/css" href="_static/togglebutton.css?v=9c3e77be" />
+    <link rel="stylesheet" type="text/css" href="_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="_static/mystnb.11b39860a7a0cbfd473a3ad8a317855267ff0bd372690045ca344a6b62be495e.css" />
+    <link rel="stylesheet" type="text/css" href="_static/sphinx-thebe.css?v=4fa983c6" />
+    <link rel="stylesheet" type="text/css" href="_static/sphinx-design.min.css?v=95c83b7e" />
+  
+  <!-- So that users can add custom icons -->
+  <script defer src="_static/scripts/fontawesome.js?digest=55c26ed414f5f8a31ebb"></script>
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="_static/scripts/bootstrap.js?digest=55c26ed414f5f8a31ebb" />
+<link rel="preload" as="script" href="_static/scripts/pydata-sphinx-theme.js?digest=55c26ed414f5f8a31ebb" />
+
+    <script src="_static/documentation_options.js?v=9eb32ce0"></script>
+    <script src="_static/doctools.js?v=9a2dae69"></script>
+    <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="_static/clipboard.min.js?v=a7894cd8"></script>
+    <script src="_static/copybutton.js?v=f281be69"></script>
+    <script src="_static/scripts/sphinx-book-theme.js?v=fab101a9"></script>
+    <script>let toggleHintShow = 'Click to show';</script>
+    <script>let toggleHintHide = 'Click to hide';</script>
+    <script>let toggleOpenOnPrint = 'true';</script>
+    <script src="_static/togglebutton.js?v=b8b12719"></script>
+    <script>var togglebuttonSelector = '.toggle, .admonition.dropdown';</script>
+    <script src="_static/design-tabs.js?v=f930bc37"></script>
+    <script>const THEBE_JS_URL = "https://unpkg.com/thebe@0.8.2/lib/index.js"; const thebe_selector = ".thebe,.cell"; const thebe_selector_input = "pre"; const thebe_selector_output = ".output, .cell_output"</script>
+    <script async="async" src="_static/sphinx-thebe.js?v=c100c467"></script>
+    <script>var togglebuttonSelector = '.toggle, .admonition.dropdown';</script>
+    <script>const THEBE_JS_URL = "https://unpkg.com/thebe@0.8.2/lib/index.js"; const thebe_selector = ".thebe,.cell"; const thebe_selector_input = "pre"; const thebe_selector_output = ".output, .cell_output"</script>
+    <script>window.MathJax = {"options": {"processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+    <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = '04_wavelet';</script>
+    <script>DOCUMENTATION_OPTIONS.search_as_you_type = false;</script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Cryo-EM 背景：為什麼要用冷凍電鏡看蛋白質" href="05_background.html" />
+    <link rel="prev" title="頻域影像處理：傅立葉轉換" href="03_fourier.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  <meta name="docsearch:version" content="" />
+  
+    
+    <script src="_static/searchtools.js"></script>
+    <script src="_static/language_data.js"></script>
+    <script src="searchindex.js"></script>
+  
+  </head>
+  <body data-default-mode="">
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+  
+  
+  
+  
+  <dialog id="pst-search-dialog">
+    
+<form class="bd-search d-flex align-items-center"
+      action="search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         placeholder="Search this book..."
+         aria-label="Search this book..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form>
+  </dialog>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header id="pst-header" class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+<div class="bd-header__inner bd-page-width">
+  <button class="pst-navbar-icon sidebar-toggle primary-toggle" aria-label="Site navigation">
+    <span class="fa-solid fa-bars"></span>
+  </button>
+  
+  
+  <div class="col-lg-9 navbar-header-items">
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+        </div>
+      
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+    </div>
+  
+
+  
+    <button class="pst-navbar-icon sidebar-toggle secondary-toggle" aria-label="On this page">
+      <span class="fa-solid fa-outdent"></span>
+    </button>
+  
+</div>
+
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+      <dialog id="pst-primary-sidebar-modal"></dialog>
+      <div id="pst-primary-sidebar" class="bd-sidebar-primary bd-sidebar">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+    
+    
+  </div>
+  
+    <div class="sidebar-primary-items__start sidebar-primary__section">
+        <div class="sidebar-primary-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="00_intro.html">
+  
+  
+  
+  
+  
+  
+    <p class="title logo__title">Cryo-EM 單顆粒分析入門</p>
+  
+</a></div>
+        <div class="sidebar-primary-item">
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button></div>
+        <div class="sidebar-primary-item"><nav class="bd-links bd-docs-nav" aria-label="Main">
+    <div class="bd-toc-item navbar-nav active">
+        
+        <ul class="nav bd-sidenav bd-sidenav__home-link">
+            <li class="toctree-l1">
+                <a class="reference internal" href="00_intro.html">
+                    Cryo-EM 單顆粒分析入門
+                </a>
+            </li>
+        </ul>
+        <ul class="current nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="01_image_basics.html">影像處理基礎：從 NumPy 陣列到幾何變換</a></li>
+<li class="toctree-l1"><a class="reference internal" href="02_filter_segment.html">濾波與影像分割</a></li>
+<li class="toctree-l1"><a class="reference internal" href="03_fourier.html">頻域影像處理：傅立葉轉換</a></li>
+<li class="toctree-l1 current active"><a class="current reference internal" href="#">小波轉換</a></li>
+<li class="toctree-l1"><a class="reference internal" href="05_background.html">Cryo-EM 背景：為什麼要用冷凍電鏡看蛋白質</a></li>
+<li class="toctree-l1"><a class="reference internal" href="06_workflow.html">Cryo-EM 計算流程：從 Movie 到 3D 結構</a></li>
+<li class="toctree-l1"><a class="reference internal" href="07_synthetic_data.html">合成資料的生成</a></li>
+<li class="toctree-l1"><a class="reference internal" href="08_resources.html">延伸資源與下一步</a></li>
+</ul>
+
+    </div>
+</nav></div>
+    </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+      <div class="sidebar-primary-item">
+<div id="ethical-ad-placement"
+      class="flat"
+      data-ea-publisher="readthedocs"
+      data-ea-type="readthedocs-sidebar"
+      data-ea-manual="true">
+</div></div>
+  </div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+
+<div class="sbt-scroll-pixel-helper"></div>
+
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item"><button class="sidebar-toggle primary-toggle btn btn-sm" title="Toggle primary sidebar" data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <span class="fa-solid fa-bars"></span>
+</button></div>
+      
+    </div>
+  
+  
+    <div class="header-article-items__end">
+      
+        <div class="header-article-item">
+
+<div class="article-header-buttons">
+
+
+
+
+
+<div class="dropdown dropdown-download-buttons">
+  <button class="btn dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Download this page">
+    <i class="fas fa-download"></i>
+  </button>
+  <ul class="dropdown-menu">
+      
+      
+      
+      <li><a href="_sources/04_wavelet.ipynb" target="_blank"
+   class="btn btn-sm btn-download-source-button dropdown-item"
+   title="Download source file"
+   data-bs-placement="left" data-bs-toggle="tooltip"
+>
+  
+
+<span class="btn__icon-container">
+  <i class="fas fa-file"></i>
+  </span>
+<span class="btn__text-container">.ipynb</span>
+</a>
+</li>
+      
+      
+      
+      
+      <li>
+<button onclick="window.print()"
+  class="btn btn-sm btn-download-pdf-button dropdown-item"
+  title="Print to PDF"
+  data-bs-placement="left" data-bs-toggle="tooltip"
+>
+  
+
+<span class="btn__icon-container">
+  <i class="fas fa-file-pdf"></i>
+  </span>
+<span class="btn__text-container">.pdf</span>
+</button>
+</li>
+      
+  </ul>
+</div>
+
+
+
+
+<button onclick="toggleFullScreen()"
+  class="btn btn-sm btn-fullscreen-button pst-navbar-icon"
+  title="Fullscreen mode"
+  data-bs-placement="bottom" data-bs-toggle="tooltip"
+>
+  
+
+<span class="btn__icon-container">
+  <i class="fas fa-expand"></i>
+  </span>
+
+</button>
+
+
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button>
+
+
+<button class="btn btn-sm pst-navbar-icon search-button search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <i class="fa-solid fa-magnifying-glass fa-lg"></i>
+</button>
+<button class="sidebar-toggle secondary-toggle btn btn-sm pst-navbar-icon" title="Toggle secondary sidebar" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <span class="fa-solid fa-list"></span>
+</button>
+</div></div>
+      
+    </div>
+  
+</div>
+</div>
+              
+              
+
+<div id="jb-print-docs-body" class="onlyprint">
+    <h1>小波轉換</h1>
+    <!-- Table of contents -->
+    <div id="print-main-content">
+        <div id="jb-print-toc">
+            
+            <div>
+                <h2> Contents </h2>
+            </div>
+            <nav aria-label="Page">
+                <ul class="pst-show_toc_level nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#id2">傅立葉轉換的時間—頻率限制</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#id3">小波轉換：兼顧時間與頻率解析度</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#db-sym-coif">小波家族：db／sym／coif 等</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#dwt">離散小波轉換（DWT）：多階分解</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#id4">閾值化去噪</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#dwt-ll-lh-hl-hh">二維 DWT：LL/LH/HL/HH 四個子帶</a></li>
+</ul>
+            </nav>
+        </div>
+    </div>
+</div>
+
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <section class="tex2jax_ignore mathjax_ignore" id="id1">
+<h1>小波轉換<a class="headerlink" href="#id1" title="Link to this heading">#</a></h1>
+<div class="important admonition">
+<p class="admonition-title">本章重點</p>
+<ul class="simple">
+<li><p>傅立葉轉換在頻率解析度與時間解析度之間的取捨，以及為何我們需要小波轉換</p></li>
+<li><p>小波的基本概念：一個「母小波（mother wavelet）」透過尺度（scale）與平移（translation）產生一整族基底函數</p></li>
+<li><p>離散小波轉換（DWT）如何把訊號逐階分解成近似（approximation）與細節（detail）係數</p></li>
+<li><p>利用小波係數的閾值化（thresholding）對訊號或影像進行去噪</p></li>
+<li><p>二維 DWT 的四個子帶（LL/LH/HL/HH）如何分別捕捉影像的低頻輪廓與不同方向的細節，並銜接到低訊噪比的 cryo-EM 影像處理</p></li>
+</ul>
+</div>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">matplotlib.pyplot</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">plt</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">skimage</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">ski</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">pywt</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">skimage.restoration</span><span class="w"> </span><span class="kn">import</span> <span class="n">denoise_wavelet</span><span class="p">,</span> <span class="n">estimate_sigma</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">skimage.metrics</span><span class="w"> </span><span class="kn">import</span> <span class="n">peak_signal_noise_ratio</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">skimage.util</span><span class="w"> </span><span class="kn">import</span> <span class="n">random_noise</span>
+
+<span class="n">plt</span><span class="o">.</span><span class="n">rcParams</span><span class="p">[</span><span class="s2">&quot;image.cmap&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;gray&quot;</span>
+<span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">seed</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+</div>
+<section id="id2">
+<h2>傅立葉轉換的時間—頻率限制<a class="headerlink" href="#id2" title="Link to this heading">#</a></h2>
+<p>上一章的傅立葉轉換有個很強的特性：它能精確告訴我們一個訊號裡「有哪些頻率」，卻完全無法告訴我們「這些頻率出現在什麼時間」。也就是說，傅立葉轉換在<strong>頻率域有高解析度，但在時間域解析度為零</strong>。</p>
+<p>下面用一個例子說明：訊號 A 同時、全程包含 4、30、60、90 Hz 四種頻率；訊號 B 則是把同樣四個頻率依序切成四段、各自只出現在自己的時間區間內。兩個訊號在時間域看起來完全不同，但它們的振幅頻譜卻幾乎一樣——傅立葉轉換沒辦法分辨這兩種情況。</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">fs</span> <span class="o">=</span> <span class="mi">200</span>  <span class="c1"># 取樣率 [Hz]</span>
+<span class="n">t</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">fs</span><span class="p">,</span> <span class="n">endpoint</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+<span class="n">freqs</span> <span class="o">=</span> <span class="p">[</span><span class="mi">4</span><span class="p">,</span> <span class="mi">30</span><span class="p">,</span> <span class="mi">60</span><span class="p">,</span> <span class="mi">90</span><span class="p">]</span>
+
+<span class="c1"># 訊號 A：四個頻率全程同時存在</span>
+<span class="n">signal_const</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">*</span> <span class="n">fr</span> <span class="o">*</span> <span class="n">t</span><span class="p">)</span> <span class="k">for</span> <span class="n">fr</span> <span class="ow">in</span> <span class="n">freqs</span><span class="p">)</span>
+
+<span class="c1"># 訊號 B：四個頻率依序各佔訊號的四分之一</span>
+<span class="n">signal_seq</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">t</span><span class="p">)</span>
+<span class="n">quarter</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">t</span><span class="p">)</span> <span class="o">//</span> <span class="mi">4</span>
+<span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">fr</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">freqs</span><span class="p">):</span>
+    <span class="n">seg</span> <span class="o">=</span> <span class="nb">slice</span><span class="p">(</span><span class="n">i</span> <span class="o">*</span> <span class="n">quarter</span><span class="p">,</span> <span class="p">(</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="n">quarter</span><span class="p">)</span>
+    <span class="n">signal_seq</span><span class="p">[</span><span class="n">seg</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">*</span> <span class="n">fr</span> <span class="o">*</span> <span class="n">t</span><span class="p">[</span><span class="n">seg</span><span class="p">])</span>
+
+<span class="n">freq_axis</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">fft</span><span class="o">.</span><span class="n">rfftfreq</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">t</span><span class="p">),</span> <span class="n">d</span><span class="o">=</span><span class="mi">1</span> <span class="o">/</span> <span class="n">fs</span><span class="p">)</span>
+
+<span class="n">fig</span><span class="p">,</span> <span class="n">axes</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">10</span><span class="p">,</span> <span class="mi">6</span><span class="p">))</span>
+<span class="n">axes</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">signal_const</span><span class="p">)</span>
+<span class="n">axes</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="s2">&quot;Signal A: 4 freqs, present throughout&quot;</span><span class="p">)</span>
+<span class="n">axes</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">freq_axis</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">fft</span><span class="o">.</span><span class="n">rfft</span><span class="p">(</span><span class="n">signal_const</span><span class="p">)))</span>
+<span class="n">axes</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="s2">&quot;Spectrum of A&quot;</span><span class="p">)</span>
+<span class="n">axes</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">signal_seq</span><span class="p">)</span>
+<span class="n">axes</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="s2">&quot;Signal B: 4 freqs, one per quarter&quot;</span><span class="p">)</span>
+<span class="n">axes</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">freq_axis</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">fft</span><span class="o">.</span><span class="n">rfft</span><span class="p">(</span><span class="n">signal_seq</span><span class="p">)))</span>
+<span class="n">axes</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="s2">&quot;Spectrum of B&quot;</span><span class="p">)</span>
+<span class="k">for</span> <span class="n">ax</span> <span class="ow">in</span> <span class="n">axes</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">]:</span>
+    <span class="n">ax</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="s2">&quot;Time [s]&quot;</span><span class="p">)</span>
+<span class="k">for</span> <span class="n">ax</span> <span class="ow">in</span> <span class="n">axes</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">]:</span>
+    <span class="n">ax</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="s2">&quot;Frequency [Hz]&quot;</span><span class="p">)</span>
+    <span class="n">ax</span><span class="o">.</span><span class="n">set_xlim</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">100</span><span class="p">)</span>
+<span class="n">fig</span><span class="o">.</span><span class="n">tight_layout</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<img alt="_images/8e2e407ee4ca2112484355b868a38accb3af1b910174acd39938abf930458ee5.png" src="_images/8e2e407ee4ca2112484355b868a38accb3af1b910174acd39938abf930458ee5.png" />
+</div>
+</div>
+<p>兩張頻譜圖幾乎相同——都在 4、30、60、90 Hz 附近出現尖峰——但左邊的時間域波形卻明顯不同。這正是傅立葉轉換的根本限制：它只能回答「有哪些頻率」，回答不了「頻率出現在何時」。</p>
+<p>一個折衷方案是<strong>短時傅立葉轉換（Short-Time Fourier Transform, STFT）</strong>：用一個滑動視窗把訊號切成許多小段，再對每一段分別做傅立葉轉換。但視窗長度一旦固定，時間解析度與頻率解析度的取捨就也跟著固定了——想要更精細的時間定位，就得犧牲頻率解析度，反之亦然。</p>
+</section>
+<section id="id3">
+<h2>小波轉換：兼顧時間與頻率解析度<a class="headerlink" href="#id3" title="Link to this heading">#</a></h2>
+<p><strong>小波轉換（Wavelet Transform）</strong> 用不同「尺度（scale）」的小波，同時提供時間與頻率解析度：先用較大的尺度（小波「拉長」）觀察訊號的整體、低頻特徵，再用較小的尺度（小波「壓縮」）觀察局部、高頻的細節。</p>
+<p>小波轉換的核心是一個<strong>母小波（mother wavelet）</strong> <span class="math notranslate nohighlight">\(\psi(t)\)</span>——一個能量集中在有限時間範圍內的小波形（相較之下，正弦波從 <span class="math notranslate nohighlight">\(-\infty\)</span> 延伸到 <span class="math notranslate nohighlight">\(+\infty\)</span>，完全沒有時間局部性）。透過縮放（scale, <span class="math notranslate nohighlight">\(a\)</span>）與平移（translation, <span class="math notranslate nohighlight">\(b\)</span>），母小波可以產生一整族基底函數，並與訊號逐一比對相似度，這就是<strong>連續小波轉換（Continuous Wavelet Transform, CWT）</strong>：</p>
+<div class="math notranslate nohighlight">
+\[W(a, b) = \frac{1}{\sqrt{|a|}} \int_{-\infty}^{\infty} h(t)\, \psi^*\!\left(\frac{t-b}{a}\right) dt\]</div>
+<p>由於一維訊號經過 CWT 後，輸出同時含有尺度（scale，等同於頻率的倒數）與位移兩個維度，結果通常畫成二維的<strong>尺度圖（scaleogram）</strong>。</p>
+<p>當我們把 <span class="math notranslate nohighlight">\(a\)</span>、<span class="math notranslate nohighlight">\(b\)</span> 限制為離散值——尺度以 2 的冪次遞增（<span class="math notranslate nohighlight">\(a = 1, 2, 4, \dots\)</span>）、平移取整數——就得到了<strong>離散小波轉換（Discrete Wavelet Transform, DWT）</strong>，也是本章後續實作的重點。</p>
+</section>
+<section id="db-sym-coif">
+<h2>小波家族：db／sym／coif 等<a class="headerlink" href="#db-sym-coif" title="Link to this heading">#</a></h2>
+<p>傅立葉轉換只用正弦、餘弦兩種基底，但小波轉換存在<strong>許多不同的小波家族</strong>，每個家族在「緊緻性（compactness）」與「平滑度（smoothness）」之間做了不同的取捨，因此可依訊號特性挑選最合適的小波。Python 中最常用的實作是 <a class="reference external" href="https://pywavelets.readthedocs.io/en/latest/"><code class="docutils literal notranslate"><span class="pre">PyWavelets</span></code></a> 套件。一個合格的小波必須滿足兩個條件：<strong>能量有限</strong>（訊號在時間上是局部化的）且<strong>平均值為零</strong>（在零頻率處沒有直流分量），這也是它與一般濾波核最大的不同之處。</p>
+<p>下面畫出幾種常見的離散小波（Daubechies, Symlets, Coiflets, Biorthogonal）與連續小波（Mexican hat, Morlet, Gaussian derivative）的波形。</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">def</span><span class="w"> </span><span class="nf">get_mother_wavelet</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">continuous</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">continuous</span><span class="p">:</span>
+        <span class="n">wavelet</span> <span class="o">=</span> <span class="n">pywt</span><span class="o">.</span><span class="n">ContinuousWavelet</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
+        <span class="n">out</span> <span class="o">=</span> <span class="n">wavelet</span><span class="o">.</span><span class="n">wavefun</span><span class="p">()</span>
+        <span class="n">psi</span><span class="p">,</span> <span class="n">x</span> <span class="o">=</span> <span class="n">out</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">out</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>  <span class="c1"># continuous: (psi, x)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">wavelet</span> <span class="o">=</span> <span class="n">pywt</span><span class="o">.</span><span class="n">Wavelet</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
+        <span class="n">out</span> <span class="o">=</span> <span class="n">wavelet</span><span class="o">.</span><span class="n">wavefun</span><span class="p">()</span>
+        <span class="n">psi</span><span class="p">,</span> <span class="n">x</span> <span class="o">=</span> <span class="n">out</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">out</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>  <span class="c1"># discrete: (phi, psi, ..., x); psi 固定在 index 1</span>
+    <span class="k">return</span> <span class="n">x</span><span class="p">,</span> <span class="n">psi</span><span class="p">,</span> <span class="n">wavelet</span><span class="o">.</span><span class="n">family_name</span>
+
+<span class="n">discrete_wavelets</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;db5&quot;</span><span class="p">,</span> <span class="s2">&quot;sym5&quot;</span><span class="p">,</span> <span class="s2">&quot;coif5&quot;</span><span class="p">,</span> <span class="s2">&quot;bior2.4&quot;</span><span class="p">]</span>
+<span class="n">continuous_wavelets</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;mexh&quot;</span><span class="p">,</span> <span class="s2">&quot;morl&quot;</span><span class="p">,</span> <span class="s2">&quot;gaus3&quot;</span><span class="p">,</span> <span class="s2">&quot;gaus5&quot;</span><span class="p">]</span>
+
+<span class="n">fig</span><span class="p">,</span> <span class="n">axarr</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="n">nrows</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">ncols</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span> <span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">14</span><span class="p">,</span> <span class="mi">6</span><span class="p">))</span>
+<span class="k">for</span> <span class="n">col</span><span class="p">,</span> <span class="n">name</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">discrete_wavelets</span><span class="p">):</span>
+    <span class="n">x</span><span class="p">,</span> <span class="n">psi</span><span class="p">,</span> <span class="n">family</span> <span class="o">=</span> <span class="n">get_mother_wavelet</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">continuous</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+    <span class="n">axarr</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="n">col</span><span class="p">]</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">psi</span><span class="p">)</span>
+    <span class="n">axarr</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="n">col</span><span class="p">]</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="n">family</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">11</span><span class="p">)</span>
+    <span class="n">axarr</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="n">col</span><span class="p">]</span><span class="o">.</span><span class="n">set_yticks</span><span class="p">([])</span>
+<span class="n">axarr</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s2">&quot;Discrete wavelets&quot;</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">12</span><span class="p">)</span>
+
+<span class="k">for</span> <span class="n">col</span><span class="p">,</span> <span class="n">name</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">continuous_wavelets</span><span class="p">):</span>
+    <span class="n">x</span><span class="p">,</span> <span class="n">psi</span><span class="p">,</span> <span class="n">family</span> <span class="o">=</span> <span class="n">get_mother_wavelet</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">continuous</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">axarr</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="n">col</span><span class="p">]</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">psi</span><span class="p">)</span>
+    <span class="n">axarr</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="n">col</span><span class="p">]</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="n">family</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">11</span><span class="p">)</span>
+    <span class="n">axarr</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="n">col</span><span class="p">]</span><span class="o">.</span><span class="n">set_yticks</span><span class="p">([])</span>
+<span class="n">axarr</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s2">&quot;Continuous wavelets&quot;</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">12</span><span class="p">)</span>
+<span class="n">fig</span><span class="o">.</span><span class="n">tight_layout</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<img alt="_images/c8a6459c9722648759f2fb30da3401284854e20921b25b2652ad2fcc2c2a8978.png" src="_images/c8a6459c9722648759f2fb30da3401284854e20921b25b2652ad2fcc2c2a8978.png" />
+</div>
+</div>
+<p>同一個家族內還可以有不同的「階數」，例如 Daubechies 的 db1、db2、db3……階數越高，<strong>消失矩（vanishing moments）</strong> 越多，小波也越平滑，但support（非零範圍）也越長。此外，選定小波後還要決定<strong>分解階數（decomposition level）</strong>：階數越高，小波被拉伸得越開，用來表示它的取樣點也越多。</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">db_names</span> <span class="o">=</span> <span class="n">pywt</span><span class="o">.</span><span class="n">wavelist</span><span class="p">(</span><span class="s2">&quot;db&quot;</span><span class="p">)[:</span><span class="mi">3</span><span class="p">]</span>  <span class="c1"># db1, db2, db3</span>
+<span class="n">levels</span> <span class="o">=</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">5</span><span class="p">]</span>
+
+<span class="n">fig</span><span class="p">,</span> <span class="n">axarr</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="n">nrows</span><span class="o">=</span><span class="nb">len</span><span class="p">(</span><span class="n">levels</span><span class="p">),</span> <span class="n">ncols</span><span class="o">=</span><span class="nb">len</span><span class="p">(</span><span class="n">db_names</span><span class="p">),</span> <span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">10</span><span class="p">,</span> <span class="mi">8</span><span class="p">))</span>
+<span class="n">fig</span><span class="o">.</span><span class="n">suptitle</span><span class="p">(</span><span class="s2">&quot;Daubechies wavelets: order vs. decomposition level&quot;</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">14</span><span class="p">)</span>
+<span class="k">for</span> <span class="n">col</span><span class="p">,</span> <span class="n">name</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">db_names</span><span class="p">):</span>
+    <span class="n">wavelet</span> <span class="o">=</span> <span class="n">pywt</span><span class="o">.</span><span class="n">Wavelet</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
+    <span class="n">n_moments</span> <span class="o">=</span> <span class="n">wavelet</span><span class="o">.</span><span class="n">vanishing_moments_psi</span>
+    <span class="k">for</span> <span class="n">row</span><span class="p">,</span> <span class="n">level</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">levels</span><span class="p">):</span>
+        <span class="n">_</span><span class="p">,</span> <span class="n">psi</span><span class="p">,</span> <span class="n">x</span> <span class="o">=</span> <span class="n">wavelet</span><span class="o">.</span><span class="n">wavefun</span><span class="p">(</span><span class="n">level</span><span class="o">=</span><span class="n">level</span><span class="p">)</span>
+        <span class="n">axarr</span><span class="p">[</span><span class="n">row</span><span class="p">,</span> <span class="n">col</span><span class="p">]</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">psi</span><span class="p">)</span>
+        <span class="n">axarr</span><span class="p">[</span><span class="n">row</span><span class="p">,</span> <span class="n">col</span><span class="p">]</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">, level=</span><span class="si">{</span><span class="n">level</span><span class="si">}</span><span class="se">\n</span><span class="si">{</span><span class="n">n_moments</span><span class="si">}</span><span class="s2"> vanishing moments&quot;</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">9</span>
+        <span class="p">)</span>
+        <span class="n">axarr</span><span class="p">[</span><span class="n">row</span><span class="p">,</span> <span class="n">col</span><span class="p">]</span><span class="o">.</span><span class="n">set_yticks</span><span class="p">([])</span>
+<span class="n">fig</span><span class="o">.</span><span class="n">tight_layout</span><span class="p">()</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">subplots_adjust</span><span class="p">(</span><span class="n">top</span><span class="o">=</span><span class="mf">0.9</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<img alt="_images/176fff73aba29ccf7636507ee6fd96444aba88ec05f84c685d5144b13f0a561a.png" src="_images/176fff73aba29ccf7636507ee6fd96444aba88ec05f84c685d5144b13f0a561a.png" />
+</div>
+</div>
+</section>
+<section id="dwt">
+<h2>離散小波轉換（DWT）：多階分解<a class="headerlink" href="#dwt" title="Link to this heading">#</a></h2>
+<p>對訊號套用 DWT，會把它拆成一組<strong>近似係數（approximation coefficients, cA）</strong>——代表訊號的低頻、粗略結構——以及一組<strong>細節係數（detail coefficients, cD）</strong>——代表高頻的局部變化。<code class="docutils literal notranslate"><span class="pre">PyWavelets</span></code> 提供兩種做法：</p>
+<ol class="arabic simple">
+<li><p>用 <code class="docutils literal notranslate"><span class="pre">pywt.dwt()</span></code> 做<strong>單階</strong>分解，取得 <span class="math notranslate nohighlight">\((cA_1, cD_1)\)</span>；如果想繼續分解，可以再對 <span class="math notranslate nohighlight">\(cA_1\)</span> 呼叫一次 <code class="docutils literal notranslate"><span class="pre">dwt()</span></code>，逐階往下。</p></li>
+<li><p>用 <code class="docutils literal notranslate"><span class="pre">pywt.wavedec()</span></code> 一次做<strong>多階</strong>分解，直接取得最終近似係數與每一階的細節係數；<code class="docutils literal notranslate"><span class="pre">pywt.waverec()</span></code> 則是它的反轉換。</p></li>
+</ol>
+<p>下面用一段心電圖（ECG）訊號示範，並驗證分解後再重建，可以幾乎完美地拿回原始訊號。</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">ecg</span> <span class="o">=</span> <span class="n">pywt</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">ecg</span><span class="p">()</span>
+
+<span class="n">cA1</span><span class="p">,</span> <span class="n">cD1</span> <span class="o">=</span> <span class="n">pywt</span><span class="o">.</span><span class="n">dwt</span><span class="p">(</span><span class="n">ecg</span><span class="p">,</span> <span class="s2">&quot;db4&quot;</span><span class="p">)</span>
+<span class="n">reconstructed_1level</span> <span class="o">=</span> <span class="n">pywt</span><span class="o">.</span><span class="n">idwt</span><span class="p">(</span><span class="n">cA1</span><span class="p">,</span> <span class="n">cD1</span><span class="p">,</span> <span class="s2">&quot;db4&quot;</span><span class="p">)</span>
+
+<span class="n">coeffs</span> <span class="o">=</span> <span class="n">pywt</span><span class="o">.</span><span class="n">wavedec</span><span class="p">(</span><span class="n">ecg</span><span class="p">,</span> <span class="s2">&quot;db4&quot;</span><span class="p">,</span> <span class="n">level</span><span class="o">=</span><span class="mi">5</span><span class="p">)</span>
+<span class="n">reconstructed_multilevel</span> <span class="o">=</span> <span class="n">pywt</span><span class="o">.</span><span class="n">waverec</span><span class="p">(</span><span class="n">coeffs</span><span class="p">,</span> <span class="s2">&quot;db4&quot;</span><span class="p">)</span>
+
+<span class="n">fig</span><span class="p">,</span> <span class="n">axes</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">9</span><span class="p">,</span> <span class="mi">6</span><span class="p">))</span>
+<span class="n">axes</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">ecg</span><span class="p">[:</span><span class="mi">512</span><span class="p">],</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;original&quot;</span><span class="p">)</span>
+<span class="n">axes</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">reconstructed_1level</span><span class="p">[:</span><span class="mi">512</span><span class="p">],</span> <span class="s2">&quot;--&quot;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;1-level dwt/idwt&quot;</span><span class="p">)</span>
+<span class="n">axes</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">legend</span><span class="p">(</span><span class="n">loc</span><span class="o">=</span><span class="s2">&quot;upper right&quot;</span><span class="p">)</span>
+<span class="n">axes</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="s2">&quot;Single-level DWT reconstruction&quot;</span><span class="p">)</span>
+
+<span class="n">axes</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">ecg</span><span class="p">[:</span><span class="mi">512</span><span class="p">],</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;original&quot;</span><span class="p">)</span>
+<span class="n">axes</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">reconstructed_multilevel</span><span class="p">[:</span><span class="mi">512</span><span class="p">],</span> <span class="s2">&quot;--&quot;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;5-level wavedec/waverec&quot;</span><span class="p">)</span>
+<span class="n">axes</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">legend</span><span class="p">(</span><span class="n">loc</span><span class="o">=</span><span class="s2">&quot;upper right&quot;</span><span class="p">)</span>
+<span class="n">axes</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="s2">&quot;Multi-level DWT reconstruction&quot;</span><span class="p">)</span>
+<span class="n">fig</span><span class="o">.</span><span class="n">tight_layout</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<img alt="_images/b652fb0ea56a34f6099356d356bb6cc91d068170e35e32a4235e91db01e13af2.png" src="_images/b652fb0ea56a34f6099356d356bb6cc91d068170e35e32a4235e91db01e13af2.png" />
+</div>
+</div>
+</section>
+<section id="id4">
+<h2>閾值化去噪<a class="headerlink" href="#id4" title="Link to this heading">#</a></h2>
+<p>由於細節係數對應訊號中的高頻成分，如果訊號中混有高頻雜訊，我們可以先做多階 DWT 分解，把數值較小的細節係數視為雜訊、用 <code class="docutils literal notranslate"><span class="pre">pywt.threshold()</span></code> 將它們「軟閾值化（soft-threshold）」——也就是把小於門檻值的係數收縮或歸零——再重建訊號，就能達到去噪的效果，而且不太會傷害訊號中真正的大尺度結構。</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">def</span><span class="w"> </span><span class="nf">wavelet_denoise</span><span class="p">(</span><span class="n">sig</span><span class="p">,</span> <span class="n">wavelet</span><span class="o">=</span><span class="s2">&quot;db4&quot;</span><span class="p">,</span> <span class="n">threshold_ratio</span><span class="o">=</span><span class="mf">0.1</span><span class="p">):</span>
+    <span class="n">coeffs</span> <span class="o">=</span> <span class="n">pywt</span><span class="o">.</span><span class="n">wavedec</span><span class="p">(</span><span class="n">sig</span><span class="p">,</span> <span class="n">wavelet</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;per&quot;</span><span class="p">)</span>
+    <span class="n">threshold</span> <span class="o">=</span> <span class="n">threshold_ratio</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">nanmax</span><span class="p">(</span><span class="n">sig</span><span class="p">)</span>
+    <span class="n">coeffs</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span> <span class="o">=</span> <span class="p">[</span><span class="n">pywt</span><span class="o">.</span><span class="n">threshold</span><span class="p">(</span><span class="n">c</span><span class="p">,</span> <span class="n">value</span><span class="o">=</span><span class="n">threshold</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;soft&quot;</span><span class="p">)</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">coeffs</span><span class="p">[</span><span class="mi">1</span><span class="p">:]]</span>
+    <span class="k">return</span> <span class="n">pywt</span><span class="o">.</span><span class="n">waverec</span><span class="p">(</span><span class="n">coeffs</span><span class="p">,</span> <span class="n">wavelet</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;per&quot;</span><span class="p">)</span>
+
+<span class="n">x</span> <span class="o">=</span> <span class="n">pywt</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">ecg</span><span class="p">()</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">float</span><span class="p">)</span> <span class="o">/</span> <span class="mi">256</span>
+<span class="n">sigma</span> <span class="o">=</span> <span class="mf">0.05</span>
+<span class="n">x_noisy</span> <span class="o">=</span> <span class="n">x</span> <span class="o">+</span> <span class="n">sigma</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">randn</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">size</span><span class="p">)</span>
+<span class="n">x_denoised</span> <span class="o">=</span> <span class="n">wavelet_denoise</span><span class="p">(</span><span class="n">x_noisy</span><span class="p">,</span> <span class="n">threshold_ratio</span><span class="o">=</span><span class="mf">0.1</span><span class="p">)</span>
+
+<span class="n">fig</span><span class="p">,</span> <span class="n">ax</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">9</span><span class="p">,</span> <span class="mi">4</span><span class="p">))</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">x_noisy</span><span class="p">[:</span><span class="mi">512</span><span class="p">],</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;noisy&quot;</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.6</span><span class="p">)</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">x_denoised</span><span class="p">[:</span><span class="mi">512</span><span class="p">],</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;wavelet-denoised (soft threshold)&quot;</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">legend</span><span class="p">()</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="s2">&quot;Denoising via DWT coefficient thresholding&quot;</span><span class="p">)</span>
+<span class="n">fig</span><span class="o">.</span><span class="n">tight_layout</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<img alt="_images/2fecbdf3580b85fc06f2b7ca8af66be5fcb7299f8a7060d8d838625e35fa5289.png" src="_images/2fecbdf3580b85fc06f2b7ca8af66be5fcb7299f8a7060d8d838625e35fa5289.png" />
+</div>
+</div>
+</section>
+<section id="dwt-ll-lh-hl-hh">
+<h2>二維 DWT：LL/LH/HL/HH 四個子帶<a class="headerlink" href="#dwt-ll-lh-hl-hh" title="Link to this heading">#</a></h2>
+<p>二維訊號（影像）的 DWT，可以看成先對每一列做一維 DWT，再對每一欄做一維 DWT，最後得到四個子帶：</p>
+<ul class="simple">
+<li><p><strong>LL（近似）</strong>：水平、垂直方向都是低通——影像的整體輪廓與平均亮度。</p></li>
+<li><p><strong>LH（水平細節）</strong>：水平方向低通、垂直方向高通——主要對應<strong>水平邊緣</strong>。</p></li>
+<li><p><strong>HL（垂直細節）</strong>：垂直方向低通、水平方向高通——主要對應<strong>垂直邊緣</strong>。</p></li>
+<li><p><strong>HH（對角細節）</strong>：兩個方向都是高通——主要對應<strong>對角邊緣與高頻紋理</strong>。</p></li>
+</ul>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">image</span> <span class="o">=</span> <span class="n">ski</span><span class="o">.</span><span class="n">util</span><span class="o">.</span><span class="n">img_as_float</span><span class="p">(</span><span class="n">ski</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">camera</span><span class="p">())</span>
+<span class="n">LL</span><span class="p">,</span> <span class="p">(</span><span class="n">LH</span><span class="p">,</span> <span class="n">HL</span><span class="p">,</span> <span class="n">HH</span><span class="p">)</span> <span class="o">=</span> <span class="n">pywt</span><span class="o">.</span><span class="n">dwt2</span><span class="p">(</span><span class="n">image</span><span class="p">,</span> <span class="s2">&quot;bior1.3&quot;</span><span class="p">)</span>
+<span class="n">titles</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;Approximation (LL)&quot;</span><span class="p">,</span> <span class="s2">&quot;Horizontal detail (LH)&quot;</span><span class="p">,</span> <span class="s2">&quot;Vertical detail (HL)&quot;</span><span class="p">,</span> <span class="s2">&quot;Diagonal detail (HH)&quot;</span><span class="p">]</span>
+
+<span class="n">fig</span><span class="p">,</span> <span class="n">axes</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">14</span><span class="p">,</span> <span class="mi">4</span><span class="p">))</span>
+<span class="k">for</span> <span class="n">ax</span><span class="p">,</span> <span class="n">band</span><span class="p">,</span> <span class="n">title</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">axes</span><span class="p">,</span> <span class="p">[</span><span class="n">LL</span><span class="p">,</span> <span class="n">LH</span><span class="p">,</span> <span class="n">HL</span><span class="p">,</span> <span class="n">HH</span><span class="p">],</span> <span class="n">titles</span><span class="p">):</span>
+    <span class="n">ax</span><span class="o">.</span><span class="n">imshow</span><span class="p">(</span><span class="n">band</span><span class="p">,</span> <span class="n">cmap</span><span class="o">=</span><span class="s2">&quot;gray&quot;</span><span class="p">)</span>
+    <span class="n">ax</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="n">title</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">11</span><span class="p">)</span>
+    <span class="n">ax</span><span class="o">.</span><span class="n">axis</span><span class="p">(</span><span class="s2">&quot;off&quot;</span><span class="p">)</span>
+<span class="n">fig</span><span class="o">.</span><span class="n">tight_layout</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<img alt="_images/4455801a63a2fba5966452a3f403f6dcfa24878751ddfc5ce7be96d7a8cff943.png" src="_images/4455801a63a2fba5966452a3f403f6dcfa24878751ddfc5ce7be96d7a8cff943.png" />
+</div>
+</div>
+<p>和一維情形一樣，二維 DWT 的細節子帶也可以用閾值化去噪。下面對影像加入高斯雜訊，再用 <code class="docutils literal notranslate"><span class="pre">scikit-image</span></code> 內建的 <code class="docutils literal notranslate"><span class="pre">denoise_wavelet</span></code>（採用 BayesShrink 方法，自動為每個子帶估計適合的閾值）進行去噪，並用 PSNR 定量比較去噪前後的品質。</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">original</span> <span class="o">=</span> <span class="n">ski</span><span class="o">.</span><span class="n">util</span><span class="o">.</span><span class="n">img_as_float</span><span class="p">(</span><span class="n">ski</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">camera</span><span class="p">())</span>
+<span class="n">sigma_noise</span> <span class="o">=</span> <span class="mf">0.15</span>
+<span class="n">noisy</span> <span class="o">=</span> <span class="n">random_noise</span><span class="p">(</span><span class="n">original</span><span class="p">,</span> <span class="n">var</span><span class="o">=</span><span class="n">sigma_noise</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span>
+
+<span class="n">sigma_est</span> <span class="o">=</span> <span class="n">estimate_sigma</span><span class="p">(</span><span class="n">noisy</span><span class="p">)</span>
+<span class="n">denoised</span> <span class="o">=</span> <span class="n">denoise_wavelet</span><span class="p">(</span>
+    <span class="n">noisy</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="s2">&quot;BayesShrink&quot;</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;soft&quot;</span><span class="p">,</span> <span class="n">wavelet</span><span class="o">=</span><span class="s2">&quot;db4&quot;</span><span class="p">,</span> <span class="n">rescale_sigma</span><span class="o">=</span><span class="kc">True</span>
+<span class="p">)</span>
+
+<span class="n">psnr_noisy</span> <span class="o">=</span> <span class="n">peak_signal_noise_ratio</span><span class="p">(</span><span class="n">original</span><span class="p">,</span> <span class="n">noisy</span><span class="p">)</span>
+<span class="n">psnr_denoised</span> <span class="o">=</span> <span class="n">peak_signal_noise_ratio</span><span class="p">(</span><span class="n">original</span><span class="p">,</span> <span class="n">denoised</span><span class="p">)</span>
+
+<span class="n">fig</span><span class="p">,</span> <span class="n">axes</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">12</span><span class="p">,</span> <span class="mi">4</span><span class="p">))</span>
+<span class="n">axes</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">imshow</span><span class="p">(</span><span class="n">original</span><span class="p">)</span>
+<span class="n">axes</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="s2">&quot;Original&quot;</span><span class="p">)</span>
+<span class="n">axes</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">axis</span><span class="p">(</span><span class="s2">&quot;off&quot;</span><span class="p">)</span>
+<span class="n">axes</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">imshow</span><span class="p">(</span><span class="n">noisy</span><span class="p">)</span>
+<span class="n">axes</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Noisy</span><span class="se">\n</span><span class="s2">PSNR=</span><span class="si">{</span><span class="n">psnr_noisy</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2"> dB&quot;</span><span class="p">)</span>
+<span class="n">axes</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">axis</span><span class="p">(</span><span class="s2">&quot;off&quot;</span><span class="p">)</span>
+<span class="n">axes</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span><span class="o">.</span><span class="n">imshow</span><span class="p">(</span><span class="n">denoised</span><span class="p">)</span>
+<span class="n">axes</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Wavelet denoised (BayesShrink)</span><span class="se">\n</span><span class="s2">PSNR=</span><span class="si">{</span><span class="n">psnr_denoised</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2"> dB&quot;</span><span class="p">)</span>
+<span class="n">axes</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span><span class="o">.</span><span class="n">axis</span><span class="p">(</span><span class="s2">&quot;off&quot;</span><span class="p">)</span>
+<span class="n">fig</span><span class="o">.</span><span class="n">tight_layout</span><span class="p">()</span>
+
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;估計的雜訊標準差 (estimate_sigma): </span><span class="si">{</span><span class="n">sigma_est</span><span class="si">:</span><span class="s2">.4f</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>估計的雜訊標準差 (estimate_sigma): 0.1359
+</pre></div>
+</div>
+<img alt="_images/3f00db2788dda3fa2e4d1caed896d951307c56ab46c02e748a6d5bd4dfbdb24b.png" src="_images/3f00db2788dda3fa2e4d1caed896d951307c56ab46c02e748a6d5bd4dfbdb24b.png" />
+</div>
+</div>
+<div class="note admonition">
+<p class="admonition-title">與 cryo-EM 的連結</p>
+<p>Cryo-EM 顆粒影像的訊噪比（SNR）通常極低——為了避免電子束損傷樣品，實驗上必須把電子劑量壓得很低，代價就是影像中真實訊號往往被雜訊淹沒。小波去噪正好對症下藥：真實的結構訊號主要落在少數幾個較大的小波係數上，而雜訊則分散在許多細節係數中且數值普遍偏小，因此閾值化能在盡量保留結構的前提下壓低雜訊，是顆粒影像前處理與可視化時常見的增強手法之一。</p>
+<p>更重要的是<strong>多尺度分解</strong>這個概念本身，會在後續章節反覆出現：一個蛋白質顆粒的不同結構特徵，本來就分布在不同的空間尺度上——分子整體的外形輪廓是低頻、粗尺度的資訊，而二級結構、螺旋溝槽等細節則是高頻、細尺度的資訊。無論是小波的多階分解，或是稍後會看到的多重解析度重建策略，核心想法都是一致的：先在粗尺度上掌握大致的形狀，再逐步加入細尺度的細節，而不是一開始就企圖在單一尺度上解決所有問題。</p>
+</div>
+</section>
+</section>
+
+    <script type="text/x-thebe-config">
+    {
+        requestKernel: true,
+        binderOptions: {
+            repo: "binder-examples/jupyter-stacks-datascience",
+            ref: "master",
+        },
+        codeMirrorConfig: {
+            theme: "abcdef",
+            mode: "cryoem-book"
+        },
+        kernelOptions: {
+            name: "cryoem-book",
+            path: "./."
+        },
+        predefinedOutput: true
+    }
+    </script>
+    <script>kernelName = 'cryoem-book'</script>
+
+                </article>
+              
+
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+    <a class="left-prev"
+       href="03_fourier.html"
+       title="previous page">
+      <i class="fa-solid fa-angle-left"></i>
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">previous</p>
+        <p class="prev-next-title">頻域影像處理：傅立葉轉換</p>
+      </div>
+    </a>
+    <a class="right-next"
+       href="05_background.html"
+       title="next page">
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">next</p>
+        <p class="prev-next-title">Cryo-EM 背景：為什麼要用冷凍電鏡看蛋白質</p>
+      </div>
+      <i class="fa-solid fa-angle-right"></i>
+    </a>
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+                <dialog id="pst-secondary-sidebar-modal"></dialog>
+                <div id="pst-secondary-sidebar" class="bd-sidebar-secondary bd-toc"><div class="sidebar-secondary-items sidebar-secondary__inner">
+
+
+  <div class="sidebar-secondary-item"><div
+    id="pst-page-navigation-heading-2"
+    class="page-toc tocsection onthispage">
+    <i class="fa-solid fa-list"></i> Contents
+  </div>
+  <nav id="pst-page-toc-nav" class="page-toc" aria-labelledby="pst-page-navigation-heading-2">
+    <ul class="pst-show_toc_level nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#id2">傅立葉轉換的時間—頻率限制</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#id3">小波轉換：兼顧時間與頻率解析度</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#db-sym-coif">小波家族：db／sym／coif 等</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#dwt">離散小波轉換（DWT）：多階分解</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#id4">閾值化去噪</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#dwt-ll-lh-hl-hh">二維 DWT：LL/LH/HL/HH 四個子帶</a></li>
+</ul>
+  </nav></div>
+
+</div></div>
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+<div class="bd-footer-content__inner container">
+  
+  <div class="footer-item">
+    
+<p class="component-author">
+By Szu-Chi Chung
+</p>
+
+  </div>
+  
+  <div class="footer-item">
+    
+
+  </div>
+  
+  <div class="footer-item">
+    
+  </div>
+  
+  <div class="footer-item">
+    
+  </div>
+  
+</div>
+          </footer>
+        
+
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script defer src="_static/scripts/bootstrap.js?digest=55c26ed414f5f8a31ebb"></script>
+<script defer src="_static/scripts/pydata-sphinx-theme.js?digest=55c26ed414f5f8a31ebb"></script>
+
+  <footer class="bd-footer">
+  </footer>
+  </body>
+</html>

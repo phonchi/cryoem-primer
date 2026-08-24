@@ -1,0 +1,1139 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="./" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>合成資料的生成 &#8212; Cryo-EM 單顆粒分析入門</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  <!--
+    this give us a css class that will be invisible only if js is disabled
+  -->
+  <noscript>
+    <style>
+      .pst-js-only { display: none !important; }
+
+    </style>
+  </noscript>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="_static/styles/theme.css?digest=55c26ed414f5f8a31ebb" rel="stylesheet" />
+<link href="_static/styles/pydata-sphinx-theme.css?digest=55c26ed414f5f8a31ebb" rel="stylesheet" />
+
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=03e43079" />
+    <link rel="stylesheet" type="text/css" href="_static/styles/sphinx-book-theme.css?v=3c74b3bc" />
+    <link rel="stylesheet" type="text/css" href="_static/togglebutton.css?v=9c3e77be" />
+    <link rel="stylesheet" type="text/css" href="_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="_static/mystnb.11b39860a7a0cbfd473a3ad8a317855267ff0bd372690045ca344a6b62be495e.css" />
+    <link rel="stylesheet" type="text/css" href="_static/sphinx-thebe.css?v=4fa983c6" />
+    <link rel="stylesheet" type="text/css" href="_static/sphinx-design.min.css?v=95c83b7e" />
+  
+  <!-- So that users can add custom icons -->
+  <script defer src="_static/scripts/fontawesome.js?digest=55c26ed414f5f8a31ebb"></script>
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="_static/scripts/bootstrap.js?digest=55c26ed414f5f8a31ebb" />
+<link rel="preload" as="script" href="_static/scripts/pydata-sphinx-theme.js?digest=55c26ed414f5f8a31ebb" />
+
+    <script src="_static/documentation_options.js?v=9eb32ce0"></script>
+    <script src="_static/doctools.js?v=9a2dae69"></script>
+    <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="_static/clipboard.min.js?v=a7894cd8"></script>
+    <script src="_static/copybutton.js?v=f281be69"></script>
+    <script src="_static/scripts/sphinx-book-theme.js?v=fab101a9"></script>
+    <script>let toggleHintShow = 'Click to show';</script>
+    <script>let toggleHintHide = 'Click to hide';</script>
+    <script>let toggleOpenOnPrint = 'true';</script>
+    <script src="_static/togglebutton.js?v=b8b12719"></script>
+    <script>var togglebuttonSelector = '.toggle, .admonition.dropdown';</script>
+    <script src="_static/design-tabs.js?v=f930bc37"></script>
+    <script>const THEBE_JS_URL = "https://unpkg.com/thebe@0.8.2/lib/index.js"; const thebe_selector = ".thebe,.cell"; const thebe_selector_input = "pre"; const thebe_selector_output = ".output, .cell_output"</script>
+    <script async="async" src="_static/sphinx-thebe.js?v=c100c467"></script>
+    <script>var togglebuttonSelector = '.toggle, .admonition.dropdown';</script>
+    <script>const THEBE_JS_URL = "https://unpkg.com/thebe@0.8.2/lib/index.js"; const thebe_selector = ".thebe,.cell"; const thebe_selector_input = "pre"; const thebe_selector_output = ".output, .cell_output"</script>
+    <script>window.MathJax = {"options": {"processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+    <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = '07_synthetic_data';</script>
+    <script>DOCUMENTATION_OPTIONS.search_as_you_type = false;</script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="延伸資源與下一步" href="08_resources.html" />
+    <link rel="prev" title="Cryo-EM 計算流程：從 Movie 到 3D 結構" href="06_workflow.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  <meta name="docsearch:version" content="" />
+  
+    
+    <script src="_static/searchtools.js"></script>
+    <script src="_static/language_data.js"></script>
+    <script src="searchindex.js"></script>
+  
+  </head>
+  <body data-default-mode="">
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+  
+  
+  
+  
+  <dialog id="pst-search-dialog">
+    
+<form class="bd-search d-flex align-items-center"
+      action="search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         placeholder="Search this book..."
+         aria-label="Search this book..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form>
+  </dialog>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header id="pst-header" class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+<div class="bd-header__inner bd-page-width">
+  <button class="pst-navbar-icon sidebar-toggle primary-toggle" aria-label="Site navigation">
+    <span class="fa-solid fa-bars"></span>
+  </button>
+  
+  
+  <div class="col-lg-9 navbar-header-items">
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+        </div>
+      
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+    </div>
+  
+
+  
+    <button class="pst-navbar-icon sidebar-toggle secondary-toggle" aria-label="On this page">
+      <span class="fa-solid fa-outdent"></span>
+    </button>
+  
+</div>
+
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+      <dialog id="pst-primary-sidebar-modal"></dialog>
+      <div id="pst-primary-sidebar" class="bd-sidebar-primary bd-sidebar">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+    
+    
+  </div>
+  
+    <div class="sidebar-primary-items__start sidebar-primary__section">
+        <div class="sidebar-primary-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="00_intro.html">
+  
+  
+  
+  
+  
+  
+    <p class="title logo__title">Cryo-EM 單顆粒分析入門</p>
+  
+</a></div>
+        <div class="sidebar-primary-item">
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button></div>
+        <div class="sidebar-primary-item"><nav class="bd-links bd-docs-nav" aria-label="Main">
+    <div class="bd-toc-item navbar-nav active">
+        
+        <ul class="nav bd-sidenav bd-sidenav__home-link">
+            <li class="toctree-l1">
+                <a class="reference internal" href="00_intro.html">
+                    Cryo-EM 單顆粒分析入門
+                </a>
+            </li>
+        </ul>
+        <ul class="current nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="01_image_basics.html">影像處理基礎：從 NumPy 陣列到幾何變換</a></li>
+<li class="toctree-l1"><a class="reference internal" href="02_filter_segment.html">濾波與影像分割</a></li>
+<li class="toctree-l1"><a class="reference internal" href="03_fourier.html">頻域影像處理：傅立葉轉換</a></li>
+<li class="toctree-l1"><a class="reference internal" href="04_wavelet.html">小波轉換</a></li>
+<li class="toctree-l1"><a class="reference internal" href="05_background.html">Cryo-EM 背景：為什麼要用冷凍電鏡看蛋白質</a></li>
+<li class="toctree-l1"><a class="reference internal" href="06_workflow.html">Cryo-EM 計算流程：從 Movie 到 3D 結構</a></li>
+<li class="toctree-l1 current active"><a class="current reference internal" href="#">合成資料的生成</a></li>
+<li class="toctree-l1"><a class="reference internal" href="08_resources.html">延伸資源與下一步</a></li>
+</ul>
+
+    </div>
+</nav></div>
+    </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+      <div class="sidebar-primary-item">
+<div id="ethical-ad-placement"
+      class="flat"
+      data-ea-publisher="readthedocs"
+      data-ea-type="readthedocs-sidebar"
+      data-ea-manual="true">
+</div></div>
+  </div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+
+<div class="sbt-scroll-pixel-helper"></div>
+
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item"><button class="sidebar-toggle primary-toggle btn btn-sm" title="Toggle primary sidebar" data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <span class="fa-solid fa-bars"></span>
+</button></div>
+      
+    </div>
+  
+  
+    <div class="header-article-items__end">
+      
+        <div class="header-article-item">
+
+<div class="article-header-buttons">
+
+
+
+
+
+<div class="dropdown dropdown-download-buttons">
+  <button class="btn dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Download this page">
+    <i class="fas fa-download"></i>
+  </button>
+  <ul class="dropdown-menu">
+      
+      
+      
+      <li><a href="_sources/07_synthetic_data.ipynb" target="_blank"
+   class="btn btn-sm btn-download-source-button dropdown-item"
+   title="Download source file"
+   data-bs-placement="left" data-bs-toggle="tooltip"
+>
+  
+
+<span class="btn__icon-container">
+  <i class="fas fa-file"></i>
+  </span>
+<span class="btn__text-container">.ipynb</span>
+</a>
+</li>
+      
+      
+      
+      
+      <li>
+<button onclick="window.print()"
+  class="btn btn-sm btn-download-pdf-button dropdown-item"
+  title="Print to PDF"
+  data-bs-placement="left" data-bs-toggle="tooltip"
+>
+  
+
+<span class="btn__icon-container">
+  <i class="fas fa-file-pdf"></i>
+  </span>
+<span class="btn__text-container">.pdf</span>
+</button>
+</li>
+      
+  </ul>
+</div>
+
+
+
+
+<button onclick="toggleFullScreen()"
+  class="btn btn-sm btn-fullscreen-button pst-navbar-icon"
+  title="Fullscreen mode"
+  data-bs-placement="bottom" data-bs-toggle="tooltip"
+>
+  
+
+<span class="btn__icon-container">
+  <i class="fas fa-expand"></i>
+  </span>
+
+</button>
+
+
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button>
+
+
+<button class="btn btn-sm pst-navbar-icon search-button search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <i class="fa-solid fa-magnifying-glass fa-lg"></i>
+</button>
+<button class="sidebar-toggle secondary-toggle btn btn-sm pst-navbar-icon" title="Toggle secondary sidebar" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <span class="fa-solid fa-list"></span>
+</button>
+</div></div>
+      
+    </div>
+  
+</div>
+</div>
+              
+              
+
+<div id="jb-print-docs-body" class="onlyprint">
+    <h1>合成資料的生成</h1>
+    <!-- Table of contents -->
+    <div id="print-main-content">
+        <div id="jb-print-toc">
+            
+            <div>
+                <h2> Contents </h2>
+            </div>
+            <nav aria-label="Page">
+                <ul class="pst-show_toc_level nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#id2">為什麼要合成資料？</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#id3">階段一：參數設定</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#d">階段二：載入 3D 密度圖</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#euler">階段三：投影方向（Euler 角）</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#ctf">階段四：CTF</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#simulation">階段五：組裝 Simulation 物件</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#clean-ctf-noise">階段六：三層影像——clean → +CTF → +noise</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#relion">階段七：輸出成 RELION 格式並讀回驗證</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#id4">研究等級的生成協定</a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#id5">各家論文的合成協定比較</a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#id6">小結與練習</a></li>
+</ul>
+            </nav>
+        </div>
+    </div>
+</div>
+
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <section class="tex2jax_ignore mathjax_ignore" id="id1">
+<h1>合成資料的生成<a class="headerlink" href="#id1" title="Link to this heading">#</a></h1>
+<div class="important admonition">
+<p class="admonition-title">本章重點</p>
+<ul class="simple">
+<li><p><strong>前向模型（forward model）就是生成流程</strong>：3D 密度圖 → 投影 → CTF → 雜訊，一步一步把「顯微鏡做的事」寫成程式。</p></li>
+<li><p><strong>球面均勻取樣不是均勻取角度</strong>：<span class="math notranslate nohighlight">\(\beta = \arccos(2U-1)\)</span> 才均勻，天真的 <span class="math notranslate nohighlight">\(\beta = U\pi\)</span> 會讓方向擠向兩極。</p></li>
+<li><p><strong>CTF 有零點，零點處的資訊永遠遺失</strong>——所以要收多組 defocus 的資料互補。</p></li>
+<li><p><strong>SNR 有不只一種定義</strong>，寫論文與讀論文時都要先確認用的是哪一種。</p></li>
+<li><p>合成資料的價值在於 <strong>ground truth 已知、變因可控</strong>：一次只打開一個變因，才能歸因。</p></li>
+</ul>
+</div>
+<figure class="align-default" id="fig-70s-map">
+<a class="reference internal image-reference" href="_images/s22_1.png"><img alt="_images/s22_1.png" src="_images/s22_1.png" style="width: 40%;" />
+</a>
+<figcaption>
+<p><span class="caption-number">Fig. 17 </span><span class="caption-text">70S 核糖體的 3D 密度圖（EMD-1056）。本章把這個 map 變成 5,000 張帶 CTF 與雜訊的模擬粒子影像。</span><a class="headerlink" href="#fig-70s-map" title="Link to this image">#</a></p>
+</figcaption>
+</figure>
+<section id="id2">
+<h2>為什麼要合成資料？<a class="headerlink" href="#id2" title="Link to this heading">#</a></h2>
+<p>Cryo-EM 的觀測模型可以寫成一條式子。第 <span class="math notranslate nohighlight">\(i\)</span> 張粒子影像 <span class="math notranslate nohighlight">\(X_i\)</span> 是：</p>
+<div class="math notranslate nohighlight">
+\[
+X_i \;=\; \mathrm{CTF}_{d_i} * \big(P_{R_i}\, V\big) \;+\; N_i
+\]</div>
+<p>其中 <span class="math notranslate nohighlight">\(V\)</span> 是 3D 密度圖、<span class="math notranslate nohighlight">\(P_{R_i}\)</span> 是沿方向 <span class="math notranslate nohighlight">\(R_i\)</span> 的投影算子（把 3D 沿視線積分成 2D）、
+<span class="math notranslate nohighlight">\(\mathrm{CTF}_{d_i}\)</span> 是 defocus 為 <span class="math notranslate nohighlight">\(d_i\)</span> 的對比轉移函數（以卷積作用，見 <a class="reference internal" href="03_fourier.html"><span class="doc">頻域影像處理：傅立葉轉換</span></a>）、
+<span class="math notranslate nohighlight">\(N_i\)</span> 是雜訊。<strong>生成合成資料，就是把這條式子由左到右執行一遍</strong>——所以寫生成程式是理解成像模型最扎實的方式。</p>
+<p>合成資料還有兩個真實資料永遠給不了的東西：</p>
+<ol class="arabic simple">
+<li><p><strong>Ground truth</strong>：每張影像的方向 <span class="math notranslate nohighlight">\(R_i\)</span>、defocus <span class="math notranslate nohighlight">\(d_i\)</span>、（若有）平移與構型標籤都已知，演算法的輸出可以直接對答案、量化評估。</p></li>
+<li><p><strong>變因控制</strong>：真實資料的方向分布、雜訊、樣品異質性全部糾纏在一起；模擬資料可以把它們一項一項關掉，一次只研究一個。</p></li>
+</ol>
+<p>本章前半用 <a class="reference external" href="https://github.com/ComputationalCryoEM/ASPIRE-Python">ASPIRE-Python</a> 重現一條教學用管線
+（130×130、5,000 張、SNR 0.1），後半對照研究論文實際使用的「研究等級」生成協定。</p>
+</section>
+<section id="id3">
+<h2>階段一：參數設定<a class="headerlink" href="#id3" title="Link to this heading">#</a></h2>
+<div class="tip admonition">
+<p class="admonition-title">授課重點</p>
+<p>每個參數都對應一個物理量：pixel size 決定 Nyquist 解析度上限 <span class="math notranslate nohighlight">\(1/(2 \times 2.82) \approx 0.177\ \mathrm{Å}^{-1}\)</span>（約 5.6 Å）；
+200 kV 決定電子波長 <span class="math notranslate nohighlight">\(\lambda \approx 0.0251\)</span> Å；defocus 與 Cs 決定 CTF 的振盪；<strong>SNR 0.1 是刻意選的</strong>——
+真實 cryo-EM 影像的 SNR 常在 0.1 以下（見 <a class="reference internal" href="05_background.html"><span class="doc">Cryo-EM 背景：為什麼要用冷凍電鏡看蛋白質</span></a>），太乾淨的模擬資料測不出演算法的真本事。</p>
+</div>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">logging</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">matplotlib.pyplot</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">plt</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">mrcfile</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">aspire.operators</span><span class="w"> </span><span class="kn">import</span> <span class="n">RadialCTFFilter</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">aspire.source</span><span class="w"> </span><span class="kn">import</span> <span class="n">Simulation</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">aspire.source.relion</span><span class="w"> </span><span class="kn">import</span> <span class="n">RelionSource</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">aspire.volume</span><span class="w"> </span><span class="kn">import</span> <span class="n">Volume</span>
+
+<span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="s2">&quot;aspire&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">setLevel</span><span class="p">(</span><span class="n">logging</span><span class="o">.</span><span class="n">WARNING</span><span class="p">)</span>  <span class="c1"># 靜音 ASPIRE 的 INFO 訊息</span>
+<span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">seed</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>  <span class="c1"># 固定隨機種子，讓全章結果可重現</span>
+</pre></div>
+</div>
+</div>
+</div>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># 影像尺寸與張數</span>
+<span class="n">img_size</span> <span class="o">=</span> <span class="mi">130</span>     <span class="c1"># 影像邊長（像素）</span>
+<span class="n">num_imgs</span> <span class="o">=</span> <span class="mi">5000</span>    <span class="c1"># 總張數</span>
+<span class="n">duplicate</span> <span class="o">=</span> <span class="mi">100</span>    <span class="c1"># 每個投影方向複製幾份（做 in-plane 旋轉）</span>
+<span class="n">num_maps</span> <span class="o">=</span> <span class="mi">1</span>       <span class="c1"># 使用幾個 3D map（本章只用一個構型）</span>
+
+<span class="c1"># 訊噪比</span>
+<span class="n">sn_ratio</span> <span class="o">=</span> <span class="mf">0.1</span>
+
+<span class="c1"># CTF 參數</span>
+<span class="n">pixel_size</span> <span class="o">=</span> <span class="mf">2.82</span>   <span class="c1"># 像素大小（Å）</span>
+<span class="n">voltage</span> <span class="o">=</span> <span class="mi">200</span>       <span class="c1"># 加速電壓（kV）</span>
+<span class="n">defocus_min</span> <span class="o">=</span> <span class="mf">1.5e4</span> <span class="c1"># 最小 defocus（Å），即 1.5 µm</span>
+<span class="n">defocus_max</span> <span class="o">=</span> <span class="mf">2.0e4</span> <span class="c1"># 最大 defocus（Å），即 2.0 µm</span>
+<span class="n">defocus_ct</span> <span class="o">=</span> <span class="mi">50</span>     <span class="c1"># defocus 群組數</span>
+<span class="n">Cs</span> <span class="o">=</span> <span class="mf">2.0</span>            <span class="c1"># 球面像差（mm）</span>
+<span class="n">alpha</span> <span class="o">=</span> <span class="mf">0.1</span>         <span class="c1"># amplitude contrast</span>
+</pre></div>
+</div>
+</div>
+</div>
+</section>
+<section id="d">
+<h2>階段二：載入 3D 密度圖<a class="headerlink" href="#d" title="Link to this heading">#</a></h2>
+<p>密度圖以 MRC 格式儲存（1024 bytes 的 header + 二進位陣列，見 <a class="reference internal" href="01_image_basics.html"><span class="doc">影像處理基礎：從 NumPy 陣列到幾何變換</span></a> 的
+「與 cryo-EM 的連結」）。讀進來就是一個 <span class="math notranslate nohighlight">\(130^3\)</span> 的 NumPy 陣列。</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">with</span> <span class="n">mrcfile</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="s2">&quot;data/70S_Conform1.mrc&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">infile</span><span class="p">:</span>
+    <span class="n">vols</span> <span class="o">=</span> <span class="n">infile</span><span class="o">.</span><span class="n">data</span>
+
+<span class="n">v</span> <span class="o">=</span> <span class="n">Volume</span><span class="p">(</span><span class="n">vols</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;volume shape = </span><span class="si">{</span><span class="n">vols</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s2">, dtype = </span><span class="si">{</span><span class="n">vols</span><span class="o">.</span><span class="n">dtype</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>volume shape = (130, 130, 130), dtype = float32
+</pre></div>
+</div>
+</div>
+</div>
+<p>「投影」最直觀的版本就是<strong>沿某個軸把體素加總</strong>（沿視線積分）。先沿三個座標軸各看一次：</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">fig</span><span class="p">,</span> <span class="n">axes</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">12</span><span class="p">,</span> <span class="mi">4</span><span class="p">))</span>
+<span class="k">for</span> <span class="n">axis</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">3</span><span class="p">):</span>
+    <span class="n">axes</span><span class="p">[</span><span class="n">axis</span><span class="p">]</span><span class="o">.</span><span class="n">contourf</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">img_size</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">img_size</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">vols</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="n">axis</span><span class="p">))</span>
+    <span class="n">axes</span><span class="p">[</span><span class="n">axis</span><span class="p">]</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;sum along axis </span><span class="si">{</span><span class="n">axis</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="n">axes</span><span class="p">[</span><span class="n">axis</span><span class="p">]</span><span class="o">.</span><span class="n">set_aspect</span><span class="p">(</span><span class="s2">&quot;equal&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">tight_layout</span><span class="p">()</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<img alt="_images/4dc9be0ec53d8307b509f13500eff03caedda158757c5047e4de8b2f09b9af5f.png" src="_images/4dc9be0ec53d8307b509f13500eff03caedda158757c5047e4de8b2f09b9af5f.png" />
+</div>
+</div>
+</section>
+<section id="euler">
+<h2>階段三：投影方向（Euler 角）<a class="headerlink" href="#euler" title="Link to this heading">#</a></h2>
+<p>一個投影方向由 ZYZ 慣例的三個 Euler 角 <span class="math notranslate nohighlight">\((\alpha, \beta, \gamma)\)</span> 描述：前兩個角 <span class="math notranslate nohighlight">\((\alpha, \beta)\)</span>
+決定「從哪個方向看」（視線方向落在單位球面上），第三個角 <span class="math notranslate nohighlight">\(\gamma\)</span>（又稱 <span class="math notranslate nohighlight">\(\psi\)</span>）只是影像平面內的自轉
+（in-plane rotation），<strong>不會產生新的視角</strong>。</p>
+<p>這條管線用「<strong>50 個獨立方向 × 每方向 100 份 in-plane 旋轉</strong>」的設計：50 個視角均勻撒在球面上，
+每個視角的 100 份以 3.6° 為步長轉滿一圈。這樣資料同時涵蓋「視角變化」與「平面旋轉」兩種變因，
+而且每張影像的類別標籤（屬於哪個視角）已知——正是 2D 分類演算法要還原的答案。</p>
+<div class="tip admonition">
+<p class="admonition-title">授課重點：球面均勻取樣</p>
+<p>要在球面上均勻取點，傾角 <span class="math notranslate nohighlight">\(\beta\)</span> <strong>不能</strong>直接取均勻分布 <span class="math notranslate nohighlight">\(\beta = U\pi\)</span>——
+球面上緯度帶的面積正比於 <span class="math notranslate nohighlight">\(\sin\beta\)</span>，天真取法會讓點擠向兩極。
+正確做法是讓 <span class="math notranslate nohighlight">\(\cos\beta\)</span> 均勻：<span class="math notranslate nohighlight">\(\beta = \arccos(2U - 1)\)</span>，<span class="math notranslate nohighlight">\(U \sim \mathrm{Uniform}[0,1]\)</span>。
+下面的對照圖是本章最值得記住的一張。</p>
+</div>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># 對照：天真取樣 vs 正確取樣（各 1500 點撒在單位球面上）</span>
+<span class="n">n_demo</span> <span class="o">=</span> <span class="mi">1500</span>
+<span class="n">u1</span><span class="p">,</span> <span class="n">u2</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">random</span><span class="p">(</span><span class="n">n_demo</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">random</span><span class="p">(</span><span class="n">n_demo</span><span class="p">)</span>
+<span class="n">alpha_demo</span> <span class="o">=</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">*</span> <span class="n">u1</span>
+
+<span class="n">beta_naive</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">*</span> <span class="n">u2</span>               <span class="c1"># 天真：beta 均勻</span>
+<span class="n">beta_correct</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arccos</span><span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">u2</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>  <span class="c1"># 正確：cos(beta) 均勻</span>
+
+<span class="n">fig</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">11</span><span class="p">,</span> <span class="mi">5</span><span class="p">))</span>
+<span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="p">(</span><span class="n">beta_demo</span><span class="p">,</span> <span class="n">title</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span>
+    <span class="p">[(</span><span class="n">beta_naive</span><span class="p">,</span> <span class="s2">&quot;Naive: beta ~ U(0, pi)  (poles overcrowded)&quot;</span><span class="p">),</span>
+     <span class="p">(</span><span class="n">beta_correct</span><span class="p">,</span> <span class="s2">&quot;Correct: beta = arccos(2U-1)  (uniform on sphere)&quot;</span><span class="p">)]</span>
+<span class="p">):</span>
+    <span class="n">x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">beta_demo</span><span class="p">)</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">alpha_demo</span><span class="p">)</span>
+    <span class="n">y</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">beta_demo</span><span class="p">)</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">alpha_demo</span><span class="p">)</span>
+    <span class="n">z</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">beta_demo</span><span class="p">)</span>
+    <span class="n">ax</span> <span class="o">=</span> <span class="n">fig</span><span class="o">.</span><span class="n">add_subplot</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="n">k</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">projection</span><span class="o">=</span><span class="s2">&quot;3d&quot;</span><span class="p">)</span>
+    <span class="n">ax</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">z</span><span class="p">,</span> <span class="n">s</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.5</span><span class="p">)</span>
+    <span class="n">ax</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="n">title</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span>
+    <span class="n">ax</span><span class="o">.</span><span class="n">set_box_aspect</span><span class="p">((</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">tight_layout</span><span class="p">()</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<img alt="_images/d1bf01435ce6e802bff78f46d4f124aff5ac8fc02df949cdb68b3e3abcd2ac18.png" src="_images/d1bf01435ce6e802bff78f46d4f124aff5ac8fc02df949cdb68b3e3abcd2ac18.png" />
+</div>
+</div>
+<p>左圖兩極明顯過密；右圖才是球面均勻。接著產生正式的 5,000 組角度：</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">n_views</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">num_imgs</span> <span class="o">/</span> <span class="n">duplicate</span><span class="p">)</span>  <span class="c1"># 50 個獨立方向</span>
+
+<span class="n">rot</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">repeat</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">random</span><span class="p">(</span><span class="n">n_views</span><span class="p">)</span> <span class="o">*</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">,</span> <span class="n">duplicate</span><span class="p">)</span>           <span class="c1"># alpha</span>
+<span class="n">tilt</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">repeat</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">arccos</span><span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">random</span><span class="p">(</span><span class="n">n_views</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">),</span> <span class="n">duplicate</span><span class="p">)</span>   <span class="c1"># beta（球面均勻）</span>
+<span class="n">psi</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">,</span> <span class="n">duplicate</span><span class="p">,</span> <span class="n">endpoint</span><span class="o">=</span><span class="kc">False</span><span class="p">),</span> <span class="n">n_views</span><span class="p">)</span>  <span class="c1"># gamma：3.6° 步長</span>
+
+<span class="n">my_angles</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">column_stack</span><span class="p">((</span><span class="n">rot</span><span class="p">,</span> <span class="n">tilt</span><span class="p">,</span> <span class="n">psi</span><span class="p">))</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;angles shape = </span><span class="si">{</span><span class="n">my_angles</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>angles shape = (5000, 3)
+</pre></div>
+</div>
+</div>
+</div>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># 方向覆蓋圖：50 個視角在 (alpha, cos beta) 平面上的位置 + psi 的分布</span>
+<span class="n">fig</span><span class="p">,</span> <span class="n">axes</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">11</span><span class="p">,</span> <span class="mi">4</span><span class="p">))</span>
+<span class="n">axes</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">degrees</span><span class="p">(</span><span class="n">rot</span><span class="p">[::</span><span class="n">duplicate</span><span class="p">]),</span> <span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">tilt</span><span class="p">[::</span><span class="n">duplicate</span><span class="p">]),</span> <span class="n">s</span><span class="o">=</span><span class="mi">25</span><span class="p">)</span>
+<span class="n">axes</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="s2">&quot;alpha (deg)&quot;</span><span class="p">)</span>
+<span class="n">axes</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s2">&quot;cos(beta)&quot;</span><span class="p">)</span>
+<span class="n">axes</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="s2">&quot;50 viewing directions (uniform in this plane)&quot;</span><span class="p">)</span>
+<span class="n">axes</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">hist</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">degrees</span><span class="p">(</span><span class="n">psi</span><span class="p">),</span> <span class="n">bins</span><span class="o">=</span><span class="mi">50</span><span class="p">)</span>
+<span class="n">axes</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="s2">&quot;psi (deg)&quot;</span><span class="p">)</span>
+<span class="n">axes</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="s2">&quot;In-plane rotation: 100 steps x 3.6 deg&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">tight_layout</span><span class="p">()</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<img alt="_images/6246a35ae24c51dd8a5640d578a531d935673a1dc4eaebaa41af2396377cc8fb.png" src="_images/6246a35ae24c51dd8a5640d578a531d935673a1dc4eaebaa41af2396377cc8fb.png" />
+</div>
+</div>
+</section>
+<section id="ctf">
+<h2>階段四：CTF<a class="headerlink" href="#ctf" title="Link to this heading">#</a></h2>
+<p>顯微鏡不是完美的相機：離焦（defocus）與球面像差讓不同空間頻率的對比被不同程度地放大、
+縮小、甚至<strong>反相</strong>。這個頻域的轉移函數就是 CTF（contrast transfer function）：</p>
+<div class="math notranslate nohighlight">
+\[
+\mathrm{CTF}(s) = \sqrt{1-w^2}\,\sin\gamma(s) - w\,\cos\gamma(s),
+\qquad
+\gamma(s) = 2\pi\left(-\tfrac{1}{2}\,\Delta f\, \lambda\, s^{2} + \tfrac{1}{4}\, C_s\, \lambda^{3} s^{4}\right)
+\]</div>
+<p>其中 <span class="math notranslate nohighlight">\(s\)</span> 是空間頻率、<span class="math notranslate nohighlight">\(\Delta f\)</span> 是 defocus、<span class="math notranslate nohighlight">\(\lambda\)</span> 是電子波長、<span class="math notranslate nohighlight">\(w\)</span> 是 amplitude contrast。
+這正是 <a class="reference internal" href="03_fourier.html"><span class="doc">頻域影像處理：傅立葉轉換</span></a> 講的「頻域濾波」——只是這一次，濾波器是顯微鏡的物理強加給我們的。</p>
+<div class="tip admonition">
+<p class="admonition-title">授課重點：為什麼要 50 組 defocus？</p>
+<p>CTF 是振盪函數，<strong>過零點處該頻率的資訊直接歸零</strong>，任何事後處理都救不回來。
+但零點位置隨 defocus 移動——一張影像在某頻率瞎了，另一張不同 defocus 的影像在那裡看得見。
+收集多組 defocus（本章 50 組，均勻鋪在 1.5–2.0 µm）讓整個資料集<strong>沒有共同盲點</strong>。</p>
+</div>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">def</span><span class="w"> </span><span class="nf">electron_wavelength</span><span class="p">(</span><span class="n">voltage_kv</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;相對論修正的電子波長（Å）；voltage 單位 kV。&quot;&quot;&quot;</span>
+    <span class="n">v</span> <span class="o">=</span> <span class="n">voltage_kv</span> <span class="o">*</span> <span class="mf">1e3</span>
+    <span class="k">return</span> <span class="mf">12.2639</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">v</span> <span class="o">+</span> <span class="mf">0.97845e-6</span> <span class="o">*</span> <span class="n">v</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">ctf_1d</span><span class="p">(</span><span class="n">s</span><span class="p">,</span> <span class="n">defocus_A</span><span class="p">,</span> <span class="n">voltage_kv</span><span class="o">=</span><span class="mi">200</span><span class="p">,</span> <span class="n">cs_mm</span><span class="o">=</span><span class="mf">2.0</span><span class="p">,</span> <span class="n">w</span><span class="o">=</span><span class="mf">0.1</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;一維徑向 CTF。s: 空間頻率 (1/Å)，defocus_A: defocus (Å)。&quot;&quot;&quot;</span>
+    <span class="n">lam</span> <span class="o">=</span> <span class="n">electron_wavelength</span><span class="p">(</span><span class="n">voltage_kv</span><span class="p">)</span>
+    <span class="n">cs_A</span> <span class="o">=</span> <span class="n">cs_mm</span> <span class="o">*</span> <span class="mf">1e7</span>
+    <span class="n">gamma</span> <span class="o">=</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">*</span> <span class="p">(</span><span class="o">-</span><span class="mf">0.5</span> <span class="o">*</span> <span class="n">defocus_A</span> <span class="o">*</span> <span class="n">lam</span> <span class="o">*</span> <span class="n">s</span><span class="o">**</span><span class="mi">2</span> <span class="o">+</span> <span class="mf">0.25</span> <span class="o">*</span> <span class="n">cs_A</span> <span class="o">*</span> <span class="n">lam</span><span class="o">**</span><span class="mi">3</span> <span class="o">*</span> <span class="n">s</span><span class="o">**</span><span class="mi">4</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">w</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">gamma</span><span class="p">)</span> <span class="o">-</span> <span class="n">w</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">gamma</span><span class="p">)</span>
+
+
+<span class="n">nyquist</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">/</span> <span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">pixel_size</span><span class="p">)</span>
+<span class="n">s</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">nyquist</span><span class="p">,</span> <span class="mi">800</span><span class="p">)</span>
+
+<span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">9</span><span class="p">,</span> <span class="mi">4</span><span class="p">))</span>
+<span class="k">for</span> <span class="n">d</span><span class="p">,</span> <span class="n">style</span> <span class="ow">in</span> <span class="p">[(</span><span class="mf">1.5e4</span><span class="p">,</span> <span class="s2">&quot;-&quot;</span><span class="p">),</span> <span class="p">(</span><span class="mf">2.0e4</span><span class="p">,</span> <span class="s2">&quot;--&quot;</span><span class="p">)]:</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">s</span><span class="p">,</span> <span class="n">ctf_1d</span><span class="p">(</span><span class="n">s</span><span class="p">,</span> <span class="n">d</span><span class="p">,</span> <span class="n">voltage</span><span class="p">,</span> <span class="n">Cs</span><span class="p">,</span> <span class="n">alpha</span><span class="p">),</span> <span class="n">style</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;defocus = </span><span class="si">{</span><span class="n">d</span><span class="o">/</span><span class="mf">1e4</span><span class="si">:</span><span class="s2">.1f</span><span class="si">}</span><span class="s2"> um&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">axhline</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s2">&quot;gray&quot;</span><span class="p">,</span> <span class="n">lw</span><span class="o">=</span><span class="mf">0.8</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s2">&quot;spatial frequency s (1/A)&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s2">&quot;CTF(s)&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Radial CTF at </span><span class="si">{</span><span class="n">voltage</span><span class="si">}</span><span class="s2"> kV (Nyquist = </span><span class="si">{</span><span class="n">nyquist</span><span class="si">:</span><span class="s2">.3f</span><span class="si">}</span><span class="s2"> 1/A)&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">legend</span><span class="p">()</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<img alt="_images/f5e1497ae7c83740cc3e0a26b80f67421e963882d3893f1f8554e50a2f47033e.png" src="_images/f5e1497ae7c83740cc3e0a26b80f67421e963882d3893f1f8554e50a2f47033e.png" />
+</div>
+</div>
+<p>兩條曲線的零點錯開——這就是「多 defocus 互補」的意義。ASPIRE 用 <code class="docutils literal notranslate"><span class="pre">RadialCTFFilter</span></code>
+表達徑向對稱的 CTF；建 50 個、defocus 均勻鋪滿範圍：</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">ctf_filters</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="n">RadialCTFFilter</span><span class="p">(</span><span class="n">voltage</span><span class="o">=</span><span class="n">voltage</span><span class="p">,</span> <span class="n">defocus</span><span class="o">=</span><span class="n">d</span><span class="p">,</span> <span class="n">Cs</span><span class="o">=</span><span class="n">Cs</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="n">alpha</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">d</span> <span class="ow">in</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="n">defocus_min</span><span class="p">,</span> <span class="n">defocus_max</span><span class="p">,</span> <span class="n">defocus_ct</span><span class="p">)</span>
+<span class="p">]</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;built </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">ctf_filters</span><span class="p">)</span><span class="si">}</span><span class="s2"> RadialCTFFilter objects&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>built 50 RadialCTFFilter objects
+</pre></div>
+</div>
+</div>
+</div>
+<div class="warning admonition">
+<p class="admonition-title">版本陷阱（ASPIRE 0.14.3）</p>
+<p>舊版教學程式常見兩個坑：(1) 舊版 <code class="docutils literal notranslate"><span class="pre">RadialCTFFilter(pixel_size,</span> <span class="pre">voltage,</span> <span class="pre">...)</span></code> 把 pixel size
+當第一個參數；新版<strong>沒有這個參數</strong>，pixel size 改由 <code class="docutils literal notranslate"><span class="pre">Simulation</span></code> 管理。
+(2) 更危險的是：<code class="docutils literal notranslate"><span class="pre">Simulation(...)</span></code> <strong>不給 <code class="docutils literal notranslate"><span class="pre">pixel_size</span></code> 不會報錯</strong>，它默默改用 1.0 Å——
+CTF 在錯的頻率軸上被評估，圖全錯但程式照跑（實測與正確版本差約 150% 相對 L2）。
+「不會爆炸的錯誤」比 crash 可怕，這是模擬程式必須留 metadata、可驗證的理由之一。</p>
+</div>
+</section>
+<section id="simulation">
+<h2>階段五：組裝 Simulation 物件<a class="headerlink" href="#simulation" title="Link to this heading">#</a></h2>
+<div class="tip admonition">
+<p class="admonition-title">授課重點：一次只開一個變因</p>
+<p>ASPIRE 的 <code class="docutils literal notranslate"><span class="pre">Simulation</span></code> 預設會加<strong>隨機平移</strong>（offsets，預設 <span class="math notranslate nohighlight">\(\pm L/16\)</span>）與<strong>隨機亮度</strong>
+（amplitudes，預設 2/3–3/2）。這裡刻意設 <code class="docutils literal notranslate"><span class="pre">offsets=0.0</span></code>、<code class="docutils literal notranslate"><span class="pre">amplitudes=1.0</span></code> 把它們關掉——
+先在「已對齊、等亮度」的理想條件下研究分類與去噪，之後要研究對齊演算法時再單獨打開平移。
+模擬資料的價值就在這種<strong>逐項控制</strong>。</p>
+</div>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">sim</span> <span class="o">=</span> <span class="n">Simulation</span><span class="p">(</span>
+    <span class="n">L</span><span class="o">=</span><span class="n">img_size</span><span class="p">,</span>
+    <span class="n">n</span><span class="o">=</span><span class="n">num_imgs</span><span class="p">,</span>
+    <span class="n">vols</span><span class="o">=</span><span class="n">v</span><span class="p">,</span>
+    <span class="n">C</span><span class="o">=</span><span class="n">num_maps</span><span class="p">,</span>
+    <span class="n">unique_filters</span><span class="o">=</span><span class="n">ctf_filters</span><span class="p">,</span>
+    <span class="n">angles</span><span class="o">=</span><span class="n">my_angles</span><span class="p">,</span>      <span class="c1"># 覆蓋預設的隨機方向，用我們自己設計的 50x100</span>
+    <span class="n">offsets</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>           <span class="c1"># 關掉隨機平移（預設 ±L/16）</span>
+    <span class="n">amplitudes</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span>        <span class="c1"># 關掉隨機亮度（預設 2/3~3/2）</span>
+    <span class="n">pixel_size</span><span class="o">=</span><span class="n">pixel_size</span><span class="p">,</span> <span class="c1"># 必須明給！省略時默默用 1.0 Å（見上方警告框）</span>
+<span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Simulation ready: n = </span><span class="si">{</span><span class="n">sim</span><span class="o">.</span><span class="n">n</span><span class="si">}</span><span class="s2">, L = </span><span class="si">{</span><span class="n">sim</span><span class="o">.</span><span class="n">L</span><span class="si">}</span><span class="s2">, pixel_size = </span><span class="si">{</span><span class="n">sim</span><span class="o">.</span><span class="n">pixel_size</span><span class="si">}</span><span class="s2"> A&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>Simulation ready: n = 5000, L = 130, pixel_size = 2.82 A
+</pre></div>
+</div>
+</div>
+</div>
+<p>每張影像被隨機指派到 50 個 CTF 之一。看一下 defocus 在資料集中的分布：</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">defocus_values</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="n">defocus_min</span><span class="p">,</span> <span class="n">defocus_max</span><span class="p">,</span> <span class="n">defocus_ct</span><span class="p">)</span>
+<span class="n">assigned_defocus</span> <span class="o">=</span> <span class="n">defocus_values</span><span class="p">[</span><span class="n">sim</span><span class="o">.</span><span class="n">filter_indices</span><span class="p">]</span>
+
+<span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">8</span><span class="p">,</span> <span class="mf">3.5</span><span class="p">))</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">hist</span><span class="p">(</span><span class="n">assigned_defocus</span> <span class="o">/</span> <span class="mf">1e4</span><span class="p">,</span> <span class="n">bins</span><span class="o">=</span><span class="mi">50</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s2">&quot;defocus (um)&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s2">&quot;count&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="s2">&quot;Defocus assignment across the 5000 images (50 groups)&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<img alt="_images/83c8b3a4a9fe3eb9166530044a230974ce805bfb3e9f34c109eb36bd5c5258bf.png" src="_images/83c8b3a4a9fe3eb9166530044a230974ce805bfb3e9f34c109eb36bd5c5258bf.png" />
+</div>
+</div>
+</section>
+<section id="clean-ctf-noise">
+<h2>階段六：三層影像——clean → +CTF → +noise<a class="headerlink" href="#clean-ctf-noise" title="Link to this heading">#</a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">Simulation</span></code> 是<strong>惰性</strong>的：影像在被索取時才即時算出。三個層次各取一次：</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">sim.projections[...]</span></code>：純投影（<span class="math notranslate nohighlight">\(P_{R_i} V\)</span>）</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">sim.clean_images[...]</span></code>：投影過 CTF（<span class="math notranslate nohighlight">\(\mathrm{CTF}_{d_i} * P_{R_i} V\)</span>），還沒加雜訊</p></li>
+<li><p>雜訊我們自己加，順便講清楚 SNR 的定義</p></li>
+</ul>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">imgs_clean</span> <span class="o">=</span> <span class="n">sim</span><span class="o">.</span><span class="n">projections</span><span class="p">[:</span><span class="n">num_imgs</span><span class="p">]</span><span class="o">.</span><span class="n">asnumpy</span><span class="p">()</span>
+<span class="n">imgs_ctf_clean</span> <span class="o">=</span> <span class="n">sim</span><span class="o">.</span><span class="n">clean_images</span><span class="p">[:</span><span class="n">num_imgs</span><span class="p">]</span><span class="o">.</span><span class="n">asnumpy</span><span class="p">()</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;projections: </span><span class="si">{</span><span class="n">imgs_clean</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s2">, CTF-applied: </span><span class="si">{</span><span class="n">imgs_ctf_clean</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>projections: (5000, 130, 130), CTF-applied: (5000, 130, 130)
+</pre></div>
+</div>
+</div>
+</div>
+<div class="tip admonition">
+<p class="admonition-title">授課重點：SNR 的定義不只一種</p>
+<p>常見兩種：(1) <strong>功率定義</strong> <span class="math notranslate nohighlight">\(\mathrm{SNR} = \frac{\|X\|^2 / N}{\sigma^2}\)</span>（不扣平均）；
+(2) <strong>變異數定義</strong> <span class="math notranslate nohighlight">\(\mathrm{SNR} = \frac{\mathrm{Var}(X)}{\sigma^2}\)</span>（訊號先扣掉平均，<em>The Elements
+of Statistical Learning</em> 採此定義）。兩者在影像平均值不為零時數值不同。
+本章用<strong>變異數定義</strong>：<span class="math notranslate nohighlight">\(\sigma^2 = \mathrm{Var}(X_{\mathrm{clean}}) / \mathrm{SNR}\)</span>。
+讀論文比較不同方法的「SNR 0.1」之前，永遠先查作者用哪個定義。</p>
+</div>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">noise_var</span> <span class="o">=</span> <span class="n">imgs_ctf_clean</span><span class="o">.</span><span class="n">var</span><span class="p">()</span> <span class="o">/</span> <span class="n">sn_ratio</span>
+<span class="n">imgs_noise</span> <span class="o">=</span> <span class="p">(</span>
+    <span class="n">imgs_ctf_clean</span>
+    <span class="o">+</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">noise_var</span><span class="p">)</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">randn</span><span class="p">(</span><span class="n">num_imgs</span><span class="p">,</span> <span class="n">img_size</span><span class="p">,</span> <span class="n">img_size</span><span class="p">)</span>
+<span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;signal var = </span><span class="si">{</span><span class="n">imgs_ctf_clean</span><span class="o">.</span><span class="n">var</span><span class="p">()</span><span class="si">:</span><span class="s2">.4g</span><span class="si">}</span><span class="s2">, noise var = </span><span class="si">{</span><span class="n">noise_var</span><span class="si">:</span><span class="s2">.4g</span><span class="si">}</span><span class="s2"> (SNR = </span><span class="si">{</span><span class="n">sn_ratio</span><span class="si">}</span><span class="s2">)&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>signal var = 0.0004785, noise var = 0.004785 (SNR = 0.1)
+</pre></div>
+</div>
+</div>
+</div>
+<p>全章最重要的一張圖——同樣 8 個視角，三個層次並排：</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">idx</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">8</span> <span class="o">*</span> <span class="n">duplicate</span><span class="p">,</span> <span class="n">duplicate</span><span class="p">)</span>  <span class="c1"># 8 個不同視角（每視角取第一份）</span>
+<span class="n">layers</span> <span class="o">=</span> <span class="p">[(</span><span class="n">imgs_clean</span><span class="p">,</span> <span class="s2">&quot;clean projection&quot;</span><span class="p">),</span>
+          <span class="p">(</span><span class="n">imgs_ctf_clean</span><span class="p">,</span> <span class="s2">&quot;+ CTF&quot;</span><span class="p">),</span>
+          <span class="p">(</span><span class="n">imgs_noise</span><span class="p">,</span> <span class="s2">&quot;+ noise (SNR 0.1)&quot;</span><span class="p">)]</span>
+
+<span class="n">fig</span><span class="p">,</span> <span class="n">axes</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="mi">8</span><span class="p">,</span> <span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">14</span><span class="p">,</span> <span class="mf">5.6</span><span class="p">))</span>
+<span class="k">for</span> <span class="n">r</span><span class="p">,</span> <span class="p">(</span><span class="n">stack</span><span class="p">,</span> <span class="n">label</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">layers</span><span class="p">):</span>
+    <span class="k">for</span> <span class="n">c</span><span class="p">,</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">idx</span><span class="p">):</span>
+        <span class="n">axes</span><span class="p">[</span><span class="n">r</span><span class="p">,</span> <span class="n">c</span><span class="p">]</span><span class="o">.</span><span class="n">imshow</span><span class="p">(</span><span class="n">stack</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">cmap</span><span class="o">=</span><span class="s2">&quot;gray&quot;</span><span class="p">)</span>
+        <span class="n">axes</span><span class="p">[</span><span class="n">r</span><span class="p">,</span> <span class="n">c</span><span class="p">]</span><span class="o">.</span><span class="n">set_xticks</span><span class="p">([]);</span> <span class="n">axes</span><span class="p">[</span><span class="n">r</span><span class="p">,</span> <span class="n">c</span><span class="p">]</span><span class="o">.</span><span class="n">set_yticks</span><span class="p">([])</span>
+    <span class="n">axes</span><span class="p">[</span><span class="n">r</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="n">label</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">suptitle</span><span class="p">(</span><span class="s2">&quot;Forward model, layer by layer: projection -&gt; CTF -&gt; noise&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">tight_layout</span><span class="p">()</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<img alt="_images/2cc5192740ee90ef18f1bc3191bffc7cd21eec682faba1e0cb2edc49e96e47d6.png" src="_images/2cc5192740ee90ef18f1bc3191bffc7cd21eec682faba1e0cb2edc49e96e47d6.png" />
+</div>
+</div>
+<p>注意兩件事：CTF 讓第二列出現<strong>對比反轉與暈圈</strong>（不是單純模糊）；加噪後的第三列，
+粒子幾乎淹沒在雜訊裡——這就是演算法實際面對的輸入。再看看同一個視角的 in-plane 旋轉系列：</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">fig</span><span class="p">,</span> <span class="n">axes</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">8</span><span class="p">,</span> <span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">14</span><span class="p">,</span> <span class="mi">2</span><span class="p">))</span>
+<span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">8</span><span class="p">):</span>
+    <span class="n">axes</span><span class="p">[</span><span class="n">c</span><span class="p">]</span><span class="o">.</span><span class="n">imshow</span><span class="p">(</span><span class="n">imgs_clean</span><span class="p">[</span><span class="n">c</span><span class="p">],</span> <span class="n">cmap</span><span class="o">=</span><span class="s2">&quot;gray&quot;</span><span class="p">)</span>   <span class="c1"># 前 8 張同視角，psi 每步 +3.6 度</span>
+    <span class="n">axes</span><span class="p">[</span><span class="n">c</span><span class="p">]</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;psi=</span><span class="si">{</span><span class="mf">3.6</span><span class="o">*</span><span class="n">c</span><span class="si">:</span><span class="s2">.1f</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">8</span><span class="p">)</span>
+    <span class="n">axes</span><span class="p">[</span><span class="n">c</span><span class="p">]</span><span class="o">.</span><span class="n">set_xticks</span><span class="p">([]);</span> <span class="n">axes</span><span class="p">[</span><span class="n">c</span><span class="p">]</span><span class="o">.</span><span class="n">set_yticks</span><span class="p">([])</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">suptitle</span><span class="p">(</span><span class="s2">&quot;Same viewing direction, in-plane rotation series (first 8 of 100 copies)&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">tight_layout</span><span class="p">()</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<img alt="_images/9021ac2d1f138258a955f7671e74e022320a4cffe0864089e3b8bd3f9ebb64d9.png" src="_images/9021ac2d1f138258a955f7671e74e022320a4cffe0864089e3b8bd3f9ebb64d9.png" />
+</div>
+</div>
+</section>
+<section id="relion">
+<h2>階段七：輸出成 RELION 格式並讀回驗證<a class="headerlink" href="#relion" title="Link to this heading">#</a></h2>
+<p>業界標準格式是 <strong>STAR + MRCS 的分工</strong>：<code class="docutils literal notranslate"><span class="pre">.star</span></code> 是純文字的 metadata 表
+（每列一顆粒子：Euler 角、defocus、指向影像的 <code class="docutils literal notranslate"><span class="pre">編號&#64;檔名.mrcs</span></code> 位址），
+<code class="docutils literal notranslate"><span class="pre">.mrcs</span></code> 是二進位影像堆疊。metadata 與影像分離，所以可以只改表格不動影像（反之亦然）。</p>
+<p>一個實務細節：<code class="docutils literal notranslate"><span class="pre">sim.save()</span></code> 存的是<strong>乾淨的 CTF 影像</strong>（<code class="docutils literal notranslate"><span class="pre">clean_images</span></code> 那一層），
+我們的雜訊是自己加的，所以存完要把 <code class="docutils literal notranslate"><span class="pre">.mrcs</span></code> 的內容覆寫成 noisy 版本——
+這正好示範「STAR 不動、只換 MRCS」的操作。</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">out_dir</span> <span class="o">=</span> <span class="s2">&quot;data/output&quot;</span>
+<span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">out_dir</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="n">star_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">out_dir</span><span class="p">,</span> <span class="s2">&quot;simulate.star&quot;</span><span class="p">)</span>
+
+<span class="n">sim</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">star_path</span><span class="p">,</span> <span class="n">batch_size</span><span class="o">=</span><span class="n">num_imgs</span><span class="p">,</span> <span class="n">overwrite</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+<span class="n">mrcs_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">out_dir</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;simulate_0_</span><span class="si">{</span><span class="n">num_imgs</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="mi">1</span><span class="si">}</span><span class="s2">.mrcs&quot;</span><span class="p">)</span>  <span class="c1"># ASPIRE 的命名慣例</span>
+<span class="k">with</span> <span class="n">mrcfile</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">mrcs_path</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;r+&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">mrc</span><span class="p">:</span>
+    <span class="n">mrc</span><span class="o">.</span><span class="n">set_data</span><span class="p">(</span><span class="n">imgs_noise</span><span class="p">)</span>   <span class="c1"># 覆寫為 noisy stack（STAR 檔不動）</span>
+
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;saved: </span><span class="si">{</span><span class="n">star_path</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;overwrote </span><span class="si">{</span><span class="n">mrcs_path</span><span class="si">}</span><span class="s2"> with the noisy stack &quot;</span>
+      <span class="sa">f</span><span class="s2">&quot;(</span><span class="si">{</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">getsize</span><span class="p">(</span><span class="n">mrcs_path</span><span class="p">)</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="mf">1e6</span><span class="si">:</span><span class="s2">.0f</span><span class="si">}</span><span class="s2"> MB)&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>saved: data/output/simulate.star
+overwrote data/output/simulate_0_4999.mrcs with the noisy stack (338 MB)
+</pre></div>
+</div>
+</div>
+</div>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># 讀回驗證：RelionSource 解析 STAR、順著 index@path 位址載入影像</span>
+<span class="n">relion_src</span> <span class="o">=</span> <span class="n">RelionSource</span><span class="p">(</span><span class="n">star_path</span><span class="p">)</span>
+<span class="n">imgs_reloaded</span> <span class="o">=</span> <span class="n">relion_src</span><span class="o">.</span><span class="n">images</span><span class="p">[:</span><span class="mi">8</span><span class="p">]</span><span class="o">.</span><span class="n">asnumpy</span><span class="p">()</span>
+
+<span class="n">fig</span><span class="p">,</span> <span class="n">axes</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">8</span><span class="p">,</span> <span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">14</span><span class="p">,</span> <span class="mi">2</span><span class="p">))</span>
+<span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">8</span><span class="p">):</span>
+    <span class="n">axes</span><span class="p">[</span><span class="n">c</span><span class="p">]</span><span class="o">.</span><span class="n">imshow</span><span class="p">(</span><span class="n">imgs_reloaded</span><span class="p">[</span><span class="n">c</span><span class="p">],</span> <span class="n">cmap</span><span class="o">=</span><span class="s2">&quot;gray&quot;</span><span class="p">)</span>
+    <span class="n">axes</span><span class="p">[</span><span class="n">c</span><span class="p">]</span><span class="o">.</span><span class="n">set_xticks</span><span class="p">([]);</span> <span class="n">axes</span><span class="p">[</span><span class="n">c</span><span class="p">]</span><span class="o">.</span><span class="n">set_yticks</span><span class="p">([])</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">suptitle</span><span class="p">(</span><span class="s2">&quot;Round-trip check: first 8 images reloaded through RelionSource&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">tight_layout</span><span class="p">()</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<img alt="_images/062c11cce7d6baa3d572a662f1bf1826594b152dbe2f88ba83c43ab6dec4c819.png" src="_images/062c11cce7d6baa3d572a662f1bf1826594b152dbe2f88ba83c43ab6dec4c819.png" />
+</div>
+</div>
+<p>STAR 檔的 metadata 也一起被讀回來了（Euler 角、defocus、位址都在表裡）：</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">meta</span> <span class="o">=</span> <span class="n">relion_src</span><span class="o">.</span><span class="n">_metadata</span>  <span class="c1"># dict of numpy arrays（欄名 = RELION 標籤）</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;metadata columns:&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="nb">sorted</span><span class="p">(</span><span class="n">meta</span><span class="o">.</span><span class="n">keys</span><span class="p">()))</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>metadata columns:
+[&#39;__filter_indices&#39;, &#39;__mrc_filename&#39;, &#39;__mrc_filepath&#39;, &#39;__mrc_index&#39;, &#39;_aspireAmplitude&#39;, &#39;_rlnAmplitudeContrast&#39;, &#39;_rlnAnglePsi&#39;, &#39;_rlnAngleRot&#39;, &#39;_rlnAngleTilt&#39;, &#39;_rlnClassNumber&#39;, &#39;_rlnDefocusAngle&#39;, &#39;_rlnDefocusU&#39;, &#39;_rlnDefocusV&#39;, &#39;_rlnImageDimensionality&#39;, &#39;_rlnImageName&#39;, &#39;_rlnImagePixelSize&#39;, &#39;_rlnImageSize&#39;, &#39;_rlnOpticsGroup&#39;, &#39;_rlnOpticsGroupName&#39;, &#39;_rlnOriginXAngst&#39;, &#39;_rlnOriginYAngst&#39;, &#39;_rlnSphericalAberration&#39;, &#39;_rlnSymmetryGroup&#39;, &#39;_rlnVoltage&#39;]
+</pre></div>
+</div>
+</div>
+</div>
+</section>
+<section id="id4">
+<h2>研究等級的生成協定<a class="headerlink" href="#id4" title="Link to this heading">#</a></h2>
+<p>上面的管線是教學版。發表論文用的合成資料，還會多做幾件事——每一件都對應一個
+「審稿人會問」的問題：</p>
+<div class="pst-scrollable-table-container"><table class="table">
+<thead>
+<tr class="row-odd"><th class="head"><p>面向</p></th>
+<th class="head"><p>教學版（本章）</p></th>
+<th class="head"><p>研究版（例：Fourier 2SDR 論文的 70S 協定）</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>視角取樣</p></td>
+<td><p>隨機 50 方向（每次跑不同）</p></td>
+<td><p><strong>Fibonacci 球格</strong>：確定性、可精確重現</p></td>
+</tr>
+<tr class="row-odd"><td><p>方向分布</p></td>
+<td><p>均勻</p></td>
+<td><p>另備 <strong>preferred orientation</strong> 情境：10 個常見視角 ×400 張 + 40 個罕見視角 ×25 張，模擬真實資料的視角不平衡</p></td>
+</tr>
+<tr class="row-even"><td><p>輸出</p></td>
+<td><p>noisy 一疊</p></td>
+<td><p><strong>三疊並存</strong>：noisy／clean observed（過 CTF、未加噪）／clean projection（純投影），評估時各有用途</p></td>
+</tr>
+<tr class="row-odd"><td><p>Ground truth</p></td>
+<td><p>留在 Python 變數裡</p></td>
+<td><p><strong>獨立檔案</strong>（如 <code class="docutils literal notranslate"><span class="pre">ground_truth.jsonl</span></code>），STAR 只放「儀器看得到」的 metadata——防止演算法「偷看答案」</p></td>
+</tr>
+<tr class="row-even"><td><p>可重現性</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">np.random.seed(0)</span></code></p></td>
+<td><p><strong>manifest 檔</strong>記錄全部參數、seed、套件版本、資料 SHA-256</p></td>
+</tr>
+<tr class="row-odd"><td><p>CTF</p></td>
+<td><p>徑向對稱、50 組</p></td>
+<td><p>含<strong>像散</strong>（astigmatism：DefocusU ≠ DefocusV 加隨機像散角）</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<p>其中「clean target 定義成 <strong>過 CTF、未加噪</strong>」值得特別說：去噪演算法的合理目標是移除雜訊，
+不是反解 CTF（CTF 零點處的資訊本來就不存在，見階段四）——所以評估用的答案也應該帶著 CTF。</p>
+<div class="note admonition">
+<p class="admonition-title">進階技巧：耦合雜訊（coupled noise）</p>
+<p>研究版協定在多個 SNR（如 0.04／0.05／0.06）生成資料時，讓三份資料<strong>共用同一個雜訊實現</strong>
+<span class="math notranslate nohighlight">\(\varepsilon\)</span>，只差縮放：<span class="math notranslate nohighlight">\(X_a = X_{\mathrm{clean}} + \mathrm{SNR}_a^{-1/2}\,\sigma_0\,\varepsilon\)</span>。
+於是把兩個 SNR 的影像相減，乾淨訊號就完全消掉：
+<span class="math notranslate nohighlight">\(X_a - X_b = (\mathrm{SNR}_a^{-1/2} - \mathrm{SNR}_b^{-1/2})\,\sigma_0\,\varepsilon\)</span>——
+<strong>不碰 clean target 就能取得純雜訊實現</strong>、估計雜訊變異數，供 SURE 之類的無偏風險估計使用。</p>
+</div>
+<section id="id5">
+<h3>各家論文的合成協定比較<a class="headerlink" href="#id5" title="Link to this heading">#</a></h3>
+<p>同一個「合成 70S／模擬粒子」的任務，不同論文的設定差異很大——比較演算法時要先讀懂人家的協定：</p>
+<div class="pst-scrollable-table-container"><table class="table">
+<thead>
+<tr class="row-odd"><th class="head"><p>論文</p></th>
+<th class="head"><p>影像與視角</p></th>
+<th class="head"><p>姿態變因</p></th>
+<th class="head"><p>CTF 與雜訊</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>2SDR (2020)</p></td>
+<td><p>5,000 張、50 視角（10 常見 ×400 + 40 罕見 ×25）、130×130、2.82 Å</p></td>
+<td><p>未完全指明</p></td>
+<td><p>50 組 CTF；300 kV、Cs 2 mm、w 0.07、defocus 2.1–3.5 µm；SNR 0.09/0.06/0.03</p></td>
+</tr>
+<tr class="row-odd"><td><p>Zhao–Singer (2014)</p></td>
+<td><p>10,000 張 70S 投影、均勻方向、129×129</p></td>
+<td><p>±4 px 隨機平移</p></td>
+<td><p>20 組 defocus 1.5–4 µm；200 kV；AWGN SNR 1/50–1/200</p></td>
+</tr>
+<tr class="row-even"><td><p>SubspaceEM (2015)</p></td>
+<td><p>10,000 張、隨機視角</p></td>
+<td><p>隨機旋轉+平移（搜 ±4 px）</p></td>
+<td><p>三組 CTF 擇一；SNR 0.05/0.02</p></td>
+</tr>
+<tr class="row-odd"><td><p>AlignPCA-2D (2026)</p></td>
+<td><p>10 視角 ×3,000 張、128×128</p></td>
+<td><p>隨機 in-plane 旋轉；平移 ±15 px</p></td>
+<td><p>300 kV、Cs 2.7 mm、defocus 0.6–2.0 µm；SNR 0.01</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<p>注意共同的骨架完全一樣（投影 → CTF → 加噪），差別全在<strong>參數與變因的開關</strong>——
+這正是本章「一次只開一個變因」哲學在文獻中的體現。</p>
+</section>
+</section>
+<section id="id6">
+<h2>小結與練習<a class="headerlink" href="#id6" title="Link to this heading">#</a></h2>
+<p>我們把前向模型 <span class="math notranslate nohighlight">\(X = \mathrm{CTF} * (P_R V) + N\)</span> 走了一遍：載入密度圖、球面均勻取樣 50 個視角、
+每視角 100 份 in-plane 旋轉、50 組 defocus 的 CTF、以變異數定義的 SNR 0.1 加白高斯雜訊，
+最後存成 STAR + MRCS 並讀回驗證。生成的 5,000 張影像連同完整 ground truth，
+就是後續開發 2D 分類、去噪、對齊演算法的測試場。</p>
+<div class="hint admonition">
+<p class="admonition-title">練習</p>
+<ol class="arabic simple">
+<li><p><strong>異質性資料集</strong>：<code class="docutils literal notranslate"><span class="pre">dataset</span></code> 中還有第二個構型 <code class="docutils literal notranslate"><span class="pre">70S_Confrom2.mrc</span></code>。把兩個構型各生成 2,500 張混在一起，
+對 2D 分類的結果計算 purity——分類器能把兩個構型分開嗎？</p></li>
+<li><p><strong>打開平移</strong>：把 <code class="docutils literal notranslate"><span class="pre">offsets=0.0</span></code> 拿掉（回到預設 ±L/16 隨機平移），重畫三聯圖。
+對齊（alignment）問題為什麼讓所有下游分析變難？</p></li>
+<li><p><strong>Phase flipping</strong>：對 noisy 影像在頻域乘上 <span class="math notranslate nohighlight">\(\mathrm{sign}(\mathrm{CTF})\)</span> 做最簡單的 CTF 修正，
+比較修正前後 100 張同視角影像的平均。這會用到 <a class="reference internal" href="03_fourier.html"><span class="doc">頻域影像處理：傅立葉轉換</span></a> 的頻域濾波與 Wiener 一節。</p></li>
+<li><p><strong>耦合雜訊</strong>：用同一個 <span class="math notranslate nohighlight">\(\varepsilon\)</span> 生成 SNR 0.04 與 0.06 兩份資料，驗證相減後與 clean 訊號無關。</p></li>
+</ol>
+</div>
+<p>更多延伸資源見 <a class="reference internal" href="08_resources.html"><span class="doc">延伸資源與下一步</span></a>。</p>
+</section>
+</section>
+
+    <script type="text/x-thebe-config">
+    {
+        requestKernel: true,
+        binderOptions: {
+            repo: "binder-examples/jupyter-stacks-datascience",
+            ref: "master",
+        },
+        codeMirrorConfig: {
+            theme: "abcdef",
+            mode: "cryoem-book"
+        },
+        kernelOptions: {
+            name: "cryoem-book",
+            path: "./."
+        },
+        predefinedOutput: true
+    }
+    </script>
+    <script>kernelName = 'cryoem-book'</script>
+
+                </article>
+              
+
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+    <a class="left-prev"
+       href="06_workflow.html"
+       title="previous page">
+      <i class="fa-solid fa-angle-left"></i>
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">previous</p>
+        <p class="prev-next-title">Cryo-EM 計算流程：從 Movie 到 3D 結構</p>
+      </div>
+    </a>
+    <a class="right-next"
+       href="08_resources.html"
+       title="next page">
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">next</p>
+        <p class="prev-next-title">延伸資源與下一步</p>
+      </div>
+      <i class="fa-solid fa-angle-right"></i>
+    </a>
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+                <dialog id="pst-secondary-sidebar-modal"></dialog>
+                <div id="pst-secondary-sidebar" class="bd-sidebar-secondary bd-toc"><div class="sidebar-secondary-items sidebar-secondary__inner">
+
+
+  <div class="sidebar-secondary-item"><div
+    id="pst-page-navigation-heading-2"
+    class="page-toc tocsection onthispage">
+    <i class="fa-solid fa-list"></i> Contents
+  </div>
+  <nav id="pst-page-toc-nav" class="page-toc" aria-labelledby="pst-page-navigation-heading-2">
+    <ul class="pst-show_toc_level nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#id2">為什麼要合成資料？</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#id3">階段一：參數設定</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#d">階段二：載入 3D 密度圖</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#euler">階段三：投影方向（Euler 角）</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#ctf">階段四：CTF</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#simulation">階段五：組裝 Simulation 物件</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#clean-ctf-noise">階段六：三層影像——clean → +CTF → +noise</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#relion">階段七：輸出成 RELION 格式並讀回驗證</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#id4">研究等級的生成協定</a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#id5">各家論文的合成協定比較</a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#id6">小結與練習</a></li>
+</ul>
+  </nav></div>
+
+</div></div>
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+<div class="bd-footer-content__inner container">
+  
+  <div class="footer-item">
+    
+<p class="component-author">
+By Szu-Chi Chung
+</p>
+
+  </div>
+  
+  <div class="footer-item">
+    
+
+  </div>
+  
+  <div class="footer-item">
+    
+  </div>
+  
+  <div class="footer-item">
+    
+  </div>
+  
+</div>
+          </footer>
+        
+
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script defer src="_static/scripts/bootstrap.js?digest=55c26ed414f5f8a31ebb"></script>
+<script defer src="_static/scripts/pydata-sphinx-theme.js?digest=55c26ed414f5f8a31ebb"></script>
+
+  <footer class="bd-footer">
+  </footer>
+  </body>
+</html>

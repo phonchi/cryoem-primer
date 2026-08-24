@@ -1,0 +1,916 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="./" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>影像處理基礎：從 NumPy 陣列到幾何變換 &#8212; Cryo-EM 單顆粒分析入門</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  <!--
+    this give us a css class that will be invisible only if js is disabled
+  -->
+  <noscript>
+    <style>
+      .pst-js-only { display: none !important; }
+
+    </style>
+  </noscript>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="_static/styles/theme.css?digest=55c26ed414f5f8a31ebb" rel="stylesheet" />
+<link href="_static/styles/pydata-sphinx-theme.css?digest=55c26ed414f5f8a31ebb" rel="stylesheet" />
+
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=03e43079" />
+    <link rel="stylesheet" type="text/css" href="_static/styles/sphinx-book-theme.css?v=3c74b3bc" />
+    <link rel="stylesheet" type="text/css" href="_static/togglebutton.css?v=9c3e77be" />
+    <link rel="stylesheet" type="text/css" href="_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="_static/mystnb.11b39860a7a0cbfd473a3ad8a317855267ff0bd372690045ca344a6b62be495e.css" />
+    <link rel="stylesheet" type="text/css" href="_static/sphinx-thebe.css?v=4fa983c6" />
+    <link rel="stylesheet" type="text/css" href="_static/sphinx-design.min.css?v=95c83b7e" />
+  
+  <!-- So that users can add custom icons -->
+  <script defer src="_static/scripts/fontawesome.js?digest=55c26ed414f5f8a31ebb"></script>
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="_static/scripts/bootstrap.js?digest=55c26ed414f5f8a31ebb" />
+<link rel="preload" as="script" href="_static/scripts/pydata-sphinx-theme.js?digest=55c26ed414f5f8a31ebb" />
+
+    <script src="_static/documentation_options.js?v=9eb32ce0"></script>
+    <script src="_static/doctools.js?v=9a2dae69"></script>
+    <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="_static/clipboard.min.js?v=a7894cd8"></script>
+    <script src="_static/copybutton.js?v=f281be69"></script>
+    <script src="_static/scripts/sphinx-book-theme.js?v=fab101a9"></script>
+    <script>let toggleHintShow = 'Click to show';</script>
+    <script>let toggleHintHide = 'Click to hide';</script>
+    <script>let toggleOpenOnPrint = 'true';</script>
+    <script src="_static/togglebutton.js?v=b8b12719"></script>
+    <script>var togglebuttonSelector = '.toggle, .admonition.dropdown';</script>
+    <script src="_static/design-tabs.js?v=f930bc37"></script>
+    <script>const THEBE_JS_URL = "https://unpkg.com/thebe@0.8.2/lib/index.js"; const thebe_selector = ".thebe,.cell"; const thebe_selector_input = "pre"; const thebe_selector_output = ".output, .cell_output"</script>
+    <script async="async" src="_static/sphinx-thebe.js?v=c100c467"></script>
+    <script>var togglebuttonSelector = '.toggle, .admonition.dropdown';</script>
+    <script>const THEBE_JS_URL = "https://unpkg.com/thebe@0.8.2/lib/index.js"; const thebe_selector = ".thebe,.cell"; const thebe_selector_input = "pre"; const thebe_selector_output = ".output, .cell_output"</script>
+    <script>window.MathJax = {"options": {"processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+    <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = '01_image_basics';</script>
+    <script>DOCUMENTATION_OPTIONS.search_as_you_type = false;</script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="濾波與影像分割" href="02_filter_segment.html" />
+    <link rel="prev" title="Cryo-EM 單顆粒分析入門" href="00_intro.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  <meta name="docsearch:version" content="" />
+  
+    
+    <script src="_static/searchtools.js"></script>
+    <script src="_static/language_data.js"></script>
+    <script src="searchindex.js"></script>
+  
+  </head>
+  <body data-default-mode="">
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+  
+  
+  
+  
+  <dialog id="pst-search-dialog">
+    
+<form class="bd-search d-flex align-items-center"
+      action="search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         placeholder="Search this book..."
+         aria-label="Search this book..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form>
+  </dialog>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header id="pst-header" class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+<div class="bd-header__inner bd-page-width">
+  <button class="pst-navbar-icon sidebar-toggle primary-toggle" aria-label="Site navigation">
+    <span class="fa-solid fa-bars"></span>
+  </button>
+  
+  
+  <div class="col-lg-9 navbar-header-items">
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+        </div>
+      
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+    </div>
+  
+
+  
+    <button class="pst-navbar-icon sidebar-toggle secondary-toggle" aria-label="On this page">
+      <span class="fa-solid fa-outdent"></span>
+    </button>
+  
+</div>
+
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+      <dialog id="pst-primary-sidebar-modal"></dialog>
+      <div id="pst-primary-sidebar" class="bd-sidebar-primary bd-sidebar">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+    
+    
+  </div>
+  
+    <div class="sidebar-primary-items__start sidebar-primary__section">
+        <div class="sidebar-primary-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="00_intro.html">
+  
+  
+  
+  
+  
+  
+    <p class="title logo__title">Cryo-EM 單顆粒分析入門</p>
+  
+</a></div>
+        <div class="sidebar-primary-item">
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button></div>
+        <div class="sidebar-primary-item"><nav class="bd-links bd-docs-nav" aria-label="Main">
+    <div class="bd-toc-item navbar-nav active">
+        
+        <ul class="nav bd-sidenav bd-sidenav__home-link">
+            <li class="toctree-l1">
+                <a class="reference internal" href="00_intro.html">
+                    Cryo-EM 單顆粒分析入門
+                </a>
+            </li>
+        </ul>
+        <ul class="current nav bd-sidenav">
+<li class="toctree-l1 current active"><a class="current reference internal" href="#">影像處理基礎：從 NumPy 陣列到幾何變換</a></li>
+<li class="toctree-l1"><a class="reference internal" href="02_filter_segment.html">濾波與影像分割</a></li>
+<li class="toctree-l1"><a class="reference internal" href="03_fourier.html">頻域影像處理：傅立葉轉換</a></li>
+<li class="toctree-l1"><a class="reference internal" href="04_wavelet.html">小波轉換</a></li>
+<li class="toctree-l1"><a class="reference internal" href="05_background.html">Cryo-EM 背景：為什麼要用冷凍電鏡看蛋白質</a></li>
+<li class="toctree-l1"><a class="reference internal" href="06_workflow.html">Cryo-EM 計算流程：從 Movie 到 3D 結構</a></li>
+<li class="toctree-l1"><a class="reference internal" href="07_synthetic_data.html">合成資料的生成</a></li>
+<li class="toctree-l1"><a class="reference internal" href="08_resources.html">延伸資源與下一步</a></li>
+</ul>
+
+    </div>
+</nav></div>
+    </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+      <div class="sidebar-primary-item">
+<div id="ethical-ad-placement"
+      class="flat"
+      data-ea-publisher="readthedocs"
+      data-ea-type="readthedocs-sidebar"
+      data-ea-manual="true">
+</div></div>
+  </div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+
+<div class="sbt-scroll-pixel-helper"></div>
+
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item"><button class="sidebar-toggle primary-toggle btn btn-sm" title="Toggle primary sidebar" data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <span class="fa-solid fa-bars"></span>
+</button></div>
+      
+    </div>
+  
+  
+    <div class="header-article-items__end">
+      
+        <div class="header-article-item">
+
+<div class="article-header-buttons">
+
+
+
+
+
+<div class="dropdown dropdown-download-buttons">
+  <button class="btn dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Download this page">
+    <i class="fas fa-download"></i>
+  </button>
+  <ul class="dropdown-menu">
+      
+      
+      
+      <li><a href="_sources/01_image_basics.ipynb" target="_blank"
+   class="btn btn-sm btn-download-source-button dropdown-item"
+   title="Download source file"
+   data-bs-placement="left" data-bs-toggle="tooltip"
+>
+  
+
+<span class="btn__icon-container">
+  <i class="fas fa-file"></i>
+  </span>
+<span class="btn__text-container">.ipynb</span>
+</a>
+</li>
+      
+      
+      
+      
+      <li>
+<button onclick="window.print()"
+  class="btn btn-sm btn-download-pdf-button dropdown-item"
+  title="Print to PDF"
+  data-bs-placement="left" data-bs-toggle="tooltip"
+>
+  
+
+<span class="btn__icon-container">
+  <i class="fas fa-file-pdf"></i>
+  </span>
+<span class="btn__text-container">.pdf</span>
+</button>
+</li>
+      
+  </ul>
+</div>
+
+
+
+
+<button onclick="toggleFullScreen()"
+  class="btn btn-sm btn-fullscreen-button pst-navbar-icon"
+  title="Fullscreen mode"
+  data-bs-placement="bottom" data-bs-toggle="tooltip"
+>
+  
+
+<span class="btn__icon-container">
+  <i class="fas fa-expand"></i>
+  </span>
+
+</button>
+
+
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button>
+
+
+<button class="btn btn-sm pst-navbar-icon search-button search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <i class="fa-solid fa-magnifying-glass fa-lg"></i>
+</button>
+<button class="sidebar-toggle secondary-toggle btn btn-sm pst-navbar-icon" title="Toggle secondary sidebar" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <span class="fa-solid fa-list"></span>
+</button>
+</div></div>
+      
+    </div>
+  
+</div>
+</div>
+              
+              
+
+<div id="jb-print-docs-body" class="onlyprint">
+    <h1>影像處理基礎：從 NumPy 陣列到幾何變換</h1>
+    <!-- Table of contents -->
+    <div id="print-main-content">
+        <div id="jb-print-toc">
+            
+            <div>
+                <h2> Contents </h2>
+            </div>
+            <nav aria-label="Page">
+                <ul class="pst-show_toc_level nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#id1">影像就是 NumPy 陣列</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#id2">座標與索引慣例</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#dtype">資料型別（dtype）與數值範圍</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#image-i-o">影像輸入／輸出（Image I/O）</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#rgb-rgba-hsv">色彩模型：RGB / RGBA / 灰階 / HSV</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#opencv-bgr-vs-rgb">OpenCV 中的色彩順序：BGR vs. RGB</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#id3">對比與直方圖等化</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#euclidean-similarity-affine-projective">幾何變換的階層：Euclidean → Similarity → Affine → Projective</a></li>
+</ul>
+            </nav>
+        </div>
+    </div>
+</div>
+
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <section class="tex2jax_ignore mathjax_ignore" id="numpy">
+<h1>影像處理基礎：從 NumPy 陣列到幾何變換<a class="headerlink" href="#numpy" title="Link to this heading">#</a></h1>
+<div class="important admonition">
+<p class="admonition-title">本章重點</p>
+<ul class="simple">
+<li><p>影像在電腦裡就是一個 <code class="docutils literal notranslate"><span class="pre">NumPy</span></code> 陣列：形狀（shape）、資料型別（dtype）與數值範圍決定了它能怎麼被處理。</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">NumPy</span></code> 索引慣例是 <code class="docutils literal notranslate"><span class="pre">(row,</span> <span class="pre">column)</span></code>，原點在左上角，這與數學課本常用的笛卡兒座標 <code class="docutils literal notranslate"><span class="pre">(x,</span> <span class="pre">y)</span></code> 不同。</p></li>
+<li><p>讀寫影像、在 RGB / RGBA / 灰階 / HSV 之間轉換，以及理解 OpenCV 的 BGR 通道順序。</p></li>
+<li><p>用對比拉伸與直方圖等化，把「看起來很平」的影像變得可判讀。</p></li>
+<li><p>幾何變換有一個由簡到繁的階層：Euclidean → Similarity → Affine → Projective，各自保留不同的幾何性質。</p></li>
+</ul>
+</div>
+<section id="id1">
+<h2>影像就是 NumPy 陣列<a class="headerlink" href="#id1" title="Link to this heading">#</a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">scikit-image</span></code>（本書慣用寫法 <code class="docutils literal notranslate"><span class="pre">ski</span></code>）把影像單純表示成 <code class="docutils literal notranslate"><span class="pre">NumPy</span></code> 陣列，因此可以無縫接上 <code class="docutils literal notranslate"><span class="pre">NumPy</span></code>、<code class="docutils literal notranslate"><span class="pre">SciPy</span></code>、<code class="docutils literal notranslate"><span class="pre">matplotlib</span></code> 整個科學計算生態系。灰階影像是二維陣列 <code class="docutils literal notranslate"><span class="pre">(row,</span> <span class="pre">col)</span></code>；彩色影像則多一個通道維度 <code class="docutils literal notranslate"><span class="pre">(row,</span> <span class="pre">col,</span> <span class="pre">channel)</span></code>。這個表示法會貫穿本書所有章節——之後會看到，一張 cryo-EM micrograph，說穿了也只是一個尺寸很大、雜訊很多的 2D 浮點數陣列。下面先用一張隨機雜訊陣列與 <code class="docutils literal notranslate"><span class="pre">skimage.data</span></code> 內建的範例影像熱身。</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">matplotlib.pyplot</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">plt</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">skimage</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">ski</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">cv2</span>
+
+<span class="n">plt</span><span class="o">.</span><span class="n">rcParams</span><span class="p">[</span><span class="s1">&#39;image.cmap&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;gray&#39;</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">rcParams</span><span class="p">[</span><span class="s1">&#39;figure.figsize&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="mi">6</span><span class="p">,</span> <span class="mi">5</span><span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">imshow_all</span><span class="p">(</span><span class="o">*</span><span class="n">images</span><span class="p">,</span> <span class="n">titles</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;並排顯示多張影像，方便比較。&quot;&quot;&quot;</span>
+    <span class="n">images</span> <span class="o">=</span> <span class="p">[</span><span class="n">ski</span><span class="o">.</span><span class="n">util</span><span class="o">.</span><span class="n">img_as_float</span><span class="p">(</span><span class="n">im</span><span class="p">)</span> <span class="k">for</span> <span class="n">im</span> <span class="ow">in</span> <span class="n">images</span><span class="p">]</span>
+    <span class="k">if</span> <span class="n">titles</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">titles</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;&#39;</span><span class="p">]</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">images</span><span class="p">)</span>
+    <span class="n">fig</span><span class="p">,</span> <span class="n">axes</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="n">nrows</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">ncols</span><span class="o">=</span><span class="nb">len</span><span class="p">(</span><span class="n">images</span><span class="p">),</span> <span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="n">size</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">images</span><span class="p">),</span> <span class="n">size</span><span class="p">))</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">images</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="n">axes</span> <span class="o">=</span> <span class="p">[</span><span class="n">axes</span><span class="p">]</span>
+    <span class="k">for</span> <span class="n">ax</span><span class="p">,</span> <span class="n">im</span><span class="p">,</span> <span class="n">title</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">axes</span><span class="p">,</span> <span class="n">images</span><span class="p">,</span> <span class="n">titles</span><span class="p">):</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">imshow</span><span class="p">(</span><span class="n">im</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="n">title</span><span class="p">)</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">axis</span><span class="p">(</span><span class="s1">&#39;off&#39;</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">tight_layout</span><span class="p">()</span>
+    <span class="k">return</span> <span class="n">fig</span><span class="p">,</span> <span class="n">axes</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">plot_img_and_hist</span><span class="p">(</span><span class="n">image</span><span class="p">,</span> <span class="n">axes</span><span class="p">,</span> <span class="n">bins</span><span class="o">=</span><span class="mi">256</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;左邊畫影像，右邊畫直方圖與累積分布函數（CDF）。&quot;&quot;&quot;</span>
+    <span class="n">image</span> <span class="o">=</span> <span class="n">ski</span><span class="o">.</span><span class="n">util</span><span class="o">.</span><span class="n">img_as_float</span><span class="p">(</span><span class="n">image</span><span class="p">)</span>
+    <span class="n">ax_img</span><span class="p">,</span> <span class="n">ax_hist</span> <span class="o">=</span> <span class="n">axes</span>
+    <span class="n">ax_cdf</span> <span class="o">=</span> <span class="n">ax_hist</span><span class="o">.</span><span class="n">twinx</span><span class="p">()</span>
+
+    <span class="n">ax_img</span><span class="o">.</span><span class="n">imshow</span><span class="p">(</span><span class="n">image</span><span class="p">,</span> <span class="n">cmap</span><span class="o">=</span><span class="s1">&#39;gray&#39;</span><span class="p">)</span>
+    <span class="n">ax_img</span><span class="o">.</span><span class="n">axis</span><span class="p">(</span><span class="s1">&#39;off&#39;</span><span class="p">)</span>
+
+    <span class="n">ax_hist</span><span class="o">.</span><span class="n">hist</span><span class="p">(</span><span class="n">image</span><span class="o">.</span><span class="n">ravel</span><span class="p">(),</span> <span class="n">bins</span><span class="o">=</span><span class="n">bins</span><span class="p">,</span> <span class="n">histtype</span><span class="o">=</span><span class="s1">&#39;step&#39;</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s1">&#39;black&#39;</span><span class="p">)</span>
+    <span class="n">ax_hist</span><span class="o">.</span><span class="n">set_xlim</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+    <span class="n">ax_hist</span><span class="o">.</span><span class="n">set_yticks</span><span class="p">([])</span>
+    <span class="n">ax_hist</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="s1">&#39;Pixel intensity&#39;</span><span class="p">)</span>
+
+    <span class="n">img_cdf</span><span class="p">,</span> <span class="n">bin_centers</span> <span class="o">=</span> <span class="n">ski</span><span class="o">.</span><span class="n">exposure</span><span class="o">.</span><span class="n">cumulative_distribution</span><span class="p">(</span><span class="n">image</span><span class="p">,</span> <span class="n">bins</span><span class="p">)</span>
+    <span class="n">ax_cdf</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">bin_centers</span><span class="p">,</span> <span class="n">img_cdf</span><span class="p">,</span> <span class="s1">&#39;r&#39;</span><span class="p">)</span>
+    <span class="n">ax_cdf</span><span class="o">.</span><span class="n">set_yticks</span><span class="p">([])</span>
+
+    <span class="k">return</span> <span class="n">ax_img</span><span class="p">,</span> <span class="n">ax_hist</span><span class="p">,</span> <span class="n">ax_cdf</span>
+</pre></div>
+</div>
+</div>
+</div>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">random_image</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">default_rng</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">random</span><span class="p">((</span><span class="mi">256</span><span class="p">,</span> <span class="mi">256</span><span class="p">))</span>
+<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;type:&#39;</span><span class="p">,</span> <span class="nb">type</span><span class="p">(</span><span class="n">random_image</span><span class="p">))</span>
+<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;dtype:&#39;</span><span class="p">,</span> <span class="n">random_image</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;shape:&#39;</span><span class="p">,</span> <span class="n">random_image</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+
+<span class="n">fig</span><span class="p">,</span> <span class="n">ax</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">()</span>
+<span class="n">im</span> <span class="o">=</span> <span class="n">ax</span><span class="o">.</span><span class="n">imshow</span><span class="p">(</span><span class="n">random_image</span><span class="p">)</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="s1">&#39;Random noise as a 2D array&#39;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">colorbar</span><span class="p">(</span><span class="n">im</span><span class="p">,</span> <span class="n">ax</span><span class="o">=</span><span class="n">ax</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>type: &lt;class &#39;numpy.ndarray&#39;&gt;
+dtype: float64
+shape: (256, 256)
+</pre></div>
+</div>
+<img alt="_images/af074817f719fde9bcb25e8a57095a617a76f5666df4fa304379b797bda805c1.png" src="_images/af074817f719fde9bcb25e8a57095a617a76f5666df4fa304379b797bda805c1.png" />
+</div>
+</div>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">coins</span> <span class="o">=</span> <span class="n">ski</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">coins</span><span class="p">()</span>
+<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;type:&#39;</span><span class="p">,</span> <span class="nb">type</span><span class="p">(</span><span class="n">coins</span><span class="p">))</span>
+<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;dtype:&#39;</span><span class="p">,</span> <span class="n">coins</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;shape:&#39;</span><span class="p">,</span> <span class="n">coins</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+
+<span class="n">plt</span><span class="o">.</span><span class="n">imshow</span><span class="p">(</span><span class="n">coins</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="s1">&#39;skimage.data.coins()&#39;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">axis</span><span class="p">(</span><span class="s1">&#39;off&#39;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>type: &lt;class &#39;numpy.ndarray&#39;&gt;
+dtype: uint8
+shape: (303, 384)
+</pre></div>
+</div>
+<img alt="_images/7dfede4ed250c27fc5fcea03db8c3a2d761ab1e9484706612d0f5e1e1ac5cee2.png" src="_images/7dfede4ed250c27fc5fcea03db8c3a2d761ab1e9484706612d0f5e1e1ac5cee2.png" />
+</div>
+</div>
+</section>
+<section id="id2">
+<h2>座標與索引慣例<a class="headerlink" href="#id2" title="Link to this heading">#</a></h2>
+<p>因為影像就是陣列，<code class="docutils literal notranslate"><span class="pre">NumPy</span></code> 的索引與切片（indexing / slicing）在這裡完全適用，也可以拿來讀取或修改像素值。</p>
+<p>📌 請特別注意：陣列的第一個維度是<strong>列（row）</strong>，第二個維度是<strong>欄（column）</strong>，原點 <code class="docutils literal notranslate"><span class="pre">(0,</span> <span class="pre">0)</span></code> 在<strong>左上角</strong>。這與矩陣（線性代數）的慣例一致，卻和 <code class="docutils literal notranslate"><span class="pre">matplotlib</span></code> 座標軸、笛卡兒座標常用的 <code class="docutils literal notranslate"><span class="pre">(x,</span> <span class="pre">y)</span></code>（原點在左下角）不同——這是初學者最容易搞混、也最容易寫出座標對調 bug 的地方。</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">venusaur</span> <span class="o">=</span> <span class="n">ski</span><span class="o">.</span><span class="n">io</span><span class="o">.</span><span class="n">imread</span><span class="p">(</span><span class="s1">&#39;images/venusaur.png&#39;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;shape:&#39;</span><span class="p">,</span> <span class="n">venusaur</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="s1">&#39; dtype:&#39;</span><span class="p">,</span> <span class="n">venusaur</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;min/max/mean:&#39;</span><span class="p">,</span> <span class="n">venusaur</span><span class="o">.</span><span class="n">min</span><span class="p">(),</span> <span class="n">venusaur</span><span class="o">.</span><span class="n">max</span><span class="p">(),</span> <span class="n">venusaur</span><span class="o">.</span><span class="n">mean</span><span class="p">())</span>
+
+<span class="n">venusaur_demo</span> <span class="o">=</span> <span class="n">venusaur</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;pixel at (row=11, col=21):&#39;</span><span class="p">,</span> <span class="n">venusaur_demo</span><span class="p">[</span><span class="mi">11</span><span class="p">,</span> <span class="mi">21</span><span class="p">])</span>
+
+<span class="c1"># 用布林遮罩（boolean mask）選取一個圓形區域並塗黑</span>
+<span class="n">nrows</span><span class="p">,</span> <span class="n">ncols</span> <span class="o">=</span> <span class="n">venusaur_demo</span><span class="o">.</span><span class="n">shape</span>
+<span class="n">row</span><span class="p">,</span> <span class="n">col</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mgrid</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="n">nrows</span><span class="p">,</span> <span class="mi">0</span><span class="p">:</span><span class="n">ncols</span><span class="p">]</span>
+<span class="n">cnt_row</span><span class="p">,</span> <span class="n">cnt_col</span> <span class="o">=</span> <span class="n">nrows</span> <span class="o">/</span> <span class="mi">2</span><span class="p">,</span> <span class="n">ncols</span> <span class="o">/</span> <span class="mi">2</span>
+<span class="n">outer_disk_mask</span> <span class="o">=</span> <span class="p">(</span><span class="n">row</span> <span class="o">-</span> <span class="n">cnt_row</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span> <span class="o">+</span> <span class="p">(</span><span class="n">col</span> <span class="o">-</span> <span class="n">cnt_col</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span> <span class="o">&gt;</span> <span class="p">(</span><span class="n">nrows</span> <span class="o">/</span> <span class="mi">2</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span>
+<span class="n">venusaur_demo</span><span class="p">[</span><span class="n">outer_disk_mask</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+
+<span class="n">imshow_all</span><span class="p">(</span><span class="n">venusaur</span><span class="p">,</span> <span class="n">venusaur_demo</span><span class="p">,</span> <span class="n">titles</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;original&#39;</span><span class="p">,</span> <span class="s1">&#39;circular mask applied&#39;</span><span class="p">]);</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>shape: (56, 56)  dtype: uint8
+min/max/mean: 0 255 155.9327168367347
+pixel at (row=11, col=21): 170
+</pre></div>
+</div>
+<img alt="_images/f07fffddcc78123c531e26be86e6d7d87dc484c47acc9cb47961a9325f52c0cd.png" src="_images/f07fffddcc78123c531e26be86e6d7d87dc484c47acc9cb47961a9325f52c0cd.png" />
+</div>
+</div>
+</section>
+<section id="dtype">
+<h2>資料型別（dtype）與數值範圍<a class="headerlink" href="#dtype" title="Link to this heading">#</a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">skimage</span></code> 假設不同 dtype 各自對應固定的數值範圍：<code class="docutils literal notranslate"><span class="pre">uint8</span></code> 是 <code class="docutils literal notranslate"><span class="pre">[0,</span> <span class="pre">255]</span></code>、<code class="docutils literal notranslate"><span class="pre">uint16</span></code> 是 <code class="docutils literal notranslate"><span class="pre">[0,</span> <span class="pre">65535]</span></code>、浮點數是 <code class="docutils literal notranslate"><span class="pre">[-1,</span> <span class="pre">1]</span></code> 或 <code class="docutils literal notranslate"><span class="pre">[0,</span> <span class="pre">1]</span></code>。<strong>直接對影像用 <code class="docutils literal notranslate"><span class="pre">.astype()</span></code> 轉型別非常危險</strong>，因為它只改變表示法、不會重新縮放數值；正確做法是使用 <code class="docutils literal notranslate"><span class="pre">img_as_float()</span></code>、<code class="docutils literal notranslate"><span class="pre">img_as_ubyte()</span></code> 等轉換函式，它們會同時處理縮放。</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">image</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">50</span><span class="p">,</span> <span class="mi">10</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">uint8</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;原始 uint8:      &#39;</span><span class="p">,</span> <span class="n">image</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;.astype(float):  &#39;</span><span class="p">,</span> <span class="n">image</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">float</span><span class="p">))</span>          <span class="c1"># 數值沒有被重新縮放，仍是 0-40</span>
+<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;img_as_float():  &#39;</span><span class="p">,</span> <span class="n">ski</span><span class="o">.</span><span class="n">util</span><span class="o">.</span><span class="n">img_as_float</span><span class="p">(</span><span class="n">image</span><span class="p">))</span>  <span class="c1"># 正確縮放到 [0, 1]</span>
+
+<span class="n">float_image</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">0</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">img_as_ubyte([0, 0.5, 1]) -&gt;&#39;</span><span class="p">,</span> <span class="n">ski</span><span class="o">.</span><span class="n">util</span><span class="o">.</span><span class="n">img_as_ubyte</span><span class="p">(</span><span class="n">float_image</span><span class="p">))</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>原始 uint8:       [ 0 10 20 30 40]
+.astype(float):   [ 0. 10. 20. 30. 40.]
+img_as_float():   [0.         0.03921569 0.07843137 0.11764706 0.15686275]
+
+img_as_ubyte([0, 0.5, 1]) -&gt; [  0 128 255]
+</pre></div>
+</div>
+</div>
+</div>
+</section>
+<section id="image-i-o">
+<h2>影像輸入／輸出（Image I/O）<a class="headerlink" href="#image-i-o" title="Link to this heading">#</a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">skimage.io.imread()</span></code> 會把常見的影像檔案格式（PNG、JPEG、TIFF……）讀成 <code class="docutils literal notranslate"><span class="pre">NumPy</span></code> 陣列；<code class="docutils literal notranslate"><span class="pre">imsave()</span></code> 則反向把陣列寫回檔案。scikit-image 內部會自動挑選可用的後端函式庫（imageio、pillow 等），使用者通常不需要關心細節。</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">blastoise</span> <span class="o">=</span> <span class="n">ski</span><span class="o">.</span><span class="n">io</span><span class="o">.</span><span class="n">imread</span><span class="p">(</span><span class="s1">&#39;images/blastoise.png&#39;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;blastoise:&#39;</span><span class="p">,</span> <span class="n">blastoise</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="n">blastoise</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+
+<span class="n">plt</span><span class="o">.</span><span class="n">imshow</span><span class="p">(</span><span class="n">blastoise</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="s1">&#39;Loaded with ski.io.imread&#39;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">axis</span><span class="p">(</span><span class="s1">&#39;off&#39;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>blastoise: (256, 256, 4) uint8
+</pre></div>
+</div>
+<img alt="_images/2d4675b814cbdc0bb18fa86fc3c0e48428d0b826c7afb45750a182cd3bb259cf.png" src="_images/2d4675b814cbdc0bb18fa86fc3c0e48428d0b826c7afb45750a182cd3bb259cf.png" />
+</div>
+</div>
+</section>
+<section id="rgb-rgba-hsv">
+<h2>色彩模型：RGB / RGBA / 灰階 / HSV<a class="headerlink" href="#rgb-rgba-hsv" title="Link to this heading">#</a></h2>
+<p>彩色影像通常是三維陣列，最後一個維度代表色彩通道：RGB 影像有 3 個通道（紅、綠、藍），若額外帶有透明度資訊則是 RGBA（多一個 alpha 通道，0 表示全透明、255 表示不透明）。</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">r</span><span class="p">,</span> <span class="n">g</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">a</span> <span class="o">=</span> <span class="p">[</span><span class="n">blastoise</span><span class="p">[:,</span> <span class="p">:,</span> <span class="n">i</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">4</span><span class="p">)]</span>
+
+<span class="n">fig</span><span class="p">,</span> <span class="n">axes</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">16</span><span class="p">,</span> <span class="mi">4</span><span class="p">))</span>
+<span class="k">for</span> <span class="n">ax</span> <span class="ow">in</span> <span class="n">axes</span><span class="p">:</span>
+    <span class="n">ax</span><span class="o">.</span><span class="n">axis</span><span class="p">(</span><span class="s1">&#39;off&#39;</span><span class="p">)</span>
+<span class="n">axes</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">imshow</span><span class="p">(</span><span class="n">r</span><span class="p">,</span> <span class="n">cmap</span><span class="o">=</span><span class="s1">&#39;Reds_r&#39;</span><span class="p">);</span> <span class="n">axes</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="s1">&#39;R channel&#39;</span><span class="p">)</span>
+<span class="n">axes</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">imshow</span><span class="p">(</span><span class="n">g</span><span class="p">,</span> <span class="n">cmap</span><span class="o">=</span><span class="s1">&#39;Greens_r&#39;</span><span class="p">);</span> <span class="n">axes</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="s1">&#39;G channel&#39;</span><span class="p">)</span>
+<span class="n">axes</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span><span class="o">.</span><span class="n">imshow</span><span class="p">(</span><span class="n">b</span><span class="p">,</span> <span class="n">cmap</span><span class="o">=</span><span class="s1">&#39;Blues_r&#39;</span><span class="p">);</span> <span class="n">axes</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="s1">&#39;B channel&#39;</span><span class="p">)</span>
+<span class="n">axes</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span><span class="o">.</span><span class="n">imshow</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">cmap</span><span class="o">=</span><span class="s1">&#39;gray&#39;</span><span class="p">);</span> <span class="n">axes</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="s1">&#39;Alpha channel&#39;</span><span class="p">)</span>
+<span class="n">axes</span><span class="p">[</span><span class="mi">4</span><span class="p">]</span><span class="o">.</span><span class="n">imshow</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">stack</span><span class="p">([</span><span class="n">r</span><span class="p">,</span> <span class="n">g</span><span class="p">,</span> <span class="n">b</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">2</span><span class="p">));</span> <span class="n">axes</span><span class="p">[</span><span class="mi">4</span><span class="p">]</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="s1">&#39;RGB (stacked)&#39;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">tight_layout</span><span class="p">()</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<img alt="_images/a7ad26228388838a443ab23b4a7869795d4895990d574fe6ac371e0b6cca81a9.png" src="_images/a7ad26228388838a443ab23b4a7869795d4895990d574fe6ac371e0b6cca81a9.png" />
+</div>
+</div>
+<p>把彩色影像轉成灰階時，<code class="docutils literal notranslate"><span class="pre">skimage.color.rgb2gray()</span></code> 並不是單純取三通道平均，而是依人眼對不同色光的敏感度加權（<a class="reference external" href="https://en.wikipedia.org/wiki/Grayscale#Converting_color_to_grayscale">相對亮度公式</a>）：</p>
+<div class="math notranslate nohighlight">
+\[
+Y = 0.2126R + 0.7152G + 0.0722B
+\]</div>
+<p>除了 RGB，HSV（色相 hue、飽和度 saturation、明度 value）也是常用的色彩空間，三個分量彼此較為獨立，在需要依「顏色」而非「亮度」做篩選時特別方便。</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">rgb</span> <span class="o">=</span> <span class="n">ski</span><span class="o">.</span><span class="n">color</span><span class="o">.</span><span class="n">rgba2rgb</span><span class="p">(</span><span class="n">blastoise</span><span class="p">)</span>  <span class="c1"># alpha 混合，預設背景為白色</span>
+<span class="n">gray_skimage</span> <span class="o">=</span> <span class="n">ski</span><span class="o">.</span><span class="n">color</span><span class="o">.</span><span class="n">rgb2gray</span><span class="p">(</span><span class="n">rgb</span><span class="p">)</span>
+<span class="n">gray_manual</span> <span class="o">=</span> <span class="n">rgb</span> <span class="o">@</span> <span class="p">[</span><span class="mf">0.2126</span><span class="p">,</span> <span class="mf">0.7152</span><span class="p">,</span> <span class="mf">0.0722</span><span class="p">]</span>
+
+<span class="n">imshow_all</span><span class="p">(</span><span class="n">gray_skimage</span><span class="p">,</span> <span class="n">gray_manual</span><span class="p">,</span> <span class="n">titles</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;skimage.color.rgb2gray&#39;</span><span class="p">,</span> <span class="s1">&#39;manual weighted formula&#39;</span><span class="p">]);</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<img alt="_images/edffff91df9a8a0b50617e04596fc1ea179c34717fec044e43ba8a6cdd54b702.png" src="_images/edffff91df9a8a0b50617e04596fc1ea179c34717fec044e43ba8a6cdd54b702.png" />
+</div>
+</div>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">hsv</span> <span class="o">=</span> <span class="n">ski</span><span class="o">.</span><span class="n">color</span><span class="o">.</span><span class="n">rgb2hsv</span><span class="p">(</span><span class="n">rgb</span><span class="p">)</span>
+<span class="n">imshow_all</span><span class="p">(</span><span class="n">hsv</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="n">hsv</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span> <span class="n">hsv</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">2</span><span class="p">],</span> <span class="n">titles</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;Hue&#39;</span><span class="p">,</span> <span class="s1">&#39;Saturation&#39;</span><span class="p">,</span> <span class="s1">&#39;Value&#39;</span><span class="p">]);</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<img alt="_images/111135a1a880ffc300d1d6e5d58f2c37504c018594a857b18259923e9597efa5.png" src="_images/111135a1a880ffc300d1d6e5d58f2c37504c018594a857b18259923e9597efa5.png" />
+</div>
+</div>
+</section>
+<section id="opencv-bgr-vs-rgb">
+<h2>OpenCV 中的色彩順序：BGR vs. RGB<a class="headerlink" href="#opencv-bgr-vs-rgb" title="Link to this heading">#</a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">OpenCV</span></code>（<code class="docutils literal notranslate"><span class="pre">cv2</span></code>）也是以 <code class="docutils literal notranslate"><span class="pre">NumPy</span></code> 陣列操作影像，因此可以跟 <code class="docutils literal notranslate"><span class="pre">scikit-image</span></code> 混用；<strong>但 <code class="docutils literal notranslate"><span class="pre">cv2.imread()</span></code> 預設把彩色影像讀成 BGR（藍、綠、紅）順序，而不是 RGB</strong>。忘記這件事是最常見的踩雷點之一：直接用 <code class="docutils literal notranslate"><span class="pre">matplotlib</span></code> 顯示 <code class="docutils literal notranslate"><span class="pre">cv2</span></code> 讀進來的影像，顏色會是錯的（藍紅對調）。</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">bgr</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">imread</span><span class="p">(</span><span class="s1">&#39;images/blastoise.png&#39;</span><span class="p">)</span>  <span class="c1"># 注意：預設丟棄 alpha 通道，回傳 3 通道 BGR</span>
+<span class="n">rgb_fixed</span> <span class="o">=</span> <span class="n">bgr</span><span class="p">[:,</span> <span class="p">:,</span> <span class="p">::</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>               <span class="c1"># 反轉最後一個軸即可轉回 RGB，row/col 不受影響</span>
+
+<span class="n">fig</span><span class="p">,</span> <span class="n">axes</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">8</span><span class="p">,</span> <span class="mi">4</span><span class="p">))</span>
+<span class="n">axes</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">imshow</span><span class="p">(</span><span class="n">bgr</span><span class="p">);</span> <span class="n">axes</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="s1">&#39;cv2 image shown as-is (wrong colors)&#39;</span><span class="p">);</span> <span class="n">axes</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">axis</span><span class="p">(</span><span class="s1">&#39;off&#39;</span><span class="p">)</span>
+<span class="n">axes</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">imshow</span><span class="p">(</span><span class="n">rgb_fixed</span><span class="p">);</span> <span class="n">axes</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="s1">&#39;image[:, :, ::-1] (correct RGB)&#39;</span><span class="p">);</span> <span class="n">axes</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">axis</span><span class="p">(</span><span class="s1">&#39;off&#39;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">tight_layout</span><span class="p">()</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<img alt="_images/198a3e5877faaca40910bea6c0a91de6a215a20abe707d830e0b3cf314c20724.png" src="_images/198a3e5877faaca40910bea6c0a91de6a215a20abe707d830e0b3cf314c20724.png" />
+</div>
+</div>
+</section>
+<section id="id3">
+<h2>對比與直方圖等化<a class="headerlink" href="#id3" title="Link to this heading">#</a></h2>
+<p>影像的可用數值範圍由 dtype 決定，但實際像素值常常只集中在其中一小段——這就是「對比度低」。<code class="docutils literal notranslate"><span class="pre">skimage.exposure</span></code> 提供了幾種常見的增強手法：</p>
+<ul class="simple">
+<li><p><strong>對比拉伸（contrast stretching）</strong>：用 <code class="docutils literal notranslate"><span class="pre">rescale_intensity()</span></code>，把某個百分位數區間線性拉伸到整個範圍。</p></li>
+<li><p><strong>直方圖等化（histogram equalization）</strong>：<code class="docutils literal notranslate"><span class="pre">equalize_hist()</span></code>，讓累積分布函數趨近線性，使各強度區間被「平均」表示。</p></li>
+<li><p><strong>適應性等化（adaptive equalization, CLAHE）</strong>：<code class="docutils literal notranslate"><span class="pre">equalize_adapthist()</span></code>，在影像的局部子區塊分別等化，可校正局部對比度不均的問題。</p></li>
+</ul>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">moon</span> <span class="o">=</span> <span class="n">ski</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">moon</span><span class="p">()</span>
+
+<span class="n">p2</span><span class="p">,</span> <span class="n">p98</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">percentile</span><span class="p">(</span><span class="n">moon</span><span class="p">,</span> <span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">98</span><span class="p">))</span>
+<span class="n">moon_rescale</span> <span class="o">=</span> <span class="n">ski</span><span class="o">.</span><span class="n">exposure</span><span class="o">.</span><span class="n">rescale_intensity</span><span class="p">(</span><span class="n">moon</span><span class="p">,</span> <span class="n">in_range</span><span class="o">=</span><span class="p">(</span><span class="n">p2</span><span class="p">,</span> <span class="n">p98</span><span class="p">))</span>
+<span class="n">moon_eq</span> <span class="o">=</span> <span class="n">ski</span><span class="o">.</span><span class="n">exposure</span><span class="o">.</span><span class="n">equalize_hist</span><span class="p">(</span><span class="n">moon</span><span class="p">)</span>
+<span class="n">moon_adapteq</span> <span class="o">=</span> <span class="n">ski</span><span class="o">.</span><span class="n">exposure</span><span class="o">.</span><span class="n">equalize_adapthist</span><span class="p">(</span><span class="n">moon</span><span class="p">,</span> <span class="n">clip_limit</span><span class="o">=</span><span class="mf">0.03</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+</div>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">images</span> <span class="o">=</span> <span class="p">[</span><span class="n">moon</span><span class="p">,</span> <span class="n">moon_rescale</span><span class="p">,</span> <span class="n">moon_eq</span><span class="p">,</span> <span class="n">moon_adapteq</span><span class="p">]</span>
+<span class="n">titles</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;Low contrast (original)&#39;</span><span class="p">,</span> <span class="s1">&#39;Contrast stretching&#39;</span><span class="p">,</span> <span class="s1">&#39;Histogram equalization&#39;</span><span class="p">,</span> <span class="s1">&#39;Adaptive equalization (CLAHE)&#39;</span><span class="p">]</span>
+
+<span class="n">fig</span><span class="p">,</span> <span class="n">axes</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">16</span><span class="p">,</span> <span class="mi">7</span><span class="p">))</span>
+<span class="k">for</span> <span class="n">col</span><span class="p">,</span> <span class="p">(</span><span class="n">img</span><span class="p">,</span> <span class="n">title</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="n">images</span><span class="p">,</span> <span class="n">titles</span><span class="p">)):</span>
+    <span class="n">plot_img_and_hist</span><span class="p">(</span><span class="n">img</span><span class="p">,</span> <span class="n">axes</span><span class="p">[:,</span> <span class="n">col</span><span class="p">])</span>
+    <span class="n">axes</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="n">col</span><span class="p">]</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="n">title</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">tight_layout</span><span class="p">()</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<img alt="_images/85f62aae6eb71761e13e8440a0730a0a226f02d5d6c5a8b0079104d974d316d7.png" src="_images/85f62aae6eb71761e13e8440a0730a0a226f02d5d6c5a8b0079104d974d316d7.png" />
+</div>
+</div>
+</section>
+<section id="euclidean-similarity-affine-projective">
+<h2>幾何變換的階層：Euclidean → Similarity → Affine → Projective<a class="headerlink" href="#euclidean-similarity-affine-projective" title="Link to this heading">#</a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">skimage.transform</span></code> 裡的幾何變換（homography）依保留的幾何性質由嚴到鬆排成一個階層，變換矩陣的自由度也隨之增加：</p>
+<div class="pst-scrollable-table-container"><table class="table">
+<thead>
+<tr class="row-odd"><th class="head"><p>變換</p></th>
+<th class="head"><p>保留性質</p></th>
+<th class="head"><p>自由度</p></th>
+<th class="head"><p>常見用途</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>Euclidean（剛體）</p></td>
+<td><p>距離、角度</p></td>
+<td><p>旋轉 + 平移</p></td>
+<td><p>對齊拍攝角度略有偏差的影像</p></td>
+</tr>
+<tr class="row-odd"><td><p>Similarity（相似）</p></td>
+<td><p>形狀、角度</p></td>
+<td><p>上者 + 縮放</p></td>
+<td><p>對齊不同放大倍率的影像</p></td>
+</tr>
+<tr class="row-even"><td><p>Affine（仿射）</p></td>
+<td><p>平行線</p></td>
+<td><p>上者 + 剪切</p></td>
+<td><p>校正輕微的透鏡或投影誤差</p></td>
+</tr>
+<tr class="row-odd"><td><p>Projective（投影）</p></td>
+<td><p>直線</p></td>
+<td><p>完整 3×3 矩陣</p></td>
+<td><p>校正透視畸變（如翻拍的照片）</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<p>所有變換都可用一個 <code class="docutils literal notranslate"><span class="pre">3×3</span></code> 矩陣（齊次座標）表示；要「變換影像內容」而非「變換座標系」，套用時需要取反矩陣（<code class="docutils literal notranslate"><span class="pre">tform.inverse</span></code>），這是 <code class="docutils literal notranslate"><span class="pre">warp()</span></code> 的標準用法。</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">img</span> <span class="o">=</span> <span class="n">ski</span><span class="o">.</span><span class="n">util</span><span class="o">.</span><span class="n">img_as_float</span><span class="p">(</span><span class="n">rgb</span><span class="p">)</span>
+
+<span class="n">tform_euclidean</span> <span class="o">=</span> <span class="n">ski</span><span class="o">.</span><span class="n">transform</span><span class="o">.</span><span class="n">EuclideanTransform</span><span class="p">(</span><span class="n">rotation</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">/</span> <span class="mi">12</span><span class="p">,</span> <span class="n">translation</span><span class="o">=</span><span class="p">(</span><span class="mi">30</span><span class="p">,</span> <span class="o">-</span><span class="mi">20</span><span class="p">))</span>
+<span class="n">tform_similarity</span> <span class="o">=</span> <span class="n">ski</span><span class="o">.</span><span class="n">transform</span><span class="o">.</span><span class="n">SimilarityTransform</span><span class="p">(</span><span class="n">scale</span><span class="o">=</span><span class="mf">0.7</span><span class="p">,</span> <span class="n">rotation</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">/</span> <span class="mi">12</span><span class="p">,</span> <span class="n">translation</span><span class="o">=</span><span class="p">(</span><span class="mi">30</span><span class="p">,</span> <span class="o">-</span><span class="mi">20</span><span class="p">))</span>
+
+<span class="n">img_euclidean</span> <span class="o">=</span> <span class="n">ski</span><span class="o">.</span><span class="n">transform</span><span class="o">.</span><span class="n">warp</span><span class="p">(</span><span class="n">img</span><span class="p">,</span> <span class="n">tform_euclidean</span><span class="o">.</span><span class="n">inverse</span><span class="p">)</span>
+<span class="n">img_similarity</span> <span class="o">=</span> <span class="n">ski</span><span class="o">.</span><span class="n">transform</span><span class="o">.</span><span class="n">warp</span><span class="p">(</span><span class="n">img</span><span class="p">,</span> <span class="n">tform_similarity</span><span class="o">.</span><span class="n">inverse</span><span class="p">)</span>
+
+<span class="n">imshow_all</span><span class="p">(</span><span class="n">img</span><span class="p">,</span> <span class="n">img_euclidean</span><span class="p">,</span> <span class="n">img_similarity</span><span class="p">,</span>
+           <span class="n">titles</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;original&#39;</span><span class="p">,</span> <span class="s1">&#39;Euclidean (rotate + translate)&#39;</span><span class="p">,</span> <span class="s1">&#39;Similarity (+ scale)&#39;</span><span class="p">]);</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<img alt="_images/f52d9a67ad9bdbaf08862851d93d504dea1e34938fe749ada779a0a590016cd0.png" src="_images/f52d9a67ad9bdbaf08862851d93d504dea1e34938fe749ada779a0a590016cd0.png" />
+</div>
+</div>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">tform_affine</span> <span class="o">=</span> <span class="n">ski</span><span class="o">.</span><span class="n">transform</span><span class="o">.</span><span class="n">AffineTransform</span><span class="p">(</span><span class="n">shear</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">/</span> <span class="mi">8</span><span class="p">)</span>
+<span class="n">img_affine</span> <span class="o">=</span> <span class="n">ski</span><span class="o">.</span><span class="n">transform</span><span class="o">.</span><span class="n">warp</span><span class="p">(</span><span class="n">img</span><span class="p">,</span> <span class="n">tform_affine</span><span class="o">.</span><span class="n">inverse</span><span class="p">)</span>
+
+<span class="n">text</span> <span class="o">=</span> <span class="n">ski</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">text</span><span class="p">()</span>
+<span class="n">src</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">50</span><span class="p">],</span> <span class="p">[</span><span class="mi">300</span><span class="p">,</span> <span class="mi">50</span><span class="p">],</span> <span class="p">[</span><span class="mi">300</span><span class="p">,</span> <span class="mi">0</span><span class="p">]])</span>
+<span class="n">dst</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([[</span><span class="mi">155</span><span class="p">,</span> <span class="mi">15</span><span class="p">],</span> <span class="p">[</span><span class="mi">65</span><span class="p">,</span> <span class="mi">40</span><span class="p">],</span> <span class="p">[</span><span class="mi">260</span><span class="p">,</span> <span class="mi">130</span><span class="p">],</span> <span class="p">[</span><span class="mi">360</span><span class="p">,</span> <span class="mi">95</span><span class="p">]])</span>
+<span class="n">tform_projective</span> <span class="o">=</span> <span class="n">ski</span><span class="o">.</span><span class="n">transform</span><span class="o">.</span><span class="n">ProjectiveTransform</span><span class="o">.</span><span class="n">from_estimate</span><span class="p">(</span><span class="n">src</span><span class="p">,</span> <span class="n">dst</span><span class="p">)</span>
+<span class="n">text_warped</span> <span class="o">=</span> <span class="n">ski</span><span class="o">.</span><span class="n">transform</span><span class="o">.</span><span class="n">warp</span><span class="p">(</span><span class="n">text</span><span class="p">,</span> <span class="n">tform_projective</span><span class="p">,</span> <span class="n">output_shape</span><span class="o">=</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span> <span class="mi">300</span><span class="p">))</span>
+
+<span class="n">fig</span><span class="p">,</span> <span class="n">axes</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">14</span><span class="p">,</span> <span class="mi">4</span><span class="p">))</span>
+<span class="n">axes</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">imshow</span><span class="p">(</span><span class="n">img_affine</span><span class="p">);</span> <span class="n">axes</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="s1">&#39;Affine (shear)&#39;</span><span class="p">);</span> <span class="n">axes</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">axis</span><span class="p">(</span><span class="s1">&#39;off&#39;</span><span class="p">)</span>
+<span class="n">axes</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">imshow</span><span class="p">(</span><span class="n">text</span><span class="p">,</span> <span class="n">cmap</span><span class="o">=</span><span class="s1">&#39;gray&#39;</span><span class="p">);</span> <span class="n">axes</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">dst</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">],</span> <span class="n">dst</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">],</span> <span class="s1">&#39;.r&#39;</span><span class="p">)</span>
+<span class="n">axes</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="s1">&#39;Projective: perspective-distorted text&#39;</span><span class="p">);</span> <span class="n">axes</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">axis</span><span class="p">(</span><span class="s1">&#39;off&#39;</span><span class="p">)</span>
+<span class="n">axes</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span><span class="o">.</span><span class="n">imshow</span><span class="p">(</span><span class="n">text_warped</span><span class="p">,</span> <span class="n">cmap</span><span class="o">=</span><span class="s1">&#39;gray&#39;</span><span class="p">);</span> <span class="n">axes</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="s1">&#39;Projective: rectified&#39;</span><span class="p">);</span> <span class="n">axes</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span><span class="o">.</span><span class="n">axis</span><span class="p">(</span><span class="s1">&#39;off&#39;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">tight_layout</span><span class="p">()</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<img alt="_images/045eacddc23fc10845df78381aca31eae1bf239abc709a714fd102a8b034e44e.png" src="_images/045eacddc23fc10845df78381aca31eae1bf239abc709a714fd102a8b034e44e.png" />
+</div>
+</div>
+<div class="note admonition">
+<p class="admonition-title">與 cryo-EM 的連結</p>
+<ul class="simple">
+<li><p>一張 <strong>micrograph</strong>（顯微鏡直接拍下的原始影像）本質上就是本章開頭介紹的那種東西：一個 2D 浮點數陣列，只是尺寸通常是數千 × 數千像素。</p></li>
+<li><p>偵測器記錄的是<strong>電子計數</strong>（electron counts），也就是入射到每個像素上的電子數目；動態範圍與雜訊特性因此和一般相機的可見光影像不同，直接套用「一般照片」的直覺常會出錯。</p></li>
+<li><p>Cryo-EM 為了避免高能量電子束破壞脆弱的生物樣品，必須採用<strong>低劑量成像</strong>（low-dose imaging）。劑量越低，訊噪比越差，這正是為什麼 cryo-EM micrograph 看起來對比極低、幾乎像一片灰霧——樣品的訊號被淹沒在雜訊裡，需要後續大量的濾波、平均與分類才能重建出結構。</p></li>
+<li><p>Cryo-EM 資料常以 <strong>MRC 格式</strong>儲存：一個 MRC 檔案基本上就是「一段 header（記錄影像尺寸、dtype、像素大小等中繼資料）加上一段陣列資料」——概念上與本章「影像 = shape + dtype + 數值陣列」完全一致，只是多包了一層檔案格式的外殼。</p></li>
+</ul>
+</div>
+</section>
+</section>
+
+    <script type="text/x-thebe-config">
+    {
+        requestKernel: true,
+        binderOptions: {
+            repo: "binder-examples/jupyter-stacks-datascience",
+            ref: "master",
+        },
+        codeMirrorConfig: {
+            theme: "abcdef",
+            mode: "cryoem-book"
+        },
+        kernelOptions: {
+            name: "cryoem-book",
+            path: "./."
+        },
+        predefinedOutput: true
+    }
+    </script>
+    <script>kernelName = 'cryoem-book'</script>
+
+                </article>
+              
+
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+    <a class="left-prev"
+       href="00_intro.html"
+       title="previous page">
+      <i class="fa-solid fa-angle-left"></i>
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">previous</p>
+        <p class="prev-next-title">Cryo-EM 單顆粒分析入門</p>
+      </div>
+    </a>
+    <a class="right-next"
+       href="02_filter_segment.html"
+       title="next page">
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">next</p>
+        <p class="prev-next-title">濾波與影像分割</p>
+      </div>
+      <i class="fa-solid fa-angle-right"></i>
+    </a>
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+                <dialog id="pst-secondary-sidebar-modal"></dialog>
+                <div id="pst-secondary-sidebar" class="bd-sidebar-secondary bd-toc"><div class="sidebar-secondary-items sidebar-secondary__inner">
+
+
+  <div class="sidebar-secondary-item"><div
+    id="pst-page-navigation-heading-2"
+    class="page-toc tocsection onthispage">
+    <i class="fa-solid fa-list"></i> Contents
+  </div>
+  <nav id="pst-page-toc-nav" class="page-toc" aria-labelledby="pst-page-navigation-heading-2">
+    <ul class="pst-show_toc_level nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#id1">影像就是 NumPy 陣列</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#id2">座標與索引慣例</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#dtype">資料型別（dtype）與數值範圍</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#image-i-o">影像輸入／輸出（Image I/O）</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#rgb-rgba-hsv">色彩模型：RGB / RGBA / 灰階 / HSV</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#opencv-bgr-vs-rgb">OpenCV 中的色彩順序：BGR vs. RGB</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#id3">對比與直方圖等化</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#euclidean-similarity-affine-projective">幾何變換的階層：Euclidean → Similarity → Affine → Projective</a></li>
+</ul>
+  </nav></div>
+
+</div></div>
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+<div class="bd-footer-content__inner container">
+  
+  <div class="footer-item">
+    
+<p class="component-author">
+By Szu-Chi Chung
+</p>
+
+  </div>
+  
+  <div class="footer-item">
+    
+
+  </div>
+  
+  <div class="footer-item">
+    
+  </div>
+  
+  <div class="footer-item">
+    
+  </div>
+  
+</div>
+          </footer>
+        
+
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script defer src="_static/scripts/bootstrap.js?digest=55c26ed414f5f8a31ebb"></script>
+<script defer src="_static/scripts/pydata-sphinx-theme.js?digest=55c26ed414f5f8a31ebb"></script>
+
+  <footer class="bd-footer">
+  </footer>
+  </body>
+</html>

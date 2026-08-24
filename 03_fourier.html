@@ -1,0 +1,1025 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="./" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>頻域影像處理：傅立葉轉換 &#8212; Cryo-EM 單顆粒分析入門</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  <!--
+    this give us a css class that will be invisible only if js is disabled
+  -->
+  <noscript>
+    <style>
+      .pst-js-only { display: none !important; }
+
+    </style>
+  </noscript>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="_static/styles/theme.css?digest=55c26ed414f5f8a31ebb" rel="stylesheet" />
+<link href="_static/styles/pydata-sphinx-theme.css?digest=55c26ed414f5f8a31ebb" rel="stylesheet" />
+
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=03e43079" />
+    <link rel="stylesheet" type="text/css" href="_static/styles/sphinx-book-theme.css?v=3c74b3bc" />
+    <link rel="stylesheet" type="text/css" href="_static/togglebutton.css?v=9c3e77be" />
+    <link rel="stylesheet" type="text/css" href="_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="_static/mystnb.11b39860a7a0cbfd473a3ad8a317855267ff0bd372690045ca344a6b62be495e.css" />
+    <link rel="stylesheet" type="text/css" href="_static/sphinx-thebe.css?v=4fa983c6" />
+    <link rel="stylesheet" type="text/css" href="_static/sphinx-design.min.css?v=95c83b7e" />
+  
+  <!-- So that users can add custom icons -->
+  <script defer src="_static/scripts/fontawesome.js?digest=55c26ed414f5f8a31ebb"></script>
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="_static/scripts/bootstrap.js?digest=55c26ed414f5f8a31ebb" />
+<link rel="preload" as="script" href="_static/scripts/pydata-sphinx-theme.js?digest=55c26ed414f5f8a31ebb" />
+
+    <script src="_static/documentation_options.js?v=9eb32ce0"></script>
+    <script src="_static/doctools.js?v=9a2dae69"></script>
+    <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="_static/clipboard.min.js?v=a7894cd8"></script>
+    <script src="_static/copybutton.js?v=f281be69"></script>
+    <script src="_static/scripts/sphinx-book-theme.js?v=fab101a9"></script>
+    <script>let toggleHintShow = 'Click to show';</script>
+    <script>let toggleHintHide = 'Click to hide';</script>
+    <script>let toggleOpenOnPrint = 'true';</script>
+    <script src="_static/togglebutton.js?v=b8b12719"></script>
+    <script>var togglebuttonSelector = '.toggle, .admonition.dropdown';</script>
+    <script src="_static/design-tabs.js?v=f930bc37"></script>
+    <script>const THEBE_JS_URL = "https://unpkg.com/thebe@0.8.2/lib/index.js"; const thebe_selector = ".thebe,.cell"; const thebe_selector_input = "pre"; const thebe_selector_output = ".output, .cell_output"</script>
+    <script async="async" src="_static/sphinx-thebe.js?v=c100c467"></script>
+    <script>var togglebuttonSelector = '.toggle, .admonition.dropdown';</script>
+    <script>const THEBE_JS_URL = "https://unpkg.com/thebe@0.8.2/lib/index.js"; const thebe_selector = ".thebe,.cell"; const thebe_selector_input = "pre"; const thebe_selector_output = ".output, .cell_output"</script>
+    <script>window.MathJax = {"options": {"processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+    <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = '03_fourier';</script>
+    <script>DOCUMENTATION_OPTIONS.search_as_you_type = false;</script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="小波轉換" href="04_wavelet.html" />
+    <link rel="prev" title="濾波與影像分割" href="02_filter_segment.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  <meta name="docsearch:version" content="" />
+  
+    
+    <script src="_static/searchtools.js"></script>
+    <script src="_static/language_data.js"></script>
+    <script src="searchindex.js"></script>
+  
+  </head>
+  <body data-default-mode="">
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+  
+  
+  
+  
+  <dialog id="pst-search-dialog">
+    
+<form class="bd-search d-flex align-items-center"
+      action="search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         placeholder="Search this book..."
+         aria-label="Search this book..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form>
+  </dialog>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header id="pst-header" class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+<div class="bd-header__inner bd-page-width">
+  <button class="pst-navbar-icon sidebar-toggle primary-toggle" aria-label="Site navigation">
+    <span class="fa-solid fa-bars"></span>
+  </button>
+  
+  
+  <div class="col-lg-9 navbar-header-items">
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+        </div>
+      
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+    </div>
+  
+
+  
+    <button class="pst-navbar-icon sidebar-toggle secondary-toggle" aria-label="On this page">
+      <span class="fa-solid fa-outdent"></span>
+    </button>
+  
+</div>
+
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+      <dialog id="pst-primary-sidebar-modal"></dialog>
+      <div id="pst-primary-sidebar" class="bd-sidebar-primary bd-sidebar">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+    
+    
+  </div>
+  
+    <div class="sidebar-primary-items__start sidebar-primary__section">
+        <div class="sidebar-primary-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="00_intro.html">
+  
+  
+  
+  
+  
+  
+    <p class="title logo__title">Cryo-EM 單顆粒分析入門</p>
+  
+</a></div>
+        <div class="sidebar-primary-item">
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button></div>
+        <div class="sidebar-primary-item"><nav class="bd-links bd-docs-nav" aria-label="Main">
+    <div class="bd-toc-item navbar-nav active">
+        
+        <ul class="nav bd-sidenav bd-sidenav__home-link">
+            <li class="toctree-l1">
+                <a class="reference internal" href="00_intro.html">
+                    Cryo-EM 單顆粒分析入門
+                </a>
+            </li>
+        </ul>
+        <ul class="current nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="01_image_basics.html">影像處理基礎：從 NumPy 陣列到幾何變換</a></li>
+<li class="toctree-l1"><a class="reference internal" href="02_filter_segment.html">濾波與影像分割</a></li>
+<li class="toctree-l1 current active"><a class="current reference internal" href="#">頻域影像處理：傅立葉轉換</a></li>
+<li class="toctree-l1"><a class="reference internal" href="04_wavelet.html">小波轉換</a></li>
+<li class="toctree-l1"><a class="reference internal" href="05_background.html">Cryo-EM 背景：為什麼要用冷凍電鏡看蛋白質</a></li>
+<li class="toctree-l1"><a class="reference internal" href="06_workflow.html">Cryo-EM 計算流程：從 Movie 到 3D 結構</a></li>
+<li class="toctree-l1"><a class="reference internal" href="07_synthetic_data.html">合成資料的生成</a></li>
+<li class="toctree-l1"><a class="reference internal" href="08_resources.html">延伸資源與下一步</a></li>
+</ul>
+
+    </div>
+</nav></div>
+    </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+      <div class="sidebar-primary-item">
+<div id="ethical-ad-placement"
+      class="flat"
+      data-ea-publisher="readthedocs"
+      data-ea-type="readthedocs-sidebar"
+      data-ea-manual="true">
+</div></div>
+  </div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+
+<div class="sbt-scroll-pixel-helper"></div>
+
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item"><button class="sidebar-toggle primary-toggle btn btn-sm" title="Toggle primary sidebar" data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <span class="fa-solid fa-bars"></span>
+</button></div>
+      
+    </div>
+  
+  
+    <div class="header-article-items__end">
+      
+        <div class="header-article-item">
+
+<div class="article-header-buttons">
+
+
+
+
+
+<div class="dropdown dropdown-download-buttons">
+  <button class="btn dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Download this page">
+    <i class="fas fa-download"></i>
+  </button>
+  <ul class="dropdown-menu">
+      
+      
+      
+      <li><a href="_sources/03_fourier.ipynb" target="_blank"
+   class="btn btn-sm btn-download-source-button dropdown-item"
+   title="Download source file"
+   data-bs-placement="left" data-bs-toggle="tooltip"
+>
+  
+
+<span class="btn__icon-container">
+  <i class="fas fa-file"></i>
+  </span>
+<span class="btn__text-container">.ipynb</span>
+</a>
+</li>
+      
+      
+      
+      
+      <li>
+<button onclick="window.print()"
+  class="btn btn-sm btn-download-pdf-button dropdown-item"
+  title="Print to PDF"
+  data-bs-placement="left" data-bs-toggle="tooltip"
+>
+  
+
+<span class="btn__icon-container">
+  <i class="fas fa-file-pdf"></i>
+  </span>
+<span class="btn__text-container">.pdf</span>
+</button>
+</li>
+      
+  </ul>
+</div>
+
+
+
+
+<button onclick="toggleFullScreen()"
+  class="btn btn-sm btn-fullscreen-button pst-navbar-icon"
+  title="Fullscreen mode"
+  data-bs-placement="bottom" data-bs-toggle="tooltip"
+>
+  
+
+<span class="btn__icon-container">
+  <i class="fas fa-expand"></i>
+  </span>
+
+</button>
+
+
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button>
+
+
+<button class="btn btn-sm pst-navbar-icon search-button search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <i class="fa-solid fa-magnifying-glass fa-lg"></i>
+</button>
+<button class="sidebar-toggle secondary-toggle btn btn-sm pst-navbar-icon" title="Toggle secondary sidebar" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <span class="fa-solid fa-list"></span>
+</button>
+</div></div>
+      
+    </div>
+  
+</div>
+</div>
+              
+              
+
+<div id="jb-print-docs-body" class="onlyprint">
+    <h1>頻域影像處理：傅立葉轉換</h1>
+    <!-- Table of contents -->
+    <div id="print-main-content">
+        <div id="jb-print-toc">
+            
+            <div>
+                <h2> Contents </h2>
+            </div>
+            <nav aria-label="Page">
+                <ul class="pst-show_toc_level nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#id2">一維訊號的頻率觀點：從時間域到頻率域</a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#id3">傅立葉定理</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#fftshift">頻率排序與 <code class="docutils literal notranslate"><span class="pre">fftshift</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#dft">二維 DFT：影像的頻域表示</a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#id4">繪製頻譜：振幅與相位</a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#fft">卷積定理與 FFT 加速</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#id5">頻域濾波：低通、高通、帶通與振鈴效應</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#id6">反濾波與其病態性</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#wiener">Wiener 去卷積</a></li>
+</ul>
+            </nav>
+        </div>
+    </div>
+</div>
+
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <section class="tex2jax_ignore mathjax_ignore" id="id1">
+<h1>頻域影像處理：傅立葉轉換<a class="headerlink" href="#id1" title="Link to this heading">#</a></h1>
+<div class="important admonition">
+<p class="admonition-title">本章重點</p>
+<ul class="simple">
+<li><p>離散傅立葉轉換（DFT）如何把訊號從空間（或時間）域轉換到頻率域，以及頻率的排序方式（<code class="docutils literal notranslate"><span class="pre">fftshift</span></code>）</p></li>
+<li><p>二維影像的頻譜視覺化：振幅（magnitude）與相位（phase）各自攜帶什麼資訊</p></li>
+<li><p>卷積定理：空間域的卷積等於頻域的乘法，這也是 FFT 能加速卷積運算的原因</p></li>
+<li><p>頻域濾波（低通、高通、帶通）與其副作用——振鈴效應（ringing）</p></li>
+<li><p>反濾波（inverse filtering）為何是病態問題，以及 Wiener 去卷積如何緩解雜訊放大</p></li>
+<li><p>這一整套頻域工具，正是理解 cryo-EM 中 CTF（contrast transfer function）與其校正方法的關鍵基礎</p></li>
+</ul>
+</div>
+<section id="id2">
+<h2>一維訊號的頻率觀點：從時間域到頻率域<a class="headerlink" href="#id2" title="Link to this heading">#</a></h2>
+<p>我們先從一個簡單的例子出發：一個頻率為 10 Hz 的正弦波。在**時間域（time domain）**中，它看起來就是隨時間規律起伏的波形。</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">matplotlib.pyplot</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">plt</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">skimage</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">ski</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">scipy</span><span class="w"> </span><span class="kn">import</span> <span class="n">signal</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">timeit</span>
+
+<span class="n">plt</span><span class="o">.</span><span class="n">rcParams</span><span class="p">[</span><span class="s2">&quot;image.cmap&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;gray&quot;</span>
+<span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">seed</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+</div>
+<section id="id3">
+<h3>傅立葉定理<a class="headerlink" href="#id3" title="Link to this heading">#</a></h3>
+<p><strong>傅立葉定理（Fourier’s Theorem）</strong> 是頻域分析的核心假設：任何「表現良好」的訊號，都可以看成一系列不同頻率、不同強度的正弦／餘弦波疊加而成。對週期性訊號，它寫成傅立葉級數；對非週期性訊號，則寫成連續的積分形式：</p>
+<div class="math notranslate nohighlight">
+\[h(t) = \frac{1}{2\pi} \int_{-\infty}^{\infty} H(\omega)\, e^{i\omega t}\, d\omega\]</div>
+<p>電腦無法處理無限、連續的訊號，因此我們必須將時間與頻率都離散化，最後得到<strong>離散傅立葉轉換（Discrete Fourier Transform, DFT）</strong>：</p>
+<div class="math notranslate nohighlight">
+\[H[k] = \sum_{n=0}^{N-1} h[n]\, e^{-i \frac{2\pi}{N} k n}\]</div>
+<p><span class="math notranslate nohighlight">\(H[k]\)</span> 是複數，其<strong>振幅（magnitude）</strong> 代表該頻率成分的強度，<strong>相位（phase）</strong> 則描述該成分在波形中的相對位置。若輸入訊號為實數，頻譜會呈現共軛對稱：<span class="math notranslate nohighlight">\(H[-k] = H^*[k]\)</span>。</p>
+<p>現在讓我們實際畫出這個 10 Hz 正弦波的時間域波形，再用 DFT 觀察它的頻率組成。</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">f</span> <span class="o">=</span> <span class="mi">10</span>       <span class="c1"># 訊號頻率 [Hz]</span>
+<span class="n">f_s</span> <span class="o">=</span> <span class="mi">100</span>    <span class="c1"># 取樣率 [Hz]</span>
+
+<span class="n">t</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">f_s</span><span class="p">,</span> <span class="n">endpoint</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+<span class="n">x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">*</span> <span class="n">f</span> <span class="o">*</span> <span class="n">t</span><span class="p">)</span>
+
+<span class="n">fig</span><span class="p">,</span> <span class="n">ax</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">6</span><span class="p">,</span> <span class="mi">3</span><span class="p">))</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">x</span><span class="p">)</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="s2">&quot;Time [s]&quot;</span><span class="p">)</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s2">&quot;Amplitude&quot;</span><span class="p">)</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="s2">&quot;A 10 Hz sine wave (time domain)&quot;</span><span class="p">)</span>
+<span class="n">fig</span><span class="o">.</span><span class="n">tight_layout</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<img alt="_images/bb1840a17e0b0ee0e9b9ec39567e654d8831245f791aeca691ce497cb078e92a.png" src="_images/bb1840a17e0b0ee0e9b9ec39567e654d8831245f791aeca691ce497cb078e92a.png" />
+</div>
+</div>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">X</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">fft</span><span class="o">.</span><span class="n">fft</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+<span class="n">freqs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">fft</span><span class="o">.</span><span class="n">fftfreq</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">x</span><span class="p">),</span> <span class="n">d</span><span class="o">=</span><span class="mi">1</span> <span class="o">/</span> <span class="n">f_s</span><span class="p">)</span>
+
+<span class="n">fig</span><span class="p">,</span> <span class="n">ax</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">6</span><span class="p">,</span> <span class="mi">3</span><span class="p">))</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">stem</span><span class="p">(</span><span class="n">freqs</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">X</span><span class="p">))</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="s2">&quot;Frequency [Hz]&quot;</span><span class="p">)</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s2">&quot;Magnitude |X[k]|&quot;</span><span class="p">)</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">set_xlim</span><span class="p">(</span><span class="o">-</span><span class="n">f_s</span> <span class="o">/</span> <span class="mi">2</span><span class="p">,</span> <span class="n">f_s</span> <span class="o">/</span> <span class="mi">2</span><span class="p">)</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="s2">&quot;DFT magnitude spectrum&quot;</span><span class="p">)</span>
+<span class="n">fig</span><span class="o">.</span><span class="n">tight_layout</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<img alt="_images/99028115dba1f898198f2aa95be58aaad71de311406256c0bb7815eaf235a6f4.png" src="_images/99028115dba1f898198f2aa95be58aaad71de311406256c0bb7815eaf235a6f4.png" />
+</div>
+</div>
+<p>頻譜在 <span class="math notranslate nohighlight">\(\pm10\)</span> Hz 處各有一根尖峰，這正對應到我們輸入的 10 Hz 正弦波；由於輸入是實數訊號，負頻率端的峰值只是正頻率端的鏡像（共軛對稱），並非額外的資訊。</p>
+</section>
+<section id="fftshift">
+<h3>頻率排序與 <code class="docutils literal notranslate"><span class="pre">fftshift</span></code><a class="headerlink" href="#fftshift" title="Link to this heading">#</a></h3>
+<p>由於實作上的歷史因素，<code class="docutils literal notranslate"><span class="pre">np.fft.fft</span></code> 回傳的陣列，其頻率排列順序是「由低到高、再折回負頻率」，而不是我們直覺上「由負到正」排好的順序。<code class="docutils literal notranslate"><span class="pre">np.fft.fftfreq</span></code> 會告訴我們每個位置對應的實際頻率；而 <code class="docutils literal notranslate"><span class="pre">np.fft.fftshift</span></code> 則會把陣列重新排列，讓零頻率（DC 分量）置中，方便視覺化。下面我們用一段短訊號，驗證「用 <code class="docutils literal notranslate"><span class="pre">fftfreq</span></code> 手動排序」跟「直接呼叫 <code class="docutils literal notranslate"><span class="pre">fftshift</span></code>」兩種做法是等價的。</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">x_short</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">1</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="mi">12</span><span class="p">,</span> <span class="mi">7</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">2</span><span class="p">])</span>
+<span class="n">X_short</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">fft</span><span class="o">.</span><span class="n">fft</span><span class="p">(</span><span class="n">x_short</span><span class="p">)</span>
+<span class="n">freqs_short</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">fft</span><span class="o">.</span><span class="n">fftfreq</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">x_short</span><span class="p">),</span> <span class="n">d</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+
+<span class="n">sorted_idx</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">argsort</span><span class="p">(</span><span class="n">freqs_short</span><span class="p">)</span>
+<span class="n">manual_sorted</span> <span class="o">=</span> <span class="n">X_short</span><span class="p">[</span><span class="n">sorted_idx</span><span class="p">]</span>
+<span class="n">shift_sorted</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">fft</span><span class="o">.</span><span class="n">fftshift</span><span class="p">(</span><span class="n">X_short</span><span class="p">)</span>
+
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;freqs (原始順序):    &quot;</span><span class="p">,</span> <span class="n">freqs_short</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;freqs (fftshift 後): &quot;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">fft</span><span class="o">.</span><span class="n">fftshift</span><span class="p">(</span><span class="n">freqs_short</span><span class="p">))</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;手動排序 == fftshift 結果?&quot;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">allclose</span><span class="p">(</span><span class="n">manual_sorted</span><span class="p">,</span> <span class="n">shift_sorted</span><span class="p">))</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>freqs (原始順序):     [ 0.          0.11111111  0.22222222  0.33333333  0.44444444 -0.44444444
+ -0.33333333 -0.22222222 -0.11111111]
+freqs (fftshift 後):  [-0.44444444 -0.33333333 -0.22222222 -0.11111111  0.          0.11111111
+  0.22222222  0.33333333  0.44444444]
+手動排序 == fftshift 結果? True
+</pre></div>
+</div>
+</div>
+</div>
+</section>
+</section>
+<section id="dft">
+<h2>二維 DFT：影像的頻域表示<a class="headerlink" href="#dft" title="Link to this heading">#</a></h2>
+<p>影像可以看成一個二維函數 <span class="math notranslate nohighlight">\(h[x, y]\)</span>，一樣可以分解成許多二維正弦／餘弦「基底函數」的加權和：</p>
+<div class="math notranslate nohighlight">
+\[h[x, y] = \frac{1}{NM} \sum_{k_x=0}^{N-1} \sum_{k_y=0}^{M-1} H[k_x, k_y]\, e^{i 2\pi \left(\frac{k_x x}{M} + \frac{k_y y}{N}\right)}\]</div>
+<p>每一個頻譜位置 <span class="math notranslate nohighlight">\((k_x, k_y)\)</span> 對應到一個特定方向與頻率的平面波。下面我們直接在頻譜上只放一個非零係數（並補上其共軛對稱點以確保輸出為實數），透過反傅立葉轉換看看它對應到怎樣的空間圖樣。</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">def</span><span class="w"> </span><span class="nf">basis_function</span><span class="p">(</span><span class="n">kx</span><span class="p">,</span> <span class="n">ky</span><span class="p">,</span> <span class="n">N</span><span class="o">=</span><span class="mi">64</span><span class="p">):</span>
+    <span class="n">H</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">N</span><span class="p">,</span> <span class="n">N</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">complex</span><span class="p">)</span>
+    <span class="n">H</span><span class="p">[</span><span class="n">ky</span><span class="p">,</span> <span class="n">kx</span><span class="p">]</span> <span class="o">=</span> <span class="mf">1.0</span>
+    <span class="n">H</span><span class="p">[</span><span class="o">-</span><span class="n">ky</span><span class="p">,</span> <span class="o">-</span><span class="n">kx</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">conj</span><span class="p">(</span><span class="n">H</span><span class="p">[</span><span class="n">ky</span><span class="p">,</span> <span class="n">kx</span><span class="p">])</span>  <span class="c1"># 補上共軛對稱點，確保還原後是實數</span>
+    <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">fft</span><span class="o">.</span><span class="n">ifft2</span><span class="p">(</span><span class="n">H</span><span class="p">)</span><span class="o">.</span><span class="n">real</span>
+
+<span class="n">N_demo</span> <span class="o">=</span> <span class="mi">64</span>
+<span class="n">fig</span><span class="p">,</span> <span class="n">axes</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">10</span><span class="p">,</span> <span class="mi">6</span><span class="p">))</span>
+<span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="p">(</span><span class="n">kx</span><span class="p">,</span> <span class="n">ky</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">([(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">5</span><span class="p">),</span> <span class="p">(</span><span class="mi">6</span><span class="p">,</span> <span class="mi">4</span><span class="p">)]):</span>
+    <span class="n">spectrum</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">N_demo</span><span class="p">,</span> <span class="n">N_demo</span><span class="p">))</span>
+    <span class="n">spectrum</span><span class="p">[</span><span class="n">ky</span><span class="p">,</span> <span class="n">kx</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span>
+    <span class="n">spectrum</span><span class="p">[</span><span class="o">-</span><span class="n">ky</span><span class="p">,</span> <span class="o">-</span><span class="n">kx</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span>
+    <span class="n">axes</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">imshow</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">fft</span><span class="o">.</span><span class="n">fftshift</span><span class="p">(</span><span class="n">spectrum</span><span class="p">),</span> <span class="n">cmap</span><span class="o">=</span><span class="s2">&quot;hot&quot;</span><span class="p">)</span>
+    <span class="n">axes</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Spectrum: (kx=</span><span class="si">{</span><span class="n">kx</span><span class="si">}</span><span class="s2">, ky=</span><span class="si">{</span><span class="n">ky</span><span class="si">}</span><span class="s2">)&quot;</span><span class="p">)</span>
+    <span class="n">axes</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">axis</span><span class="p">(</span><span class="s2">&quot;off&quot;</span><span class="p">)</span>
+
+    <span class="n">basis</span> <span class="o">=</span> <span class="n">basis_function</span><span class="p">(</span><span class="n">kx</span><span class="p">,</span> <span class="n">ky</span><span class="p">,</span> <span class="n">N</span><span class="o">=</span><span class="n">N_demo</span><span class="p">)</span>
+    <span class="n">axes</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">imshow</span><span class="p">(</span><span class="n">basis</span><span class="p">,</span> <span class="n">cmap</span><span class="o">=</span><span class="s2">&quot;gray&quot;</span><span class="p">)</span>
+    <span class="n">axes</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="s2">&quot;Basis function h(x, y)&quot;</span><span class="p">)</span>
+    <span class="n">axes</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">axis</span><span class="p">(</span><span class="s2">&quot;off&quot;</span><span class="p">)</span>
+<span class="n">fig</span><span class="o">.</span><span class="n">tight_layout</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<img alt="_images/77c79eff19e8ae7f84add67157f5fcf07fbb297812e40896bb8323eebc240a42.png" src="_images/77c79eff19e8ae7f84add67157f5fcf07fbb297812e40896bb8323eebc240a42.png" />
+</div>
+</div>
+<p>可以看到：頻譜上一個點的位置決定了空間圖樣的方向與週期——離中心越遠，對應的空間頻率越高（條紋越密）。真實影像的頻譜，就是把成千上萬個這樣的基底函數依不同權重疊加起來。</p>
+<p>接著我們對一張真實影像做完整的 2D DFT，並確認「先做 FFT 再做反 FFT」可以完美地還原原始影像。</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">image</span> <span class="o">=</span> <span class="n">ski</span><span class="o">.</span><span class="n">util</span><span class="o">.</span><span class="n">img_as_float</span><span class="p">(</span><span class="n">ski</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">camera</span><span class="p">())</span>
+
+<span class="n">F</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">fft</span><span class="o">.</span><span class="n">fft2</span><span class="p">(</span><span class="n">image</span><span class="p">)</span>
+<span class="n">image_reconstructed</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">fft</span><span class="o">.</span><span class="n">ifft2</span><span class="p">(</span><span class="n">F</span><span class="p">)</span><span class="o">.</span><span class="n">real</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;重建誤差（最大絕對值）:&quot;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">image</span> <span class="o">-</span> <span class="n">image_reconstructed</span><span class="p">)))</span>
+
+<span class="n">fig</span><span class="p">,</span> <span class="n">axes</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">8</span><span class="p">,</span> <span class="mi">4</span><span class="p">))</span>
+<span class="n">axes</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">imshow</span><span class="p">(</span><span class="n">image</span><span class="p">)</span>
+<span class="n">axes</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="s2">&quot;Original&quot;</span><span class="p">)</span>
+<span class="n">axes</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">axis</span><span class="p">(</span><span class="s2">&quot;off&quot;</span><span class="p">)</span>
+<span class="n">axes</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">imshow</span><span class="p">(</span><span class="n">image_reconstructed</span><span class="p">)</span>
+<span class="n">axes</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="s2">&quot;FFT -&gt; IFFT reconstruction&quot;</span><span class="p">)</span>
+<span class="n">axes</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">axis</span><span class="p">(</span><span class="s2">&quot;off&quot;</span><span class="p">)</span>
+<span class="n">fig</span><span class="o">.</span><span class="n">tight_layout</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>重建誤差（最大絕對值）: 8.881784197001252e-16
+</pre></div>
+</div>
+<img alt="_images/7f3ac64abc856c66e9e0e9f813364aedaad39dff26adc11bb8b9d38f9bb43fde.png" src="_images/7f3ac64abc856c66e9e0e9f813364aedaad39dff26adc11bb8b9d38f9bb43fde.png" />
+</div>
+</div>
+<section id="id4">
+<h3>繪製頻譜：振幅與相位<a class="headerlink" href="#id4" title="Link to this heading">#</a></h3>
+<p>頻譜中的直流係數 <span class="math notranslate nohighlight">\(H[0,0]\)</span>（也就是所有像素的平均值）通常遠大於其他係數，會讓其他成分難以觀察，因此習慣上會取對數壓縮動態範圍；也常用 <code class="docutils literal notranslate"><span class="pre">fftshift</span></code> 把零頻率移到中心，方便觀察低頻與高頻的分布。</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">F_shifted</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">fft</span><span class="o">.</span><span class="n">fftshift</span><span class="p">(</span><span class="n">F</span><span class="p">)</span>
+<span class="n">magnitude_spectrum</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="mi">1</span> <span class="o">+</span> <span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">F_shifted</span><span class="p">))</span>
+
+<span class="n">fig</span><span class="p">,</span> <span class="n">axes</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">8</span><span class="p">,</span> <span class="mi">4</span><span class="p">))</span>
+<span class="n">axes</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">imshow</span><span class="p">(</span><span class="n">image</span><span class="p">)</span>
+<span class="n">axes</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="s2">&quot;Image (spatial domain)&quot;</span><span class="p">)</span>
+<span class="n">axes</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">axis</span><span class="p">(</span><span class="s2">&quot;off&quot;</span><span class="p">)</span>
+<span class="n">axes</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">imshow</span><span class="p">(</span><span class="n">magnitude_spectrum</span><span class="p">,</span> <span class="n">cmap</span><span class="o">=</span><span class="s2">&quot;viridis&quot;</span><span class="p">)</span>
+<span class="n">axes</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="s2">&quot;log(1 + |F|)  (frequency domain)&quot;</span><span class="p">)</span>
+<span class="n">axes</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">axis</span><span class="p">(</span><span class="s2">&quot;off&quot;</span><span class="p">)</span>
+<span class="n">fig</span><span class="o">.</span><span class="n">tight_layout</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<img alt="_images/a32f881e888933be9facdf0b476679da25b41ca20e4d8810251c8b09ec3e1ded.png" src="_images/a32f881e888933be9facdf0b476679da25b41ca20e4d8810251c8b09ec3e1ded.png" />
+</div>
+</div>
+<p>頻譜中心附近的高值對應影像的低頻／平滑成分，離中心越遠則對應邊緣與細節等高頻成分。</p>
+<p>傅立葉係數是複數，除了振幅之外還有<strong>相位（phase）</strong>。相位資訊看起來遠不如振幅直觀，但它才是決定影像空間結構的關鍵。下面我們把兩張影像的振幅與相位互換，看看重建結果會像哪一張。</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">image_b</span> <span class="o">=</span> <span class="n">ski</span><span class="o">.</span><span class="n">util</span><span class="o">.</span><span class="n">img_as_float</span><span class="p">(</span><span class="n">ski</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">moon</span><span class="p">())</span>
+<span class="n">Fa</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">fft</span><span class="o">.</span><span class="n">fft2</span><span class="p">(</span><span class="n">image</span><span class="p">)</span>
+<span class="n">Fb</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">fft</span><span class="o">.</span><span class="n">fft2</span><span class="p">(</span><span class="n">image_b</span><span class="p">)</span>
+
+<span class="n">mag_a_phase_b</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">Fa</span><span class="p">)</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="mi">1</span><span class="n">j</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">angle</span><span class="p">(</span><span class="n">Fb</span><span class="p">))</span>
+<span class="n">mag_b_phase_a</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">Fb</span><span class="p">)</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="mi">1</span><span class="n">j</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">angle</span><span class="p">(</span><span class="n">Fa</span><span class="p">))</span>
+
+<span class="n">recon_1</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">fft</span><span class="o">.</span><span class="n">ifft2</span><span class="p">(</span><span class="n">mag_a_phase_b</span><span class="p">)</span><span class="o">.</span><span class="n">real</span>
+<span class="n">recon_2</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">fft</span><span class="o">.</span><span class="n">ifft2</span><span class="p">(</span><span class="n">mag_b_phase_a</span><span class="p">)</span><span class="o">.</span><span class="n">real</span>
+
+<span class="n">fig</span><span class="p">,</span> <span class="n">axes</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">8</span><span class="p">,</span> <span class="mi">8</span><span class="p">))</span>
+<span class="n">axes</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">imshow</span><span class="p">(</span><span class="n">image</span><span class="p">)</span>
+<span class="n">axes</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="s2">&quot;Image A (camera)&quot;</span><span class="p">)</span>
+<span class="n">axes</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">axis</span><span class="p">(</span><span class="s2">&quot;off&quot;</span><span class="p">)</span>
+<span class="n">axes</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">imshow</span><span class="p">(</span><span class="n">image_b</span><span class="p">)</span>
+<span class="n">axes</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="s2">&quot;Image B (moon)&quot;</span><span class="p">)</span>
+<span class="n">axes</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">axis</span><span class="p">(</span><span class="s2">&quot;off&quot;</span><span class="p">)</span>
+<span class="n">axes</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">imshow</span><span class="p">(</span><span class="n">recon_1</span><span class="p">)</span>
+<span class="n">axes</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="s2">&quot;|A| with phase(B)&quot;</span><span class="p">)</span>
+<span class="n">axes</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">axis</span><span class="p">(</span><span class="s2">&quot;off&quot;</span><span class="p">)</span>
+<span class="n">axes</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">imshow</span><span class="p">(</span><span class="n">recon_2</span><span class="p">)</span>
+<span class="n">axes</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="s2">&quot;|B| with phase(A)&quot;</span><span class="p">)</span>
+<span class="n">axes</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">axis</span><span class="p">(</span><span class="s2">&quot;off&quot;</span><span class="p">)</span>
+<span class="n">fig</span><span class="o">.</span><span class="n">tight_layout</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<img alt="_images/8a79decf50bcd633670087f292673dd319fde2914bd1fcf00ba36b65ed35b2e0.png" src="_images/8a79decf50bcd633670087f292673dd319fde2914bd1fcf00ba36b65ed35b2e0.png" />
+</div>
+</div>
+<p>重建結果的空間結構，明顯是由<strong>相位所主導</strong>，而不是振幅：<code class="docutils literal notranslate"><span class="pre">recon_1</span></code>（|A| 配上 B 的相位）看起來像是 B 的輪廓，反之亦然。原因是振幅只告訴我們「每個頻率成分有多強」，並沒有說明「強度出現在哪裡」；相位才描述了各個成分之間的相對排列，也就是我們真正關心的空間資訊。</p>
+</section>
+</section>
+<section id="fft">
+<h2>卷積定理與 FFT 加速<a class="headerlink" href="#fft" title="Link to this heading">#</a></h2>
+<p><strong>卷積定理（convolution theorem）</strong> 是頻域分析最重要的性質之一：空間域中的卷積，等價於頻域中的逐點乘法：</p>
+<div class="math notranslate nohighlight">
+\[\mathcal{F}\{f * g\} = \hat{f}\, \hat{g}\]</div>
+<p>也就是說，若想對影像做濾波（例如模糊），可以先各自轉到頻域，把兩者的頻譜逐點相乘，再轉回空間域即可，不需要進行滑動視窗式的卷積運算。下面我們用一個高斯核（Gaussian kernel）驗證這件事：把核心補零到與影像相同大小、用 <code class="docutils literal notranslate"><span class="pre">ifftshift</span></code> 讓核心的中心對齊到頻域原點，這樣頻域乘法得到的就是<strong>循環卷積（circular convolution）</strong>，與 <code class="docutils literal notranslate"><span class="pre">scipy.signal.convolve2d(...,</span> <span class="pre">boundary=&quot;wrap&quot;)</span></code> 的結果應完全一致。我們也順便比較直接卷積與 FFT 卷積的執行速度。</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">image_small</span> <span class="o">=</span> <span class="n">ski</span><span class="o">.</span><span class="n">util</span><span class="o">.</span><span class="n">img_as_float</span><span class="p">(</span><span class="n">ski</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">coins</span><span class="p">())</span>  <span class="c1"># 影像較小，方便重複計時</span>
+<span class="n">kernel_small</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">outer</span><span class="p">(</span>
+    <span class="n">signal</span><span class="o">.</span><span class="n">windows</span><span class="o">.</span><span class="n">gaussian</span><span class="p">(</span><span class="mi">15</span><span class="p">,</span> <span class="n">std</span><span class="o">=</span><span class="mi">3</span><span class="p">),</span> <span class="n">signal</span><span class="o">.</span><span class="n">windows</span><span class="o">.</span><span class="n">gaussian</span><span class="p">(</span><span class="mi">15</span><span class="p">,</span> <span class="n">std</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span>
+<span class="p">)</span>
+<span class="n">kernel_small</span> <span class="o">/=</span> <span class="n">kernel_small</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
+
+<span class="c1"># 把小核心補零到影像大小，並用 ifftshift 讓核心中心對齊到頻域原點 (0, 0)</span>
+<span class="n">kernel_full</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">image_small</span><span class="p">)</span>
+<span class="n">kh</span><span class="p">,</span> <span class="n">kw</span> <span class="o">=</span> <span class="n">kernel_small</span><span class="o">.</span><span class="n">shape</span>
+<span class="n">start_r</span> <span class="o">=</span> <span class="n">image_small</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">//</span> <span class="mi">2</span> <span class="o">-</span> <span class="n">kh</span> <span class="o">//</span> <span class="mi">2</span>
+<span class="n">start_c</span> <span class="o">=</span> <span class="n">image_small</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">//</span> <span class="mi">2</span> <span class="o">-</span> <span class="n">kw</span> <span class="o">//</span> <span class="mi">2</span>
+<span class="n">kernel_full</span><span class="p">[</span><span class="n">start_r</span> <span class="p">:</span> <span class="n">start_r</span> <span class="o">+</span> <span class="n">kh</span><span class="p">,</span> <span class="n">start_c</span> <span class="p">:</span> <span class="n">start_c</span> <span class="o">+</span> <span class="n">kw</span><span class="p">]</span> <span class="o">=</span> <span class="n">kernel_small</span>
+<span class="n">kernel_full</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">fft</span><span class="o">.</span><span class="n">ifftshift</span><span class="p">(</span><span class="n">kernel_full</span><span class="p">)</span>
+
+<span class="n">F_img</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">fft</span><span class="o">.</span><span class="n">fft2</span><span class="p">(</span><span class="n">image_small</span><span class="p">)</span>
+<span class="n">F_ker</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">fft</span><span class="o">.</span><span class="n">fft2</span><span class="p">(</span><span class="n">kernel_full</span><span class="p">)</span>
+<span class="n">blurred_freq</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">fft</span><span class="o">.</span><span class="n">ifft2</span><span class="p">(</span><span class="n">F_img</span> <span class="o">*</span> <span class="n">F_ker</span><span class="p">)</span><span class="o">.</span><span class="n">real</span>
+
+<span class="c1"># 空間域中對應的循環卷積</span>
+<span class="n">blurred_spatial</span> <span class="o">=</span> <span class="n">signal</span><span class="o">.</span><span class="n">convolve2d</span><span class="p">(</span><span class="n">image_small</span><span class="p">,</span> <span class="n">kernel_small</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;same&quot;</span><span class="p">,</span> <span class="n">boundary</span><span class="o">=</span><span class="s2">&quot;wrap&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span>
+    <span class="s2">&quot;頻域乘法 vs. 循環卷積的最大差異:&quot;</span><span class="p">,</span>
+    <span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">blurred_freq</span> <span class="o">-</span> <span class="n">blurred_spatial</span><span class="p">)),</span>
+<span class="p">)</span>
+
+<span class="c1"># 比較直接卷積與 FFT 卷積的執行時間</span>
+<span class="n">t_direct</span> <span class="o">=</span> <span class="n">timeit</span><span class="o">.</span><span class="n">timeit</span><span class="p">(</span>
+    <span class="k">lambda</span><span class="p">:</span> <span class="n">signal</span><span class="o">.</span><span class="n">convolve2d</span><span class="p">(</span><span class="n">image_small</span><span class="p">,</span> <span class="n">kernel_small</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;same&quot;</span><span class="p">),</span> <span class="n">number</span><span class="o">=</span><span class="mi">5</span>
+<span class="p">)</span>
+<span class="n">t_fft</span> <span class="o">=</span> <span class="n">timeit</span><span class="o">.</span><span class="n">timeit</span><span class="p">(</span>
+    <span class="k">lambda</span><span class="p">:</span> <span class="n">signal</span><span class="o">.</span><span class="n">fftconvolve</span><span class="p">(</span><span class="n">image_small</span><span class="p">,</span> <span class="n">kernel_small</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;same&quot;</span><span class="p">),</span> <span class="n">number</span><span class="o">=</span><span class="mi">5</span>
+<span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;直接卷積 (convolve2d):   </span><span class="si">{</span><span class="n">t_direct</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="mi">1000</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="mi">5</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2"> ms/次&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;FFT 卷積 (fftconvolve): </span><span class="si">{</span><span class="n">t_fft</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="mi">1000</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="mi">5</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2"> ms/次  (加速 </span><span class="si">{</span><span class="n">t_direct</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="n">t_fft</span><span class="si">:</span><span class="s2">.1f</span><span class="si">}</span><span class="s2"> 倍)&quot;</span><span class="p">)</span>
+
+<span class="n">fig</span><span class="p">,</span> <span class="n">axes</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">12</span><span class="p">,</span> <span class="mi">4</span><span class="p">))</span>
+<span class="n">axes</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">imshow</span><span class="p">(</span><span class="n">image_small</span><span class="p">)</span>
+<span class="n">axes</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="s2">&quot;Original&quot;</span><span class="p">)</span>
+<span class="n">axes</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">axis</span><span class="p">(</span><span class="s2">&quot;off&quot;</span><span class="p">)</span>
+<span class="n">axes</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">imshow</span><span class="p">(</span><span class="n">blurred_freq</span><span class="p">)</span>
+<span class="n">axes</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="s2">&quot;Freq-domain product</span><span class="se">\n</span><span class="s2">(= circular convolution)&quot;</span><span class="p">)</span>
+<span class="n">axes</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">axis</span><span class="p">(</span><span class="s2">&quot;off&quot;</span><span class="p">)</span>
+<span class="n">axes</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span><span class="o">.</span><span class="n">imshow</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="mi">1</span> <span class="o">+</span> <span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">fft</span><span class="o">.</span><span class="n">fftshift</span><span class="p">(</span><span class="n">F_img</span> <span class="o">*</span> <span class="n">F_ker</span><span class="p">))),</span> <span class="n">cmap</span><span class="o">=</span><span class="s2">&quot;viridis&quot;</span><span class="p">)</span>
+<span class="n">axes</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="s2">&quot;Output spectrum&quot;</span><span class="p">)</span>
+<span class="n">axes</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span><span class="o">.</span><span class="n">axis</span><span class="p">(</span><span class="s2">&quot;off&quot;</span><span class="p">)</span>
+<span class="n">fig</span><span class="o">.</span><span class="n">tight_layout</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>頻域乘法 vs. 循環卷積的最大差異: 1.1102230246251565e-15
+直接卷積 (convolve2d):   21.97 ms/次
+FFT 卷積 (fftconvolve): 1.40 ms/次  (加速 15.7 倍)
+</pre></div>
+</div>
+<img alt="_images/c05e313d8fb4ff3fc930c979716cb0e4d8c9cb4b271aefa7c1ab2a21e17436e4.png" src="_images/c05e313d8fb4ff3fc930c979716cb0e4d8c9cb4b271aefa7c1ab2a21e17436e4.png" />
+</div>
+</div>
+<p>兩種算法在數值上幾乎完全相同（誤差在浮點精度範圍內），而 FFT 卷積在核心較大或影像較大時會明顯快得多——這也是為什麼頻域濾波在實務上經常比空間域滑動視窗更受青睞。</p>
+</section>
+<section id="id5">
+<h2>頻域濾波：低通、高通、帶通與振鈴效應<a class="headerlink" href="#id5" title="Link to this heading">#</a></h2>
+<p>有了卷積定理，我們可以直接在頻域中設計濾波器：只要把頻譜中不想要的頻率成分設為零，再做反傅立葉轉換即可。</p>
+<ul class="simple">
+<li><p><strong>低通濾波器（low-pass filter）</strong>：只保留半徑 <span class="math notranslate nohighlight">\(r\)</span> 以內的低頻成分，捨棄高頻——效果類似模糊化，去除細節與雜訊。</p></li>
+<li><p><strong>高通濾波器（high-pass filter）</strong>：只保留半徑 <span class="math notranslate nohighlight">\(r\)</span> 以外的高頻成分——效果是強化邊緣與細節，捨棄整體輪廓。</p></li>
+<li><p><strong>帶通濾波器（band-pass filter）</strong>：只保留一個環狀頻率範圍 <span class="math notranslate nohighlight">\(r_1 &lt; r \le r_2\)</span>——常用來凸顯特定尺度的結構。</p></li>
+</ul>
+<p>下面用「硬遮罩（hard mask）」——也就是直接把頻率成分歸零——來實作這三種濾波器。</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">def</span><span class="w"> </span><span class="nf">freq_mask</span><span class="p">(</span><span class="n">shape</span><span class="p">,</span> <span class="n">r_inner</span><span class="p">,</span> <span class="n">r_outer</span><span class="p">,</span> <span class="n">kind</span><span class="o">=</span><span class="s2">&quot;low&quot;</span><span class="p">):</span>
+    <span class="n">rows</span><span class="p">,</span> <span class="n">cols</span> <span class="o">=</span> <span class="n">shape</span>
+    <span class="n">cy</span><span class="p">,</span> <span class="n">cx</span> <span class="o">=</span> <span class="n">rows</span> <span class="o">//</span> <span class="mi">2</span><span class="p">,</span> <span class="n">cols</span> <span class="o">//</span> <span class="mi">2</span>
+    <span class="n">Y</span><span class="p">,</span> <span class="n">X</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ogrid</span><span class="p">[:</span><span class="n">rows</span><span class="p">,</span> <span class="p">:</span><span class="n">cols</span><span class="p">]</span>
+    <span class="n">dist</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">((</span><span class="n">Y</span> <span class="o">-</span> <span class="n">cy</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span> <span class="o">+</span> <span class="p">(</span><span class="n">X</span> <span class="o">-</span> <span class="n">cx</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">kind</span> <span class="o">==</span> <span class="s2">&quot;low&quot;</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">dist</span> <span class="o">&lt;=</span> <span class="n">r_outer</span>
+    <span class="k">elif</span> <span class="n">kind</span> <span class="o">==</span> <span class="s2">&quot;high&quot;</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">dist</span> <span class="o">&gt;</span> <span class="n">r_outer</span>
+    <span class="k">else</span><span class="p">:</span>  <span class="c1"># band-pass</span>
+        <span class="k">return</span> <span class="p">(</span><span class="n">dist</span> <span class="o">&gt;</span> <span class="n">r_inner</span><span class="p">)</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">dist</span> <span class="o">&lt;=</span> <span class="n">r_outer</span><span class="p">)</span>
+
+<span class="n">image</span> <span class="o">=</span> <span class="n">ski</span><span class="o">.</span><span class="n">util</span><span class="o">.</span><span class="n">img_as_float</span><span class="p">(</span><span class="n">ski</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">camera</span><span class="p">())</span>
+<span class="n">F_shifted</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">fft</span><span class="o">.</span><span class="n">fftshift</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">fft</span><span class="o">.</span><span class="n">fft2</span><span class="p">(</span><span class="n">image</span><span class="p">))</span>
+
+<span class="n">fig</span><span class="p">,</span> <span class="n">axes</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">12</span><span class="p">,</span> <span class="mi">4</span><span class="p">))</span>
+<span class="n">mask_low</span> <span class="o">=</span> <span class="n">freq_mask</span><span class="p">(</span><span class="n">image</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">20</span><span class="p">,</span> <span class="n">kind</span><span class="o">=</span><span class="s2">&quot;low&quot;</span><span class="p">)</span>
+<span class="n">low</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">fft</span><span class="o">.</span><span class="n">ifft2</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">fft</span><span class="o">.</span><span class="n">ifftshift</span><span class="p">(</span><span class="n">F_shifted</span> <span class="o">*</span> <span class="n">mask_low</span><span class="p">))</span><span class="o">.</span><span class="n">real</span>
+<span class="n">axes</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">imshow</span><span class="p">(</span><span class="n">low</span><span class="p">)</span>
+<span class="n">axes</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="s2">&quot;Low-pass (r=20)&quot;</span><span class="p">)</span>
+<span class="n">axes</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">axis</span><span class="p">(</span><span class="s2">&quot;off&quot;</span><span class="p">)</span>
+
+<span class="n">mask_high</span> <span class="o">=</span> <span class="n">freq_mask</span><span class="p">(</span><span class="n">image</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">20</span><span class="p">,</span> <span class="n">kind</span><span class="o">=</span><span class="s2">&quot;high&quot;</span><span class="p">)</span>
+<span class="n">high</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">fft</span><span class="o">.</span><span class="n">ifft2</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">fft</span><span class="o">.</span><span class="n">ifftshift</span><span class="p">(</span><span class="n">F_shifted</span> <span class="o">*</span> <span class="n">mask_high</span><span class="p">))</span><span class="o">.</span><span class="n">real</span>
+<span class="n">axes</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">imshow</span><span class="p">(</span><span class="n">high</span><span class="p">,</span> <span class="n">vmin</span><span class="o">=-</span><span class="mf">0.2</span><span class="p">,</span> <span class="n">vmax</span><span class="o">=</span><span class="mf">0.2</span><span class="p">)</span>
+<span class="n">axes</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="s2">&quot;High-pass (r=20)&quot;</span><span class="p">)</span>
+<span class="n">axes</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">axis</span><span class="p">(</span><span class="s2">&quot;off&quot;</span><span class="p">)</span>
+
+<span class="n">mask_band</span> <span class="o">=</span> <span class="n">freq_mask</span><span class="p">(</span><span class="n">image</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="mi">15</span><span class="p">,</span> <span class="mi">40</span><span class="p">,</span> <span class="n">kind</span><span class="o">=</span><span class="s2">&quot;band&quot;</span><span class="p">)</span>
+<span class="n">band</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">fft</span><span class="o">.</span><span class="n">ifft2</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">fft</span><span class="o">.</span><span class="n">ifftshift</span><span class="p">(</span><span class="n">F_shifted</span> <span class="o">*</span> <span class="n">mask_band</span><span class="p">))</span><span class="o">.</span><span class="n">real</span>
+<span class="n">axes</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span><span class="o">.</span><span class="n">imshow</span><span class="p">(</span><span class="n">band</span><span class="p">,</span> <span class="n">vmin</span><span class="o">=-</span><span class="mf">0.2</span><span class="p">,</span> <span class="n">vmax</span><span class="o">=</span><span class="mf">0.2</span><span class="p">)</span>
+<span class="n">axes</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="s2">&quot;Band-pass (15 &lt; r &lt;= 40)&quot;</span><span class="p">)</span>
+<span class="n">axes</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span><span class="o">.</span><span class="n">axis</span><span class="p">(</span><span class="s2">&quot;off&quot;</span><span class="p">)</span>
+<span class="n">fig</span><span class="o">.</span><span class="n">tight_layout</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<img alt="_images/7c871ce40a9e6ad0d33c0c0ef2d745bf9a8be196c837cddaeff3f656cc99ad34.png" src="_images/7c871ce40a9e6ad0d33c0c0ef2d745bf9a8be196c837cddaeff3f656cc99ad34.png" />
+</div>
+</div>
+<p>仔細看低通濾波的結果，邊緣附近會出現一圈一圈的波紋——這就是<strong>振鈴效應（ringing）</strong>，又稱吉布斯現象（Gibbs phenomenon）。原因是我們用了「硬遮罩」，在頻域中造成了一個不連續的邊界（頻率響應從 1 瞬間跳到 0）；根據卷積定理，這樣的硬遮罩對應到空間域中是一個帶有振盪的 sinc 函數，與影像卷積後就會在邊緣附近產生這種漣漪狀的偽影。若改用邊界平滑過渡的遮罩（例如高斯型遮罩），振鈴效應就會大幅減輕。</p>
+</section>
+<section id="id6">
+<h2>反濾波與其病態性<a class="headerlink" href="#id6" title="Link to this heading">#</a></h2>
+<p>前面我們示範了「已知模糊核」時，如何在頻域中對影像做模糊。那反過來呢？如果拿到一張模糊影像，且已知（或假設已知）模糊核，能不能反推回原始影像？這個任務稱為<strong>去卷積（deconvolution）</strong>。</p>
+<p>最直覺的做法稱為<strong>反濾波（inverse filter）</strong>：既然模糊等於頻域相乘 <span class="math notranslate nohighlight">\(\hat{g} = \hat{f} \cdot \hat{h}\)</span>，那還原 <span class="math notranslate nohighlight">\(f\)</span> 只要在頻域中除回去 <span class="math notranslate nohighlight">\(\hat{f} = \hat{g} / \hat{h}\)</span> 即可。下面我們比較「無雜訊」與「有雜訊」兩種情況下，反濾波的表現。</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">image</span> <span class="o">=</span> <span class="n">ski</span><span class="o">.</span><span class="n">util</span><span class="o">.</span><span class="n">img_as_float</span><span class="p">(</span><span class="n">ski</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">camera</span><span class="p">())</span>
+<span class="n">kernel</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">outer</span><span class="p">(</span>
+    <span class="n">signal</span><span class="o">.</span><span class="n">windows</span><span class="o">.</span><span class="n">gaussian</span><span class="p">(</span><span class="n">image</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">std</span><span class="o">=</span><span class="mi">3</span><span class="p">),</span>
+    <span class="n">signal</span><span class="o">.</span><span class="n">windows</span><span class="o">.</span><span class="n">gaussian</span><span class="p">(</span><span class="n">image</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">std</span><span class="o">=</span><span class="mi">3</span><span class="p">),</span>
+<span class="p">)</span>
+<span class="n">kernel</span> <span class="o">/=</span> <span class="n">kernel</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
+
+<span class="n">F_img</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">fft</span><span class="o">.</span><span class="n">fft2</span><span class="p">(</span><span class="n">image</span><span class="p">)</span>
+<span class="n">F_ker</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">fft</span><span class="o">.</span><span class="n">fft2</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">fft</span><span class="o">.</span><span class="n">ifftshift</span><span class="p">(</span><span class="n">kernel</span><span class="p">))</span>
+<span class="n">blurred</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">fft</span><span class="o">.</span><span class="n">ifft2</span><span class="p">(</span><span class="n">F_img</span> <span class="o">*</span> <span class="n">F_ker</span><span class="p">)</span><span class="o">.</span><span class="n">real</span>
+<span class="n">noisy_blurred</span> <span class="o">=</span> <span class="n">blurred</span> <span class="o">+</span> <span class="mf">0.01</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">randn</span><span class="p">(</span><span class="o">*</span><span class="n">blurred</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+
+<span class="k">def</span><span class="w"> </span><span class="nf">inverse_filter</span><span class="p">(</span><span class="n">observed</span><span class="p">,</span> <span class="n">F_ker</span><span class="p">,</span> <span class="n">eps</span><span class="o">=</span><span class="mf">1e-3</span><span class="p">):</span>
+    <span class="n">F_obs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">fft</span><span class="o">.</span><span class="n">fft2</span><span class="p">(</span><span class="n">observed</span><span class="p">)</span>
+    <span class="n">F_restored</span> <span class="o">=</span> <span class="n">F_obs</span> <span class="o">/</span> <span class="p">(</span><span class="n">F_ker</span> <span class="o">+</span> <span class="n">eps</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">fft</span><span class="o">.</span><span class="n">ifft2</span><span class="p">(</span><span class="n">F_restored</span><span class="p">)</span><span class="o">.</span><span class="n">real</span>
+
+<span class="n">restored_clean</span> <span class="o">=</span> <span class="n">inverse_filter</span><span class="p">(</span><span class="n">blurred</span><span class="p">,</span> <span class="n">F_ker</span><span class="p">)</span>
+<span class="n">restored_noisy</span> <span class="o">=</span> <span class="n">inverse_filter</span><span class="p">(</span><span class="n">noisy_blurred</span><span class="p">,</span> <span class="n">F_ker</span><span class="p">)</span>
+
+<span class="n">fig</span><span class="p">,</span> <span class="n">axes</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">16</span><span class="p">,</span> <span class="mi">4</span><span class="p">))</span>
+<span class="n">axes</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">imshow</span><span class="p">(</span><span class="n">image</span><span class="p">)</span>
+<span class="n">axes</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="s2">&quot;Original&quot;</span><span class="p">)</span>
+<span class="n">axes</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">axis</span><span class="p">(</span><span class="s2">&quot;off&quot;</span><span class="p">)</span>
+<span class="n">axes</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">imshow</span><span class="p">(</span><span class="n">blurred</span><span class="p">)</span>
+<span class="n">axes</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="s2">&quot;Blurred (no noise)&quot;</span><span class="p">)</span>
+<span class="n">axes</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">axis</span><span class="p">(</span><span class="s2">&quot;off&quot;</span><span class="p">)</span>
+<span class="n">axes</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span><span class="o">.</span><span class="n">imshow</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">clip</span><span class="p">(</span><span class="n">restored_clean</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
+<span class="n">axes</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="s2">&quot;Inverse filter</span><span class="se">\n</span><span class="s2">(clean input)&quot;</span><span class="p">)</span>
+<span class="n">axes</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span><span class="o">.</span><span class="n">axis</span><span class="p">(</span><span class="s2">&quot;off&quot;</span><span class="p">)</span>
+<span class="n">axes</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span><span class="o">.</span><span class="n">imshow</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">clip</span><span class="p">(</span><span class="n">restored_noisy</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
+<span class="n">axes</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="s2">&quot;Inverse filter</span><span class="se">\n</span><span class="s2">(noisy input, 1% noise)&quot;</span><span class="p">)</span>
+<span class="n">axes</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span><span class="o">.</span><span class="n">axis</span><span class="p">(</span><span class="s2">&quot;off&quot;</span><span class="p">)</span>
+<span class="n">fig</span><span class="o">.</span><span class="n">tight_layout</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<img alt="_images/a595961abb544997e3b4ae0c275781f716a601b024a5fd31f6193042ac31d956.png" src="_images/a595961abb544997e3b4ae0c275781f716a601b024a5fd31f6193042ac31d956.png" />
+</div>
+</div>
+<p>在完全沒有雜訊的理想情況下，反濾波幾乎能完美還原原始影像。但只要加入極小的雜訊（僅 1%），還原結果就嚴重失真甚至變成雜訊。原因在於：模糊核 <span class="math notranslate nohighlight">\(\hat{h}\)</span> 在高頻處通常非常接近零，除以一個接近零的數，等於把該頻率上原本微小的雜訊放大成天文數字。這就是**反濾波是病態問題（ill-posed problem）**的核心原因——輸入極小的擾動（雜訊），會被放大成輸出極大的誤差。</p>
+</section>
+<section id="wiener">
+<h2>Wiener 去卷積<a class="headerlink" href="#wiener" title="Link to this heading">#</a></h2>
+<p><strong>Wiener 濾波器（Wiener filter）</strong> 透過在除法中加入雜訊功率的資訊，讓校正量在雜訊主導的頻率（通常是模糊核接近零的高頻處）自動衰減，而不是像反濾波一樣硬除，藉此在「去模糊」與「不放大雜訊」之間取得平衡。下面使用 <code class="docutils literal notranslate"><span class="pre">scikit-image</span></code> 內建的無監督 Wiener 濾波器，示範帶去卷積的影像去雜訊。</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">image_crop</span> <span class="o">=</span> <span class="n">ski</span><span class="o">.</span><span class="n">util</span><span class="o">.</span><span class="n">img_as_float</span><span class="p">(</span><span class="n">ski</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">camera</span><span class="p">())[::</span><span class="mi">2</span><span class="p">,</span> <span class="p">::</span><span class="mi">2</span><span class="p">]</span>  <span class="c1"># 縮小以加快示範速度</span>
+<span class="n">psf</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">outer</span><span class="p">(</span><span class="n">signal</span><span class="o">.</span><span class="n">windows</span><span class="o">.</span><span class="n">gaussian</span><span class="p">(</span><span class="mi">7</span><span class="p">,</span> <span class="n">std</span><span class="o">=</span><span class="mf">1.5</span><span class="p">),</span> <span class="n">signal</span><span class="o">.</span><span class="n">windows</span><span class="o">.</span><span class="n">gaussian</span><span class="p">(</span><span class="mi">7</span><span class="p">,</span> <span class="n">std</span><span class="o">=</span><span class="mf">1.5</span><span class="p">))</span>
+<span class="n">psf</span> <span class="o">/=</span> <span class="n">psf</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
+<span class="n">blurred2</span> <span class="o">=</span> <span class="n">signal</span><span class="o">.</span><span class="n">convolve2d</span><span class="p">(</span><span class="n">image_crop</span><span class="p">,</span> <span class="n">psf</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;same&quot;</span><span class="p">)</span>
+<span class="n">blurred2_noisy</span> <span class="o">=</span> <span class="n">blurred2</span> <span class="o">+</span> <span class="mf">0.01</span> <span class="o">*</span> <span class="n">blurred2</span><span class="o">.</span><span class="n">std</span><span class="p">()</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">standard_normal</span><span class="p">(</span><span class="n">blurred2</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+<span class="n">restored_wiener</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">ski</span><span class="o">.</span><span class="n">restoration</span><span class="o">.</span><span class="n">unsupervised_wiener</span><span class="p">(</span><span class="n">blurred2_noisy</span><span class="p">,</span> <span class="n">psf</span><span class="p">)</span>
+
+<span class="n">fig</span><span class="p">,</span> <span class="n">axes</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">12</span><span class="p">,</span> <span class="mi">4</span><span class="p">))</span>
+<span class="n">axes</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">imshow</span><span class="p">(</span><span class="n">image_crop</span><span class="p">)</span>
+<span class="n">axes</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="s2">&quot;Original&quot;</span><span class="p">)</span>
+<span class="n">axes</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">axis</span><span class="p">(</span><span class="s2">&quot;off&quot;</span><span class="p">)</span>
+<span class="n">axes</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">imshow</span><span class="p">(</span><span class="n">blurred2_noisy</span><span class="p">)</span>
+<span class="n">axes</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="s2">&quot;Blurred + noisy&quot;</span><span class="p">)</span>
+<span class="n">axes</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">axis</span><span class="p">(</span><span class="s2">&quot;off&quot;</span><span class="p">)</span>
+<span class="n">axes</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span><span class="o">.</span><span class="n">imshow</span><span class="p">(</span><span class="n">restored_wiener</span><span class="p">)</span>
+<span class="n">axes</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="s2">&quot;Wiener deconvolution&quot;</span><span class="p">)</span>
+<span class="n">axes</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span><span class="o">.</span><span class="n">axis</span><span class="p">(</span><span class="s2">&quot;off&quot;</span><span class="p">)</span>
+<span class="n">fig</span><span class="o">.</span><span class="n">tight_layout</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<img alt="_images/44271734ab0080be444f5151b50715d5158767563c2f167d333ea3d1c51313eb.png" src="_images/44271734ab0080be444f5151b50715d5158767563c2f167d333ea3d1c51313eb.png" />
+</div>
+</div>
+<div class="note admonition">
+<p class="admonition-title">與 cryo-EM 的連結</p>
+<p>這一整章的頻域工具，其實正是理解 cryo-EM 影像形成過程最關鍵的橋樑。</p>
+<p>顯微鏡並不會直接給我們「乾淨」的投影影像。電子光學系統中的離焦（defocus）與球差（spherical aberration），會像一個頻域的 transfer function 一樣，對每個空間頻率的訊號分別加權：</p>
+<div class="math notranslate nohighlight">
+\[\hat{I}_{\text{obs}}(s) \approx \mathrm{CTF}(s) \cdot \hat{I}_{\text{true}}(s) + \hat{N}(s)\]</div>
+<p>也就是說，觀測到的影像頻譜，等於「真實投影的頻譜」乘上 CTF、再加上雜訊。這正好呼應本章開頭的卷積定理：模糊在頻域中就是乘法。</p>
+<p>CTF 本身是一個<strong>振盪函數</strong>，會隨著空間頻率不斷正負交替，並在特定的空間頻率處通過<strong>零點</strong>。在零點附近，真實訊號的振幅在觀測影像中幾乎完全消失——這些頻率的資訊實質上已經遺失，無法單靠這一張影像復原。</p>
+<p>這正好對應到我們剛剛看到的問題：如果想從觀測影像回推真實投影，直覺的做法是除以 CTF（也就是反濾波）。但我們已經看到反濾波是病態問題——除數一旦接近零，雜訊就會被放大到不成比例。CTF 的零點，正是反濾波在 cryo-EM 中失效的地方。</p>
+<p>因此實務上很少直接做反濾波，而是採用兩種較穩健的策略：</p>
+<ul class="simple">
+<li><p><strong>Phase flipping</strong>：只修正 CTF 帶來的相位反轉（把 CTF 為負的頻率乘上 <span class="math notranslate nohighlight">\(-1\)</span>），完全不動振幅，因此不會放大雜訊，但零點附近的振幅遺失依然存在。</p></li>
+<li><p><strong>Wiener-style CTF correction</strong>：借用本章 Wiener 去卷積的精神，在校正時加入雜訊項作為正則化，讓校正量在零點附近自動衰減，而不是硬除。</p></li>
+</ul>
+</div>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">def</span><span class="w"> </span><span class="nf">ctf_gamma</span><span class="p">(</span><span class="n">s</span><span class="p">,</span> <span class="n">defocus_A</span><span class="p">,</span> <span class="n">wavelength_A</span><span class="p">,</span> <span class="n">cs_A</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;相位偏移函數 gamma(s)，用來描述 CTF 隨空間頻率 s 的振盪。&quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">*</span> <span class="p">(</span>
+        <span class="o">-</span><span class="mf">0.5</span> <span class="o">*</span> <span class="n">defocus_A</span> <span class="o">*</span> <span class="n">wavelength_A</span> <span class="o">*</span> <span class="n">s</span><span class="o">**</span><span class="mi">2</span>
+        <span class="o">+</span> <span class="mf">0.25</span> <span class="o">*</span> <span class="n">cs_A</span> <span class="o">*</span> <span class="n">wavelength_A</span><span class="o">**</span><span class="mi">3</span> <span class="o">*</span> <span class="n">s</span><span class="o">**</span><span class="mi">4</span>
+    <span class="p">)</span>
+
+<span class="n">defocus_A</span> <span class="o">=</span> <span class="mf">1.5e4</span>       <span class="c1"># defocus = 1.5 um, 換算成 Angstrom</span>
+<span class="n">wavelength_A</span> <span class="o">=</span> <span class="mf">0.0251</span>   <span class="c1"># 200 kV 電子波長, Angstrom</span>
+<span class="n">cs_A</span> <span class="o">=</span> <span class="mf">2e7</span>               <span class="c1"># Cs = 2 mm, 換算成 Angstrom</span>
+
+<span class="n">s</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mf">1e-4</span><span class="p">,</span> <span class="mf">0.35</span><span class="p">,</span> <span class="mi">3000</span><span class="p">)</span>  <span class="c1"># 空間頻率 [1/Angstrom]</span>
+<span class="n">gamma</span> <span class="o">=</span> <span class="n">ctf_gamma</span><span class="p">(</span><span class="n">s</span><span class="p">,</span> <span class="n">defocus_A</span><span class="p">,</span> <span class="n">wavelength_A</span><span class="p">,</span> <span class="n">cs_A</span><span class="p">)</span>
+<span class="n">ctf</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">gamma</span><span class="p">)</span>
+
+<span class="c1"># 找出前幾個零點的位置，換算成對應的解析度 (Angstrom)</span>
+<span class="n">sign_change</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">diff</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">sign</span><span class="p">(</span><span class="n">ctf</span><span class="p">))</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+<span class="n">zero_s</span> <span class="o">=</span> <span class="n">s</span><span class="p">[</span><span class="n">sign_change</span><span class="p">][:</span><span class="mi">5</span><span class="p">]</span>
+<span class="n">zero_res</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">/</span> <span class="n">zero_s</span>
+
+<span class="n">fig</span><span class="p">,</span> <span class="n">ax</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">8</span><span class="p">,</span> <span class="mf">3.5</span><span class="p">))</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">s</span><span class="p">,</span> <span class="n">ctf</span><span class="p">)</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">axhline</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s2">&quot;gray&quot;</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="mf">0.8</span><span class="p">)</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">zero_s</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">zero_s</span><span class="p">),</span> <span class="s2">&quot;ro&quot;</span><span class="p">,</span> <span class="n">markersize</span><span class="o">=</span><span class="mi">4</span><span class="p">)</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="s2">&quot;Spatial frequency s [1/Angstrom]&quot;</span><span class="p">)</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;CTF(s) = sin($\gamma$(s))&quot;</span><span class="p">)</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="s2">&quot;1D CTF: defocus=1.5 um, 200 kV, Cs=2 mm&quot;</span><span class="p">)</span>
+<span class="n">fig</span><span class="o">.</span><span class="n">tight_layout</span><span class="p">()</span>
+
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;前 5 個零點的空間頻率 [1/Angstrom]:&quot;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="n">zero_s</span><span class="p">,</span> <span class="mi">4</span><span class="p">))</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;對應的解析度 [Angstrom]:          &quot;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="n">zero_res</span><span class="p">,</span> <span class="mi">2</span><span class="p">))</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>前 5 個零點的空間頻率 [1/Angstrom]: [0.0516 0.0729 0.0894 0.1032 0.1155]
+對應的解析度 [Angstrom]:           [19.4  13.72 11.19  9.69  8.66]
+</pre></div>
+</div>
+<img alt="_images/ad11613adb81450511274f475cb7ee9fd6be11da71020eb85c0b8e42ac89bd6d.png" src="_images/ad11613adb81450511274f475cb7ee9fd6be11da71020eb85c0b8e42ac89bd6d.png" />
+</div>
+</div>
+<p>從圖中可以看到，CTF 在低頻處先是負值一大段（相位完全反轉），接著開始快速振盪並反覆通過零點——第一個零點大約落在 <span class="math notranslate nohighlight">\(s \approx 0.052\ \text{\AA}^{-1}\)</span>，對應解析度約 19 Å；之後零點越來越密集，代表在較高解析度（較高空間頻率）處，資訊遺失得更頻繁。</p>
+<p>由於單一張影像的 CTF 零點位置由 defocus 唯一決定，這些頻率的資訊在這張影像中永久遺失。這正是為什麼實驗上通常會收集<strong>多張不同 defocus</strong> 的顆粒影像：不同 defocus 對應的 CTF 零點位置不同，彼此可以互補，讓合併後的資料集在幾乎所有空間頻率上都保有可用的訊號——這也是後續章節談到 cryo-EM 資料收集策略時，會反覆出現的核心概念。</p>
+</section>
+</section>
+
+    <script type="text/x-thebe-config">
+    {
+        requestKernel: true,
+        binderOptions: {
+            repo: "binder-examples/jupyter-stacks-datascience",
+            ref: "master",
+        },
+        codeMirrorConfig: {
+            theme: "abcdef",
+            mode: "cryoem-book"
+        },
+        kernelOptions: {
+            name: "cryoem-book",
+            path: "./."
+        },
+        predefinedOutput: true
+    }
+    </script>
+    <script>kernelName = 'cryoem-book'</script>
+
+                </article>
+              
+
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+    <a class="left-prev"
+       href="02_filter_segment.html"
+       title="previous page">
+      <i class="fa-solid fa-angle-left"></i>
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">previous</p>
+        <p class="prev-next-title">濾波與影像分割</p>
+      </div>
+    </a>
+    <a class="right-next"
+       href="04_wavelet.html"
+       title="next page">
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">next</p>
+        <p class="prev-next-title">小波轉換</p>
+      </div>
+      <i class="fa-solid fa-angle-right"></i>
+    </a>
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+                <dialog id="pst-secondary-sidebar-modal"></dialog>
+                <div id="pst-secondary-sidebar" class="bd-sidebar-secondary bd-toc"><div class="sidebar-secondary-items sidebar-secondary__inner">
+
+
+  <div class="sidebar-secondary-item"><div
+    id="pst-page-navigation-heading-2"
+    class="page-toc tocsection onthispage">
+    <i class="fa-solid fa-list"></i> Contents
+  </div>
+  <nav id="pst-page-toc-nav" class="page-toc" aria-labelledby="pst-page-navigation-heading-2">
+    <ul class="pst-show_toc_level nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#id2">一維訊號的頻率觀點：從時間域到頻率域</a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#id3">傅立葉定理</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#fftshift">頻率排序與 <code class="docutils literal notranslate"><span class="pre">fftshift</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#dft">二維 DFT：影像的頻域表示</a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#id4">繪製頻譜：振幅與相位</a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#fft">卷積定理與 FFT 加速</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#id5">頻域濾波：低通、高通、帶通與振鈴效應</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#id6">反濾波與其病態性</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#wiener">Wiener 去卷積</a></li>
+</ul>
+  </nav></div>
+
+</div></div>
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+<div class="bd-footer-content__inner container">
+  
+  <div class="footer-item">
+    
+<p class="component-author">
+By Szu-Chi Chung
+</p>
+
+  </div>
+  
+  <div class="footer-item">
+    
+
+  </div>
+  
+  <div class="footer-item">
+    
+  </div>
+  
+  <div class="footer-item">
+    
+  </div>
+  
+</div>
+          </footer>
+        
+
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script defer src="_static/scripts/bootstrap.js?digest=55c26ed414f5f8a31ebb"></script>
+<script defer src="_static/scripts/pydata-sphinx-theme.js?digest=55c26ed414f5f8a31ebb"></script>
+
+  <footer class="bd-footer">
+  </footer>
+  </body>
+</html>
