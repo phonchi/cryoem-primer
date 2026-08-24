@@ -26,7 +26,7 @@ e^{-2\pi\mathrm{i}\mathbf k\cdot\mathbf t_i}
 +\widehat\varepsilon_i(\mathbf k).
 $$
 
-$h_i$ 是 point-spread function，$H_i=\mathcal F\{h_i\}$ 是 CTF，$\mathbf t_i$ 是平面位移。第一式用實空間卷積描述，第二式經 Fourier transform 後成為逐頻率相乘。這個線性模型適合薄的 SPA 樣品與本書的合成資料；多重散射、厚樣品與部分儀器非理想性需要更完整的模型 {cite}`singer2020`（Eqs. 3–5, 10）。
+$h_i$ 是 point-spread function，$H_i=\mathcal F\{h_i\}$ 是 CTF，$\mathbf t_i$ 是平面位移。第一式用實空間卷積描述，第二式經 Fourier transform 後成為逐頻率相乘。這套線性模型可描述薄 SPA 樣品的主要成像步驟：先投影、再平移、經 CTF 調變，最後加入雜訊 {cite}`singer2020`。
 
 ## 弱相位物體為什麼需要離焦
 
@@ -68,14 +68,14 @@ $$
 \mathrm{DQE}(s)=\frac{\mathrm{SNR}_{\mathrm{out}}(s)}{\mathrm{SNR}_{\mathrm{in}}(s)}.
 $$
 
-這裡的 SNR 沿用本書的功率比定義；若文獻把 S/N 定義成振幅比，分子與分母會各自平方，兩種寫法等價。DQE 越接近 1，代表輸入電子所帶的 SNR 保留得越多；它是輸出與輸入 SNR 的比值，涵蓋偵測器的模糊與雜訊特性 {cite}`mcmullan2016`（pp. 2–3）。Counting mode 可降低 readout noise，但電子事件重疊時會有 coincidence loss，因此曝光率仍需控制。DED 促成了 movie-based motion correction；輻射損傷與 CTF 零點仍需分別處理。
+這裡的 SNR 沿用本書的功率比定義；若資料把 S/N 定義成振幅比，分子與分母會各自平方，兩種寫法等價。DQE 越接近 1，代表輸入電子所帶的 SNR 保留得越多。偵測器的模糊與雜訊會隨空間頻率改變，因此 DQE 也必須畫成頻率的函數 {cite}`mcmullan2016`。Counting mode 可降低 readout noise，但電子事件重疊時會有 coincidence loss，因此曝光率仍需控制。DED 提供的快速讀出使 movie-based motion correction 成為可能；輻射損傷與 CTF 零點則要在後續步驟處理。
 
 (dose-weighting)=
 ## Dose fractionation 與 dose weighting
 
 Dose fractionation 把一次總曝光拆成多個 frames。總 fluence 固定時，拆分前後的總電子數相同；新增的時間解析度可用來估計 beam-induced motion 與不同曝光階段的資訊衰減。
 
-曝光早期通常保留較多高頻資訊，累積劑量增加後高頻先受輻射損傷；低頻訊號可從較多 frames 受益。因此 dose weighting 會依 frame 與空間頻率調整權重。最早 frames 又可能有較大的運動，實際權重需由資料與方法共同決定 {cite}`sigworth2016,rubinstein2016`（Sigworth, pp. 65–66；Ripstein & Rubinstein, pp. 103–124）。
+曝光早期通常保留較多高頻資訊，累積劑量增加後高頻先受輻射損傷；低頻訊號可從較多 frames 受益。因此 dose weighting 會依 frame 與空間頻率調整權重。最早的 frames 又可能帶有較大的運動，motion correction 與 dose weighting 需要搭配使用 {cite}`sigworth2016,rubinstein2016`。
 
 ```{admonition} 三個容易混淆的量
 :class: warning
@@ -92,7 +92,7 @@ $$
 \mathrm{SNR}=\frac{P_{\mathrm{signal}}}{P_{\mathrm{noise}}}.
 $$
 
-若以影像變異數估計，還要說明是否先扣平均、mask 取在哪裡，以及 clean target 是純投影還是 CTF-filtered projection。Spectral SNR 則保留頻率軸：
+以影像變異數估計時，是否先扣平均、mask 位置，以及 clean target 採純投影或 CTF-filtered projection，都會改變結果。Spectral SNR 則保留頻率軸：
 
 $$
 \mathrm{SSNR}(s)=\frac{\mathrm{PSD}_{\mathrm{signal}}(s)}
@@ -101,9 +101,11 @@ $$
 
 Wiener filter 與解析度評估需要頻率相依資訊。比較「SNR 0.1」時，兩份資料須採用相同定義、頻帶與 clean target，數值才有共同基準。
 
-## 模型邊界
+例如功率 SNR 為 0.1 時，$10\log_{10}(0.1)=-10\ \mathrm{dB}$，RMS 振幅比為 $\sqrt{0.1}\approx0.316$。若 0.1 指的是振幅比，對應的功率比則是 0.01，也就是 $-20\ \mathrm{dB}$。比較資料時，先確認 signal 是純投影或 CTF-filtered projection，再確認是否扣平均、mask 位置、正規化方式、估計頻帶，以及雜訊屬於白雜訊或 colored noise。單一 SNR 會把頻率差異壓成一個數；CTF 與濾波問題還可搭配 $\mathrm{SSNR}(s)$ 觀察。
 
-本章模型適合建立 SPA 前向模型的第一層直覺，採用薄樣品、線性成像與簡化雜訊等條件。厚樣品的多重散射、非彈性散射背景、anisotropic magnification、beam tilt、Ewald sphere curvature、粒子逐 frame 的非剛體運動，以及空間非平穩雜訊，均留待更完整的模型處理。用本章設定產生的合成資料，可觀察較理想成像條件下的行為。
+## 影像出現其他效應時
+
+薄樣品與線性成像近似讓我們能用一條清楚的運算鏈描述粒子影像。樣品變厚時，多重散射與非彈性散射背景會變得明顯；Thon rings 隨方向變形時，要加入 anisotropic magnification、beam tilt 或更高階像差；高解析度資料還可能看見 Ewald sphere curvature。Movie 中的粒子也可能逐 frame 非剛體移動，冰層造成的雜訊則未必處處相同。遇到這些現象時，可在本章的前向模型上逐項加入對應因素。
 
 ## 理解檢查
 
@@ -142,10 +144,10 @@ Wiener filter 與解析度評估需要頻率相依資訊。比較「SNR 0.1」�
    e^{-2\pi\mathrm{i}\mathbf k\cdot\mathbf t_i}+\widehat\varepsilon_i(\mathbf k).
    $$
 
-   例如沿 $x$ 方向平移 2 pixels，若 $k_x$ 的單位是 cycles/pixel，相位會多出 $-2\pi(2k_x)$；若 $k_x$ 是寬度 $M$ 的 DFT 整數索引，則寫成 $-2\pi(2k_x/M)$。兩種寫法的 magnitude 都保持不變。這個結論假設採用相同 Fourier convention 且平移沒有因裁切丟失內容；zero padding、邊界與 pixel／Å 單位都要寫清楚。
+   例如沿 $x$ 方向平移 2 pixels，若 $k_x$ 的單位是 cycles/pixel，相位會多出 $-2\pi(2k_x)$；若 $k_x$ 是寬度 $M$ 的 DFT 整數索引，則寫成 $-2\pi(2k_x/M)$。兩種寫法的 magnitude 都保持不變。這裡把影像視為週期延伸；實際裁切時，移出方框的內容可能消失。可先 zero-pad 再平移，比較邊界截斷造成的差異。
    ```
 
-3. DQE 為什麼依空間頻率而變？Dose fractionation 又多提供了哪些資訊？
+3. DQE 為什麼依空間頻率而變？
 
    ```{dropdown} 參考答案
    偵測器的 point-spread function 會讓高頻訊號比低頻訊號更容易衰減，電子散射、readout noise 與 counting coincidence 對不同頻率的影響也不一樣。因此
@@ -157,13 +159,17 @@ Wiener filter 與解析度評估需要頻率相依資訊。比較「SNR 0.1」�
 
    必須保留頻率 $s$；單一百分比會藏起低頻與高頻表現的差異。舉例來說，某偵測器可在低頻有 DQE 0.9，在 Nyquist 附近降到 0.3，表示兩個頻帶保留的輸入 SNR 比例不同。
 
-   Dose fractionation 在總 fluence 固定時，把電子事件分配到多個 frames，總電子數維持不變。新增的時間軸可估計 beam-induced motion，並觀察高頻資訊隨累積劑量衰減；dose weighting 才據此調整各 frame、各頻率的權重。若每個 frame 的 readout noise 很高或事件率造成 coincidence loss，切得更細仍可能付出代價。
+   因此，同一部偵測器要用一條 DQE 曲線描述。比較低頻、中頻與 Nyquist 附近的高度，便能判斷各頻帶有多少輸入資訊進入記錄影像。
    ```
 
-4. 比較兩個模擬資料集的 SNR 前，至少要核對哪些定義？
+4. Dose fractionation 提供了哪一項原本沒有的資訊？Dose weighting 又如何利用它？
 
    ```{dropdown} 參考答案
-   應核對 SNR 是功率比或振幅比、是否換算成 dB，以及 signal 與 noise 各指什麼。Clean target 可能是純投影，也可能是 CTF-filtered projection；兩者的訊號功率不同。還要列出是否扣平均、使用哪個 mask、資料正規化方式、估計頻帶，以及雜訊是白雜訊或 colored noise。
+   Dose fractionation 在總 fluence 固定時，把電子事件分配到多個 frames。總電子數沒有因此增加，新增的是時間軸。依序比較 frames，便能估計 beam-induced motion，也能看出高頻資訊如何隨累積劑量衰減。
 
-   若功率 SNR 為 0.1，dB 值是 $10\log_{10}(0.1)=-10\ \mathrm{dB}$，對應的 RMS 振幅比為 $\sqrt{0.1}\approx0.316$。若另一篇文章把振幅比 0.1 直接稱為 SNR，它的功率比其實是 0.01，也就是 $-20\ \mathrm{dB}$。單一 SNR 也會壓掉頻率差異，因此 CTF 或濾波工作最好再比較 $\mathrm{SSNR}(s)$。
+   Motion correction 先把各 frames 對齊；dose weighting 再依 frame 與空間頻率分配權重。曝光早期通常保留較多高頻資訊，後期 frames 的高頻權重因輻射損傷而降低，低頻則可利用較長時間累積訊號。若每個 frame 的 readout noise 很高，或電子事件率造成 coincidence loss，把曝光切得更細也可能降低品質。
    ```
+
+## 延伸閱讀
+
+完整 SPA 前向模型可從重建綜述開始 {cite}`singer2020`。直接電子偵測器與 DQE 的量測方式可參考偵測器研究 {cite}`mcmullan2016`；movie、低劑量與 dose weighting 的物理背景則見冷凍電鏡成像回顧 {cite}`sigworth2016,rubinstein2016`。

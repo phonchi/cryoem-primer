@@ -44,6 +44,14 @@ def test_no_ai_tool_residue_or_mainland_terms():
         "調制",
         "默認",
         "生成",
+        "模型與參數的參考來源",
+        "這組合成資料的適用範圍",
+        "原始 2SDR 合成實驗交代",
+        "結論只適用",
+        "這個範例涵蓋的條件",
+        "這段示範包含的條件",
+        "常見誤解是",
+        "報告 FSC 時",
     )
     sources = list(BOOK.glob("*.md")) + list(BOOK.glob("*.py"))
     for source in sources:
@@ -55,6 +63,32 @@ def test_no_ai_tool_residue_or_mainland_terms():
             r"不是.{0,40}而是|不只是|不代表|不等於|不能只|不能單靠",
             text,
         ), f"{source.name}: 請改成直接說明成立條件與限制"
+        assert not re.search(
+            r"(?<![A-Za-z])(?:p|pp|Eq|Eqs|Fig)\.\s*\d|supplement\s+pp\.",
+            text,
+        ), f"{source.name}: 精確頁碼與方程式定位應移到延伸閱讀"
+
+
+def test_understanding_checks_stay_focused_and_collapsible():
+    expected = {
+        "00_intro.md": 3,
+        "01_image_basics.py": 5,
+        "02_filter_segment.py": 5,
+        "03_fourier.py": 5,
+        "04_wavelet.py": 4,
+        "05_background.md": 3,
+        "05_image_formation.md": 4,
+        "06_workflow.md": 4,
+        "06_reconstruction_validation.md": 4,
+        "07_synthetic_data.py": 5,
+        "appendix_conventions.md": 3,
+    }
+    for name, count in expected.items():
+        text = (BOOK / name).read_text(encoding="utf-8")
+        section = text.split("## 理解檢查", maxsplit=1)[1]
+        questions = re.findall(r"^(?:# )?[1-9]\. ", section, flags=re.MULTILINE)
+        assert len(questions) == count, name
+        assert section.count("```{dropdown} 參考答案") == count, name
 
 
 def test_student_facing_title_and_toc_terms():

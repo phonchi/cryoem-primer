@@ -23,9 +23,9 @@ Movie 是一次曝光拆成的多個時間 frame；micrograph 是 frame 對齊�
 SPA 主流程：Movie Alignment → CTF Estimation → Particle Picking → 2D Classification → Initial Model → 3D Classification → 3D Refinement。
 ```
 
-[Computational-CryoEM](https://github.com/phonchi/Computational-CryoEM) 整理了各處理階段的論文、軟體與教學資源。本章聚焦 SPA。斷層重建（tomographic reconstruction）屬於冷凍電子斷層掃描的另一條分析路徑。
+[Computational-CryoEM](https://github.com/phonchi/Computational-CryoEM) 整理了各處理階段的論文、軟體與教學資源。以下沿著 SPA 的資料流往下看；冷凍電子斷層掃描使用另一條斷層重建（tomographic reconstruction）路徑。
 
-一個資料集可含數百到數千部 movie，以及 $10^5$ 到 $10^6$ 張粒子影像。除了檔案量大，每張粒子的三維取向、平面內旋轉、位移、CTF 與構形也可能未知，且單張影像的訊雜比很低 {cite}`singer2020`（pp. 171–180）。
+一個資料集可含數百到數千部 movie，以及 $10^5$ 到 $10^6$ 張粒子影像。除了檔案量大，每張粒子的三維取向、平面內旋轉、位移、CTF 與構形也可能未知，且單張影像的訊雜比很低 {cite}`singer2020`。
 
 ```{figure} images/pptx/s10_2.png
 :width: 70%
@@ -37,7 +37,7 @@ SPA 主流程：Movie Alignment → CTF Estimation → Particle Picking → 2D C
 
 直接電子偵測器（direct electron detector, DED）可以把一次曝光記成 movie。電子束會引起整體漂移與局部、非均勻的 beam-induced motion；若直接加總 frames，高頻資訊會因位移而模糊。
 
-常見流程先以互相關估計全域或區塊位移，再對空間與時間上的軌跡做平滑，最後對齊加總。高解析訊號通常在曝光早期受損較少，但最早的 frames 又可能有較劇烈的運動，因此實務上還會依空間頻率做 dose weighting。校正後仍可能留下局部運動誤差；不同軟體採用的運動模型與正則化也會造成結果差異 {cite}`rubinstein2016,singer2020`（Ripstein & Rubinstein, pp. 103–124；Singer & Sigworth, pp. 170–172）。
+常見流程先以互相關估計全域或區塊位移，再對空間與時間上的軌跡做平滑，最後對齊加總。高解析訊號通常在曝光早期受損較少，但最早的 frames 又可能有較劇烈的運動，因此實務上還會依空間頻率做 dose weighting。若校正後的 micrograph 仍有方向一致的拖影，或不同區域的細節清晰度差很多，可以回頭檢查局部運動模型與軌跡是否合適 {cite}`rubinstein2016,singer2020`。
 
 ```{figure} images/pptx/s06_2.png
 :width: 30%
@@ -55,7 +55,7 @@ frames 經對齊與加權後形成 micrograph。可見度改善後，仍要檢�
 
 ## CTF estimation：估計每張影像如何轉移對比
 
-離焦（defocus）讓弱相位物體產生可見對比，也使 CTF 隨空間頻率振盪、反相並出現零點。CTF 估計通常從 micrograph 的 2D periodogram／power spectrum 擬合 defocus、散光與其他參數。無散光近似或初始估計可看徑向平均；要估散光大小與方向，必須保留二維的非圓對稱資訊 {cite}`singer2020`（p. 172）。
+離焦（defocus）讓弱相位物體產生可見對比，也使 CTF 隨空間頻率振盪、反相並出現零點。CTF 估計通常從 micrograph 的 2D periodogram／power spectrum 擬合 defocus、散光與其他參數。無散光近似或初始估計可看徑向平均；要估散光大小與方向，必須保留二維的非圓對稱資訊 {cite}`singer2020`。
 
 以下三種處理的目的不同：
 
@@ -81,7 +81,9 @@ frames 經對齊與加權後形成 micrograph。可見度改善後，仍要檢�
 
 ## Particle picking：找出候選座標
 
-Particle picking 需要在 micrograph 找出候選中心並避開污染。常見方法包括 blob／DoG 偵測、模板匹配、依資料統計特徵建立的無監督方法，以及 Topaz、crYOLO 等監督式模型。詳細參考模板若來自同一批低訊雜比資料，可能把 template bias 帶回結果；候選數量也會受閾值、最小距離、冰厚與粒子大小影響 {cite}`sigworth2016`（p. 62）。
+Particle picking 需要在 micrograph 找出候選中心並避開污染。常見方法包括 blob／DoG 偵測、模板匹配、依資料統計特徵建立的無監督方法，以及 Topaz、crYOLO 等監督式模型。詳細參考模板若來自同一批低訊雜比資料，可能把 template bias 帶回結果；候選數量也會受閾值、最小距離、冰厚與粒子大小影響 {cite}`sigworth2016`。
+
+把挑選座標疊回 micrograph，是最快的初步檢查。若座標大量落在碳膜、冰晶或污染上，應先調整閾值或訓練資料；若同一顆粒子附近出現多個座標，則要檢查最小距離。接著再看裁切框，確認粒子大致位於中央，而且 box size 足以容納完整投影。
 
 ```{figure} images/pptx/s09_1.png
 :width: 60%
@@ -115,9 +117,9 @@ Particle picking 需要在 micrograph 找出候選中心並避開污染。常見
 
 Fourier slice theorem 說明了已知取向的 2D 投影如何約束 3D Fourier volume。SPA 的取向未知，因此這是一個非線性反問題。最簡化的 projection matching 會從目前模型產生許多參考投影，為每張影像挑出相關最高的方向與位移，再重建新模型。這個 hard assignment 適合建立直覺；現代 maximum-likelihood／Bayesian refinement 會保留多個候選姿態的不確定性。
 
-以 RELION 這類方法為例，演算法會對候選方向、位移與類別計算後驗權重，更新時用機率加權，讓每張低訊雜比影像保留多個可能姿態。先驗與正則化會抑制資料不足頻帶中的不穩定解，也會影響最後結果。目標函數趨於穩定時，演算法便會收斂；結果是否正確仍需獨立驗證 {cite}`scheres2010,singer2020`（Sigworth et al., pp. 273–277；Singer & Sigworth, pp. 175–180）。
+以 RELION 這類方法為例，演算法會對候選方向、位移與類別計算後驗權重，更新時用機率加權，讓每張低訊雜比影像保留多個可能姿態。先驗與正則化會抑制資料不足頻帶中的不穩定解，也會影響最後結果。目標函數趨於穩定時，演算法便會停止更新。這時應繼續查看方向分布、half-map 與 FSC；它們回答的問題和收斂條件不同 {cite}`scheres2010,singer2020`。
 
-3D classification 用離散類別描述構形混合，但類別數要事先選擇，小族群可能因訊號不足而漏掉。連續異質性方法屬於進階延伸；本書不展開 cryo-ET、helical reconstruction 或 atomic fitting。
+3D classification 用離散類別描述構形混合，但類別數要事先選擇，小族群可能因訊號不足而漏掉。連續異質性、cryo-ET、helical reconstruction 與 atomic fitting 可作為後續主題。
 
 ```{figure} images/pptx/s13_3.png
 :width: 35%
@@ -125,7 +127,13 @@ Fourier slice theorem 說明了已知取向的 2D 投影如何約束 3D Fourier 
 70S ribosome 的 3D 密度圖示例。地圖外觀、解析度估計與生物詮釋是三個不同層次的問題。
 ```
 
-完整的 Fourier slice、重建、gold-standard half-set 與 FSC 限制見 {doc}`06_reconstruction_validation`；可控的前向模型見 {doc}`07_synthetic_data`。
+下一章會從 Fourier slice 接到重建、gold-standard half-set 與 FSC：{doc}`06_reconstruction_validation`。若想逐項改變取向、平移、CTF 與雜訊，可接著操作 {doc}`07_synthetic_data`。
+
+## 延伸閱讀
+
+- 想了解整條 SPA 分析流程，可讀 Singer 與 Sigworth 的綜述 {cite}`singer2020`。
+- 想進一步了解 maximum-likelihood refinement，可讀 Scheres 等人的方法說明 {cite}`scheres2010`。
+- 實際操作可參考 [RELION](https://relion.readthedocs.io/en/release-5.0/) 或 [cryoSPARC](https://guide.cryosparc.com/) 的官方教學。
 
 ## 理解檢查
 
@@ -134,7 +142,7 @@ Fourier slice theorem 說明了已知取向的 2D 投影如何約束 3D Fourier 
 ```{dropdown} 參考答案
 散光會讓離焦量隨 Fourier 平面的方位角改變，因此 Thon rings 會呈現橢圓或其他非圓對稱形狀。徑向平均把同一半徑上的方位角資訊合併，只能保留接近平均離焦的徑向變化，散光方向也隨之消失。
 
-常見誤解是把清楚的徑向峰谷視為完整的 CTF 資訊。徑向平均適合無散光近似或初始估計；估計散光大小與方向仍需使用二維 power spectrum。
+因此，清楚的徑向峰谷只能用於無散光近似或初始估計；估計散光大小與方向仍需使用二維 power spectrum。
 ```
 
 2. Phase flipping、Wiener-style correction 與多離焦合併各自處理什麼問題？
@@ -148,7 +156,7 @@ $$
 
 它同時校正對比方向與振幅，並用 $K$ 抑制 CTF 接近零時的雜訊放大；$K$ 的選擇需要訊號與雜訊的先驗資訊。多離焦合併則利用不同影像的 CTF 零點互相錯開，讓某張影像缺少的頻率由其他影像提供。
 
-三者都常被籠統稱為 CTF correction，實際目標並不相同。單張影像在 CTF 零點遺失的資訊，必須仰賴其他離焦影像補充。
+判讀時先問要修正的是正負號、振幅，還是零點處缺少的頻率。單張影像在 CTF 零點遺失的資訊，只能由其他離焦影像補充。
 ```
 
 3. Hard projection matching 在低訊雜比資料中會忽略哪一類不確定性？
@@ -162,7 +170,7 @@ $$
 p(z\mid I,V)\propto p(I\mid z,V)p(z),
 $$
 
-再以後驗機率更新模型。最高相關分數標出目前候選中的最佳者；真實姿態仍需由模型檢查與獨立驗證判斷。Soft assignment 也會受到初始模型、候選網格、雜訊模型與先驗設定影響。
+再以後驗機率更新模型。最高相關分數只標出目前候選中的最佳者；Soft assignment 的權重也會隨初始模型、候選網格、雜訊模型與先驗設定而改變。
 ```
 
 4. 一個 class average 看起來模糊時，至少列出三種可能原因，以及可用來區分它們的證據。
@@ -170,5 +178,5 @@ $$
 ```{dropdown} 參考答案
 可能原因包括污染或誤挑、平面內對位錯誤、該類粒子數太少、同一類混入不同構形，以及偏好取向造成的資料分布不均。可依序查看原始粒子框與挑選座標、旋轉與位移分布、每類粒子數、不同初始值下的分類穩定性，以及後續 3D 的方向分布。
 
-一張模糊的類別平均影像通常無法單獨指出成因。輪廓清楚顯示該類具有一致的二維訊號；其正確性與後續用途仍要合併上述檢查結果判斷。
+一張模糊的類別平均影像通常無法單獨指出成因。輪廓清楚時，表示該類具有一致的二維訊號；是否把這些粒子帶入 3D 分析，則要合併上述檢查結果判斷。
 ```

@@ -20,8 +20,8 @@
 # :class: important
 # - 在實空間與 Fourier 空間正確寫出 projection、CTF、平移與雜訊。
 # - 說明有限個隨機方向如何近似球面均勻分布，並辨認有限取樣造成的疏密起伏。
-# - 說清楚本章全域加性白高斯雜訊的 SNR 定義與限制。
-# - 產生影像時，同步輸出 `ground_truth.jsonl`，記錄每張影像的已知真值。
+# - 用已知平移把粒子移回中心，並比較校正前後的平均影像。
+# - 從加入雜訊前後的變異數算出 SNR，解釋為何每張影像的清晰程度仍會不同。
 # ```
 #
 # ```{figure} images/pptx/s22_1.png
@@ -34,6 +34,9 @@
 # %% [markdown]
 # (forward-model)=
 # ## 前向模型有兩種等價寫法
+#
+# 從 3D 密度圖裁出一張乾淨投影，只完成了前向模型的第一步。粒子的取向與位置會改變，顯微鏡再以
+# CTF 調變不同空間頻率，最後才疊上雜訊。本章保留每一層影像，方便逐步比較這些因素造成的變化。
 #
 # 第 $i$ 張影像在實空間寫成
 #
@@ -50,16 +53,14 @@
 #
 # $V$ 是 3D density，$P_{R_i}$ 是取向 $R_i$ 下的投影，$h_i$ 是 point-spread function，
 # $H_i=\mathcal F\{h_i\}$ 才是 CTF。也就是說：**實空間與 PSF 卷積，Fourier 空間與 CTF 相乘**。
-# 這個線性模型是薄樣品 SPA 的教學近似；它沒有模擬多重散射、空間非平穩背景、逐 frame 輻射損傷，
-# 也沒有模擬 beam-induced motion（{cite}`singer2020`, Eq. 10；詳見 {doc}`05_image_formation`）。
-#
-# 合成資料保留已知真值，讓方向、CTF、平移、雜訊與構形的誤差可以分開量化。
+# 先從薄樣品的線性模型開始，投影、CTF、平移與雜訊的效果比較容易分開觀察。每張模擬影像另有
+# 已知的取向與平移，可直接拿來檢查估計誤差 {cite}`singer2020`。
 
 # %% [markdown]
 # ## 設定影像數量與輸出資料夾
 #
-# 第一次執行時，可把 `num_imgs_default` 改成 100，先確認完整流程與輸出格式；正式產生資料時再使用 5,000。
-# `output_dir_default` 指定輸出資料夾，STAR、MRCS 與 `ground_truth.jsonl` 都會寫到該處。
+# 第一次執行時，先把 `num_imgs_default` 改成 100，跑完所有圖形並看看輸出檔案。熟悉流程後再使用
+# 預設的 5,000 張。`output_dir_default` 指定輸出資料夾，STAR、MRCS 與 `ground_truth.jsonl` 都會寫到該處。
 
 # %%
 import json
@@ -112,10 +113,10 @@ out_dir.mkdir(parents=True, exist_ok=True)
 print(f"n={num_imgs}, views={num_views}")
 
 # %% [markdown]
-# ## 載入 3D density map
+# ## 讀取 3D density map 與像素大小
 #
-# MRC header 能記錄 voxel size。把 NumPy array 傳給 `Volume` 後，這項資訊不會跟著陣列進入 ASPIRE，
-# 因此稍後仍要把 `pixel_size` 明確傳給 `Simulation`。
+# CTF 的空間頻率以 Å⁻¹ 計算，因此像素大小必須正確。MRC 讀成 NumPy array 後，ASPIRE 不會從陣列取得
+# 原本的 voxel size；建立 `Simulation` 時要明確傳入 `pixel_size=2.82`。
 
 # %%
 with mrcfile.open(volume_path) as infile:
@@ -141,9 +142,8 @@ plt.show()
 # 都來自球面上的等向分布。50 個方向是有限的蒙地卡羅樣本，仍可看到隨機的疏密起伏；固定 seed
 # 會重現同一批方向。規則球格則由設計好的節點與間距構成，性質不同。
 #
-# 不同軟體的 Euler angle 順序與 active／passive rotation 定義可能不同。
-# [3DEM conventions](https://github.com/azazellochg/3DEM-conventions) 整理了常見軟體的慣例；跨軟體交換角度時，
-# 應同時確認角度順序、單位與 rotation matrix 的作用方向。
+# 不同軟體可能採用不同的 Euler angle 順序與 active／passive rotation 定義。跨軟體交換角度時，
+# 要同時確認角度順序、單位與 rotation matrix 的作用方向。
 #
 # | 本章欄位 | 定義 |
 # |---|---|
@@ -201,6 +201,9 @@ plt.tight_layout()
 plt.show()
 
 # %% [markdown]
+# 試跑 100 張時，50 個 viewing directions 各有兩張影像，所以每個方向只分到 $\psi=0^\circ$ 與
+# $180^\circ$。使用預設 5,000 張時，每個方向有 100 個平面內旋轉，直方圖會變得更密。
+#
 # 對照錯誤取法：若讓 $\mathrm{tilt}\sim U(0,\pi)$，球面面積元素中的 $\sin(\mathrm{tilt})$ 沒有被補償，樣本會偏向兩極。
 
 # %%
@@ -227,9 +230,9 @@ plt.show()
 
 # %% [markdown]
 # (ctf)=
-# ## CTF：Fourier 空間的轉移函數
+# ## CTF：先看離焦如何移動零點
 #
-# 本章採徑向對稱、無散光的教學模型：
+# 先比較 1.5 與 2.0 µm 離焦的徑向 CTF：
 #
 # $$
 # H(s)=\sqrt{1-w^2}\sin\chi(s)-w\cos\chi(s),
@@ -237,10 +240,9 @@ plt.show()
 # \chi(s)=2\pi\left(-\frac12\Delta f\lambda s^2+\frac14 C_s\lambda^3s^4\right).
 # $$
 #
-# 不同離焦會讓 CTF 零點錯開。各組 CTF 在某段頻率是否互補，仍取決於實際參數、envelope 與取樣。
-# 本章省略散光與額外 envelope；相關方法仍需使用更完整的合成資料或真實資料評估。
-# [RELION classification example](https://www3.mrc-lmb.cam.ac.uk/relion/index.php?title=Classification_example)
-# 將這組 70S benchmark 的 `rlnAmplitudeContrast` 設為 0.15；本章採用相同的 amplitude contrast ratio。
+# 不同離焦會把 CTF 零點移到不同頻率，因此多組離焦能互相補足部分缺口。這裡取振幅對比比例
+# $w=0.15$；把 $s=0$ 代入公式可得 $H(0)=-0.15$。`envelope_B=0` 讓我們先專心觀察 CTF 振盪；加入
+# envelope 後，高頻振幅還會逐漸衰減。徑向模型畫出的 Thon rings 是圓形，散光則會讓零點隨方向改變。
 
 # %%
 def electron_wavelength(voltage_kv):
@@ -292,18 +294,18 @@ ctf_filters = [
 filter_indices = rng.integers(0, defocus_ct, size=num_imgs)
 
 # %% [markdown]
-# ## 組裝 `Simulation`：加入平移並固定亮度
+# ## 讓粒子離開影像中心
 #
-# 原始 2SDR 合成實驗交代了影像大小、方向、CTF 與雜訊，沒有列出 2D 平移分布
-# （{cite}`chung2020`）。本章另為每張影像抽取連續平移：
+# 從 micrograph 裁切粒子時，挑選座標通常不會剛好落在粒子中心。這裡讓每張影像在 $x$、$y$ 方向
+# 各自平移一個連續的隨機距離：
 #
 # $$
 # t_x,t_y\overset{\mathrm{iid}}{\sim}U(-4,4)\ \text{pixels}.
 # $$
 #
-# 對 130 像素寬、2.82 Å／pixel 的影像而言，單軸最大位移約佔寬度 3.1%，相當於 11.28 Å。
-# 平移使用獨立的隨機種子，因此改動平移設定時，取向仍保持原來的抽樣結果。`amplitudes=1.0` 讓所有影像維持相同亮度。
-# `pixel_size=2.82` 也明確傳入 ASPIRE，避免套用與密度圖不符的預設值。
+# 對 130 pixels 寬、2.82 Å／pixel 的影像而言，單軸最大位移約佔寬度 3.1%，相當於 11.28 Å。
+# 這個範圍足以讓未置中的平均影像看出模糊，又不至於把粒子大幅移出裁切框。`amplitudes=1.0`
+# 固定所有影像的亮度，讓接下來的比較只多出平移、CTF 與雜訊。
 
 # %%
 state_indices_aspire = np.ones(num_imgs, dtype=int)  # ASPIRE 的 volume state 是 1-based
@@ -333,21 +335,21 @@ plt.show()
 
 # %% [markdown]
 # (noise)=
-# ## 三層影像與全域加性白高斯雜訊
+# ## 把雜訊調到 SNR = 0.1
 #
 # - `sim.projections[...]`：純投影 $P_RV$。
 # - `sim.clean_images[...]`：套用 CTF、平移與 amplitude 後，尚未加入雜訊。
-# - `noisy_images`：本章另加的白高斯雜訊。
+# - `noisy_images`：在上一層加入白高斯雜訊。
 #
-# 本章把整疊經 CTF 處理的影像視為一個母體，先扣除全域平均，以
+# 把整疊經 CTF 處理的影像先扣除全域平均，再用
 #
 # $$
 # \sigma_N^2=\operatorname{Var}(X_{\mathrm{CTF}})/\mathrm{SNR}
 # $$
 #
-# 設定單一雜訊變異數。這裡的 SNR 是用整批影像、扣除平均後的變異數定義。`realized_snr` 接近 0.1，
-# 只檢查整疊影像的變異數比是否符合設定；單張影像、遮罩內區域與各頻率殼層會有不同的訊雜比。
-# 真實 micrograph 的背景往往還帶有空間相關與非定常成分。
+# 算出要加入的雜訊變異數。這裡的 SNR 是整疊影像、扣除平均後的功率比。所有影像加入相同的
+# $\sigma_N$ 後，訊號較強的影像仍會比較清楚；CTF 對各頻率的傳遞也不同，所以單張影像與各頻率殼層
+# 不會同時等於 SNR 0.1。
 
 # %%
 def add_global_awgn(clean_images, snr, random_generator):
@@ -374,11 +376,11 @@ achieved_snr = float(
 print(f"target global SNR={sn_ratio}; realized global SNR={achieved_snr:.4f}")
 
 # %% [markdown]
-# ## 已知平移的置中對照
+# ## 把粒子移回中心
 #
-# 平移會讓粒子的共同特徵在平均影像中變寬。以下取前 500 張影像，另外產生一份平移為零的置中對照，
-# 再用已知的 $(t_x,t_y)$ 將含平移影像移回中心。這項比較只使用無雜訊的 CTF 影像，以便單獨觀察
-# 平移造成的差異。校正前後都與同一份置中對照比較；MSE 越小、相關係數越接近 1，表示置中越準確。
+# 先平均含平移的影像，再用已知的 $(t_x,t_y)$ 把最多取前 500 張影像移回中心後重做平均。第三張圖使用同一批
+# 取向與 CTF，但一開始就把平移設為零。三張圖都不加雜訊，平移造成的模糊會更容易看見。校正後若
+# MSE 降低、相關係數升高，數值與影像外觀便朝同一方向改變。
 
 # %%
 diagnostic_count = min(500, num_imgs)
@@ -416,8 +418,8 @@ shifted_average = np.mean(shifted_subset, axis=0)
 recentered_average = np.mean(recentered_subset, axis=0)
 
 for label, average in [
-    ("校正前", shifted_average),
-    ("用已知平移校正後", recentered_average),
+    ("before recentering", shifted_average),
+    ("recentered with known shifts", recentered_average),
 ]:
     mse = float(np.mean((average - centered_average) ** 2))
     correlation = normalized_correlation(average, centered_average)
@@ -427,9 +429,9 @@ fig, axes = plt.subplots(1, 3, figsize=(10, 3.2))
 for axis, (image, title) in zip(
     axes,
     [
-        (shifted_average, "校正前平均"),
-        (recentered_average, "已知平移校正後"),
-        (centered_average, "零平移對照"),
+        (shifted_average, "Uncorrected average"),
+        (recentered_average, "Recentered with known shifts"),
+        (centered_average, "Zero-shift reference"),
     ],
 ):
     axis.imshow(image, cmap="gray")
@@ -444,7 +446,7 @@ show_indices = np.array([np.flatnonzero(view_ids == view_id)[0] for view_id in r
 layers = [
     (clean_projections, "projection"),
     (ctf_clean_images, "+ CTF"),
-    (noisy_images, f"+ 全域 AWGN（目標 SNR={sn_ratio}）"),
+    (noisy_images, f"+ global AWGN (target SNR={sn_ratio})"),
 ]
 fig, axes = plt.subplots(3, n_show, figsize=(1.8 * n_show, 5.6), squeeze=False)
 for row, (stack, label) in enumerate(layers):
@@ -453,7 +455,7 @@ for row, (stack, label) in enumerate(layers):
         axes[row, column].set_xticks([])
         axes[row, column].set_yticks([])
     axes[row, 0].set_ylabel(label)
-plt.suptitle("前向模型：投影 → CTF → 雜訊")
+plt.suptitle("Forward model: projection → CTF → noise")
 plt.tight_layout()
 plt.show()
 
@@ -472,8 +474,8 @@ plt.show()
 # %% [markdown]
 # ## 輸出影像與已知真值
 #
-# STAR 儲存分析軟體可讀取的中繼資料；`ground_truth.jsonl` 另存模擬時才知道的方向、CTF、位移與狀態標籤。
-# 將已知真值和觀測資料分開，可避免後續分析程式無意間讀到答案。
+# MRCS 存放影像，STAR 存放分析軟體會用到的中繼資料，`ground_truth.jsonl` 則記錄模擬時使用的方向、
+# CTF、位移與狀態標籤。練習估計參數時先只讀影像，完成後再打開真值計算誤差。
 
 # %%
 star_path = out_dir / "simulate.star"
@@ -541,40 +543,63 @@ print(f"saved noisy images: {noisy_mrcs_path.name}")
 print(f"saved ground truth: {ground_truth_path.name}")
 
 # %% [markdown]
-# 用公開的 `get_metadata()` 讀取 STAR metadata；不要依賴 `_metadata` 這類私有屬性。
+# 接著用 `get_metadata()` 讀回 STAR 檔，確認影像索引、離焦與像素大小都有成功儲存。
 
 # %%
 relion_source = RelionSource(str(star_path))
 reloaded_images = relion_source.images[: min(8, num_imgs)].asnumpy()
 public_metadata = relion_source.get_metadata(as_dict=True)
-print("metadata columns:")
-print(sorted(public_metadata))
+preview_columns = (
+    "_rlnImageName",
+    "_rlnDefocusU",
+    "_rlnDefocusV",
+    "_rlnImagePixelSize",
+    "_rlnAngleRot",
+    "_rlnAngleTilt",
+    "_rlnAnglePsi",
+    "_rlnOriginXAngst",
+    "_rlnOriginYAngst",
+)
+print("first STAR record:")
+for column in preview_columns:
+    if column in public_metadata:
+        value = np.asarray(public_metadata[column]).reshape(-1)[0]
+        print(f"  {column}: {value}")
 print(f"round-trip images: {reloaded_images.shape}")
 
 # %% [markdown]
-# ## 模型與參數的參考來源
+# ## 這次練習使用的設定
 #
-# | 來源 | 提供的概念 | 本章的使用方式 |
-# |---|---|---|
-# | {cite}`sigworth2016`, p. 58, Fig. 1 | projection → CTF → noise | 建立合成影像的基本順序 |
-# | {cite}`singer2020`, Eq. 10 | 姿態、投影、PSF／CTF 與加性雜訊 | 寫成實空間與 Fourier 空間的前向模型 |
-# | {cite}`penczek2010`, pp. 5–8；[3DEM conventions](https://github.com/azazellochg/3DEM-conventions) | ZYZ Euler angles 與重建幾何 | 定義 `rot, tilt, psi` 與 rotation matrix |
-# | {cite}`scheres2010`, pp. 273–286 | 高斯雜訊模型 | 建立可控制訊雜比的基準資料 |
-# | {cite}`chung2020` | 130 × 130 pixels、50 個方向、5,000 張影像與 50 組 CTF 的 2SDR 合成實驗 | 延續影像數量與有限方向的設定；原文未指定 2D 平移分布 |
-# | [RELION classification example](https://www3.mrc-lmb.cam.ac.uk/relion/index.php?title=Classification_example) | 70S benchmark 的 `rlnAmplitudeContrast=0.15` | 將 amplitude contrast ratio 設為 0.15 |
-#
-# 每軸 $U(-4,4)$ pixels 的平移與 SNR 0.1 是本章的教學設定。改變方向數、離焦組數、平移範圍或
-# 訊雜比，都會直接改變資料難度。
+# | 參數 | 數值 | 改動後會先看到什麼 |
+# |---|---:|---|
+# | 影像大小 | $130\times130$ pixels | 方框太小時，平移後的粒子容易碰到邊界 |
+# | 像素大小 | 2.82 Å／pixel | Nyquist frequency 與 CTF 的實體頻率會改變 |
+# | 影像數 | 預設 5,000；試跑可用 100 | 影像少時，方向與離焦分布的隨機起伏較明顯 |
+# | viewing directions | 50 個等向隨機方向 | 方向少時，球面覆蓋會變得稀疏 |
+# | 平移 | 每軸 $U(-4,4)$ pixels | 範圍愈大，未校正平均影像愈模糊 |
+# | 離焦 | 1.5–2.0 µm，共 50 組 | CTF 零點的位置與互補程度會改變 |
+# | 振幅對比比例 | 0.15 | CTF 的低頻值與零點會改變 |
+# | 全域功率 SNR | 0.1 | 數值降低時，粒子在雜訊中更難辨認 |
 
 # %% [markdown]
-# ## 這組合成資料的適用範圍
+# ## 把題目再變難
 #
-# 本章固定使用一個 70S 核糖體密度圖，為每張影像加入不超過 4 pixels 的 x、y 平移，亮度維持為一，
-# CTF 採無散光的徑向模型，背景則加入全域加性白高斯雜訊。學生可從已知真值逐項核對檔案讀寫、
-# 投影方向、CTF、平移校正與去雜訊結果。
+# 目前先固定一種 70S 構形與等向方向，使用徑向 CTF 和白高斯雜訊。確認平移校正、CTF 與 SNR 的圖形
+# 都符合預期後，可以一次改一個條件：
 #
-# 構形異質性、偏好取向、姿態估計誤差、散光與空間相關雜訊均未納入本例。研究這些效應時，應另外設計
-# 含有對應變因的合成資料，並以真實 micrograph 檢查方法在實際背景與成像誤差下的表現。
+# - 讓 $x$、$y$ 方向有不同離焦，觀察 Thon rings 如何由圓形變成橢圓。
+# - 把白雜訊換成含低頻背景的 colored noise，比較 whitening 前後的功率頻譜。
+# - 讓 viewing directions 集中在球面的一部分，觀察偏好取向如何改變方向覆蓋。
+# - 準備兩個不同的 3D density maps 並儲存 state label，再測試分類能否把兩種構形分開。
+
+# %% [markdown]
+# ## 延伸閱讀
+#
+# - SPA 前向模型與計算流程可接著讀 {cite}`sigworth2016,singer2020`。
+# - 2SDR 的合成實驗提供另一個 130 × 130 pixels、5,000 張粒子影像的去雜訊例子 {cite}`chung2020`。
+# - [RELION classification example](https://www3.mrc-lmb.cam.ac.uk/relion/index.php?title=Classification_example)
+#   示範相同 70S benchmark 與 `rlnAmplitudeContrast=0.15` 的設定。
+# - 跨軟體交換角度時，可查 [3DEM conventions](https://github.com/azazellochg/3DEM-conventions) 的 Euler angle 對照。
 
 # %% [markdown]
 # ## 理解檢查
@@ -593,25 +618,30 @@ print(f"round-trip images: {reloaded_images.shape}")
 #    e^{-2\pi\mathrm{i}\mathbf k\cdot\mathbf t_i}+\widehat N_i(\mathbf k).
 #    $$
 #
-#    平移只改變相位，頻譜振幅保持不變。常見誤解是把 $h_i$ 和 $H_i$ 當成同一個陣列直接相乘；前者在
-#    實空間與影像卷積，後者才在頻域與頻譜相乘。離散影像使用的頻率座標也必須和 pixel size、FFT
-#    排列及平移單位一致。
+#    平移只改變相位，頻譜振幅保持不變。$h_i$ 在實空間與影像卷積，$H_i$ 才在頻域與頻譜相乘。
+#    離散影像使用的頻率座標還要和 pixel size、FFT 排列及平移單位一致。
 #    ```
 #
-# 2. 本章如何抽取方向與平移？固定隨機種子後，為何仍可稱為隨機抽樣？
+# 2. 為什麼等向抽取 viewing direction 時要讓 $\cos(\mathrm{tilt})$ 均勻分布？
 #
 #    ```{dropdown} 參考答案
 #    方向以 $\mathrm{rot}\sim U(0,2\pi)$、$\cos(\mathrm{tilt})\sim U(-1,1)$ 抽取，才能讓球面上的每一小塊
 #    面積具有相同機率。有限的 50 個方向仍會有疏密起伏；規則球格則由特別設計的節點與間距構成。
-#    平面內角 `psi` 在每個方向的重複影像之間鋪在 $[0,2\pi)$，而 x、y 平移分別由
-#    $U(-4,4)$ pixels 抽取。
-#
-#    偽隨機產生器從固定種子出發會重現同一串數值；「隨機」描述抽樣模型，「可重現」描述程式在相同
-#    初始狀態下的結果，兩者可以同時成立。本章讓平移使用 `seed + 1`，使調整平移程式時不會改掉既有方向。
-#    校正結果可和零平移對照比較；MSE 降低且相關係數升高，表示影像更接近正確中心。
+#    若直接讓 $\mathrm{tilt}\sim U(0,\pi)$，球面面積元素中的 $\sin(\mathrm{tilt})$ 沒有被補償，樣本會
+#    過度集中在兩極。固定 seed 只負責重現同一批隨機樣本，不會改變所抽取的分布。
 #    ```
 #
-# 3. `realized_snr` 接近 0.1 能檢查什麼？它對單張影像與各頻率殼層有何限制？
+# 3. 用已知平移把粒子移回中心後，平均影像、MSE 與相關係數應如何改變？
+#
+#    ```{dropdown} 參考答案
+#    未置中的粒子在不同方向偏離中心，平均後的共同特徵會被攤寬。逐張套用反向平移後，平均影像應靠近
+#    零平移參考：輪廓變清楚、MSE 降低，與參考影像的相關係數則升高。
+#
+#    MSE 會受整體強度尺度影響，相關係數則先扣除平均，較著重圖形的相對變化。兩個數值和影像外觀一起看，
+#    可以避免只憑一張較銳利的圖下判斷。這裡使用已知平移；真實資料還要先從含雜訊影像估計位移。
+#    ```
+#
+# 4. 為什麼整疊影像的 `realized_snr` 接近 0.1，單張粒子的清晰程度仍會不同？
 #
 #    ```{dropdown} 參考答案
 #    程式計算
@@ -619,11 +649,11 @@ print(f"round-trip images: {reloaded_images.shape}")
 #    符合設定。訊號能量會隨方向、離焦與影像內容改變，同一個雜訊變異數因此會產生不同的單張 SNR。
 #    CTF 又會依頻率增強、削弱或反轉訊號，各頻率殼層的 SNR 也會不同。
 #
-#    全域 SNR 無法代替單張、遮罩區域或頻率殼層的 SNR。比較方法時必須先確認 SNR 的估計範圍、
+#    因此 0.1 描述整疊影像的整體難度。若要比較另一個 SNR 數值，還要先看它使用單張或整疊影像、
 #    是否扣除平均，以及採用功率比或振幅比。
 #    ```
 #
-# 4. `rlnAmplitudeContrast=0.15` 如何影響本章 CTF 在零頻率附近的值？
+# 5. `rlnAmplitudeContrast=0.15` 如何影響本章 CTF 在零頻率附近的值？
 #
 #    ```{dropdown} 參考答案
 #    本章使用
@@ -631,21 +661,8 @@ print(f"round-trip images: {reloaded_images.shape}")
 #    $H(0)=-w=-0.15$。若 $w=0$，同一慣例下的 $H(0)$ 會等於零；加入 amplitude contrast 後，
 #    CTF 在零頻率附近多了 cosine 分量，零點位置與低頻對比也跟著改變。
 #
-#    `0.15` 表示振幅對比比例 $w$；若把整條 CTF 再乘以 0.15，會得到另一個錯誤模型。CTF 正負號還會受
-#    defocus、Fourier transform 與影像對比慣例影響；跨軟體比較時要連同完整公式核對。本章的數值取自
-#    RELION 70S classification example。
+#    `0.15` 表示振幅對比比例 $w$；把整條 CTF 再乘以 0.15 會得到不同且錯誤的模型。CTF 正負號還會受
+#    defocus、Fourier transform 與影像對比慣例影響，因此跨軟體比較時要連同完整公式核對。
 #    ```
 #
-# 5. `rot, tilt, psi` 與 `rotation_matrix` 各記錄什麼？跨軟體交換時需要核對哪些慣例？
-#
-#    ```{dropdown} 參考答案
-#    本章使用 ASPIRE 的 ZYZ Euler angles：`rot` 與 `tilt` 決定 viewing direction，`psi` 表示平面內旋轉，
-#    三者都以 radians 儲存。`rotation_matrix` 則直接記錄同一旋轉的矩陣形式；本章的語意是
-#    $\mathbf q_{\mathrm{volume}}=R[k_x,k_y,0]^{\mathsf T}$，把影像平面的 Fourier 座標映到體積座標。
-#
-#    跨軟體時須一起核對 Euler 順序、角度單位、active／passive 定義、矩陣左右乘、座標軸方向及影像到
-#    體積或體積到影像的映射。三個數字相同，只能說欄位值相同；上述慣例一致後，才表示相同的物理取向。
-#    可用單位向量或已知非對稱體積做一次投影測試，直接檢查轉換結果。
-#    ```
-#
-# 更多 SPA 成像與驗證限制見 {doc}`05_image_formation` 與 {doc}`06_reconstruction_validation`。
+# 想把這個模擬接到完整 SPA 流程，可接著閱讀 {doc}`05_image_formation` 與 {doc}`06_reconstruction_validation`。

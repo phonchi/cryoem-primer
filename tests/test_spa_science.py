@@ -101,6 +101,11 @@ def test_synthetic_chapter_declares_reproducibility_contract():
         "offsets=offsets",
         '"offset_px"',
         "chung2020",
+        "Uncorrected average",
+        "Recentered with known shifts",
+        "Zero-shift reference",
+        "+ global AWGN (target SNR=",
+        "Forward model: projection → CTF → noise",
     }
     assert not {term for term in required_terms if term not in source}
     assert "relion_source._metadata" not in source
@@ -109,6 +114,14 @@ def test_synthetic_chapter_declares_reproducibility_contract():
     assert "run_manifest" not in source
     assert "教材目前" not in source
     assert "不會假裝" not in source
+    for chinese_plot_text in (
+        "校正前平均",
+        "已知平移校正後",
+        "零平移對照",
+        "前向模型：投影 → CTF → 雜訊",
+        "全域 AWGN（目標 SNR=",
+    ):
+        assert chinese_plot_text not in source
 
 
 def test_new_spa_pages_state_key_claim_boundaries():
@@ -119,6 +132,7 @@ def test_new_spa_pages_state_key_claim_boundaries():
         assert term in formation
     assert r"\mathrm{SNR}_{\mathrm{out}}^2" not in formation
     assert r"\frac{\mathrm{SNR}_{\mathrm{out}}(s)}{\mathrm{SNR}_{\mathrm{in}}(s)}" in formation
-    for term in ("Fourier slice theorem", "soft assignment", "half-set", "FSC", "Mask"):
+    for term in ("Fourier slice theorem", "機率加權", "half-set", "FSC", "Mask"):
         assert term in validation
-    assert "不直接衡量真實性" in validation
+    assert "FSC 衡量兩張 half-map 的一致性" in validation
+    assert "共同的正比例常數，FSC 仍為 1" in validation

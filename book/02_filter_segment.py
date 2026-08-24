@@ -16,7 +16,7 @@
 # %% [markdown]
 # # 濾波、邊緣、分割與匹配
 #
-# 本章從局部濾波開始，依序處理邊緣、閾值化、形態學、物件分割與特徵匹配。這幾類操作常被串在同一條流程裡，各自負責不同任務：濾波改變像素，邊緣偵測估計強度變化，分割替像素或物件編號，匹配則產生候選位置。讀完後，應能根據雜訊種類與分析目標選擇方法，並用數值指標和邊緣保留情形比較結果。基本觀念可參考 {cite}`szeliski2022,forsyth2012`，實作細節則以 [SciPy `ndimage`](https://docs.scipy.org/doc/scipy/reference/ndimage.html) 與 [scikit-image API](https://scikit-image.org/docs/stable/api/api.html) 為準。
+# 本章從一個常見問題開始：影像有雜訊、背景不均或物件相連時，應該先做哪一步？我們會依序操作局部濾波、邊緣偵測、閾值化、形態學、物件分割與特徵匹配。每項操作負責不同任務：濾波改變像素，邊緣偵測估計強度變化，分割替像素或物件編號，匹配則產生候選位置。把結果圖和數值指標放在一起比較，就能依雜訊種類與分析目標選擇方法。{cite}`szeliski2022,forsyth2012`
 #
 # ```{admonition} 學習目標
 # :class: important
@@ -59,7 +59,7 @@ def imshow_all(*images, titles=None, size=4, **kwargs):
 # (filtering)=
 # ## Convolution、correlation 與邊界
 #
-# 對離散訊號 $x$ 與 kernel $h$，convolution 會翻轉 kernel；correlation 不翻轉。kernel 若對稱，兩者相同。影像是有限陣列，kernel 到邊緣時還需要指定陣列外的值：補零、重複邊緣、鏡射或週期延拓會得到不同答案。
+# 對離散訊號 $x$ 與 kernel $h$，convolution 會翻轉 kernel；correlation 不翻轉。kernel 若對稱，兩者相同。影像是有限陣列，kernel 到邊緣時還需要指定陣列外的值：補零、重複邊緣、鏡射或週期延拓會得到不同答案。各種邊界模式的定義可查 [SciPy `ndimage` 文件](https://docs.scipy.org/doc/scipy/reference/ndimage.html)。
 
 # %%
 step = np.zeros(20)
@@ -137,7 +137,7 @@ imshow_all(
 # %% [markdown]
 # ### 雜訊模型會改變比較結果
 #
-# Additive Gaussian noise 會輕微擾動多數像素；salt-and-pepper noise 則把少數像素推到動態範圍兩端。下面使用同一張乾淨影像與固定亂數種子，再以 mean squared error（MSE）比較結果。這個例子裡，Gaussian smoothing 對 Gaussian noise 的 MSE 較低，而 median filtering 對脈衝雜訊較有利。結論只適用於這組雜訊強度與參數；改變細節尺度、kernel 大小或評估指標，排序也可能改變。
+# 加性高斯雜訊會輕微擾動多數像素；salt-and-pepper noise 則把少數像素推到動態範圍兩端。下面使用同一張乾淨影像與固定亂數種子，再以 mean squared error（MSE）比較結果。圖中可先觀察邊緣模糊程度，接著讀取 MSE：這組參數下，Gaussian smoothing 對 Gaussian noise 的 MSE 較低，而 median filtering 對脈衝雜訊較有利。再改變雜訊強度、kernel 大小或影像細節尺度，便會看到兩者的排序可能改變。
 
 # %%
 clean = ski.util.img_as_float(ski.data.camera())[80:336, 80:336]
@@ -304,7 +304,7 @@ imshow_all(
 # $$z(\mathbf{x})=\frac{I(\mathbf{x})-\mu_{\mathrm{local}}(\mathbf{x})}
 # {\sqrt{\sigma^2_{\mathrm{local}}(\mathbf{x})+\epsilon}}.$$
 #
-# Whitening 則在頻域依背景 power spectrum 重新加權頻率。兩者都可能出現在粒子挑選（particle picking）的前處理，分別處理空間上的局部亮度變化與頻譜不均勻；以下只示範 local normalization。
+# Whitening 則在頻域依背景 power spectrum 重新加權頻率。兩者都可能出現在粒子挑選（particle picking）的前處理，分別處理空間上的局部亮度變化與頻譜不均勻。先執行下面的 local normalization，比較漸層背景在處理前後的變化；第 3 章再從傅立葉域觀察頻譜重新加權。
 
 # %%
 def local_normalize(image, sigma=12.0, eps=1e-6):
@@ -347,10 +347,10 @@ for ax in axes:
 fig.tight_layout()
 
 # %% [markdown]
-# ```{admonition} Template bias
+# ```{admonition} 模板偏差（template bias）
 # :class: caution
 #
-# NCC 只會找「像模板」的區域。模板來源、低通截止、取向覆蓋與分數閾值都會改變候選座標，還可能偏向預先期待的結構。高 NCC 分數表示與模板相似；粒子身分還要用獨立資料、negative controls、2D classification 與多樣性檢查評估。
+# NCC 只會找「像模板」的區域。模板來源、低通截止、取向覆蓋與分數閾值都會改變候選座標，還可能偏向預先期待的結構。高 NCC 分數表示與模板相似；接著要查看候選座標的空間分布、陰性對照與 2D classification，排除碳膜、冰晶和重複外觀造成的高分。
 # ```
 
 
@@ -649,11 +649,17 @@ imshow_all(search_image, hog_image, titles=["input", "HOG visualization"])
 # %% [markdown]
 # ## 與 cryo-EM 的連結
 #
-# 單粒子 cryo-EM 會把本章的工具放進不同階段。粒子挑選可能使用 band-pass、whitening 或 local normalization 改善候選偵測條件；Gaussian 與 median filter 在本章主要用來比較濾波定義，median filter 只適合已確認的脈衝型污染。任何非線性濾波都可能改變微弱的高解析訊號；若處理結果要進入三維重建，必須先以獨立資料與頻域指標檢查引入的偏差。
+# 把這些工具放進單粒子 cryo-EM 流程時，可以先問它要解決哪種影像現象。背景亮度緩慢改變可嘗試 local normalization，背景頻譜不均勻可考慮 whitening，粒子大小不一則可用多尺度搜尋。Gaussian 與 median filter 在本章用來比較濾波定義；median filter 對應已確認的脈衝型污染。非線性濾波可能連微弱的高解析訊號一起改變，因此進入三維重建前，應比較處理前後的頻譜與 half-set 結果。
 #
 # Edge detector 與 thresholding 可用來建立碳膜邊緣、厚冰或污染區域的初始遮罩，再以 opening、closing 與 connected components 整理碎片。這類遮罩的 footprint 與面積門檻都對應物理尺度；micrograph 經過 binning 後，參數也要跟著換算。
 #
 # 模板匹配與 blob detection 可以產生候選座標。模板偏差、偏好取向、污染與冰層厚度都會影響挑選結果的分布，因此候選座標還要經過後續檢查。Gaussian pyramid 能支援多尺度搜尋，模板外觀的覆蓋範圍仍會影響結果。形態學與 watershed 適合清理污染遮罩或示範 instance segmentation；物理上重疊的粒子投影已經混合成同一組像素值，這些幾何工具無法還原各自的訊號。
+#
+# ## 延伸閱讀
+#
+# - 濾波、邊緣、形態學與分割的影像處理背景可接著讀 {cite}`szeliski2022,forsyth2012`。
+# - 實作時可查 [SciPy `ndimage`](https://docs.scipy.org/doc/scipy/reference/ndimage.html) 與
+#   [scikit-image API](https://scikit-image.org/docs/stable/api/api.html) 的參數和邊界模式。
 #
 # ## 理解檢查
 #
@@ -666,7 +672,7 @@ imshow_all(search_image, hog_image, titles=["input", "HOG visualization"])
 #
 #    當 $(i-m,j-n)$ 超出影像範圍時，就需要邊界條件來補上 $x$ 的值。`constant` 使用固定值，常見設定是 0；`reflect` 則將邊界內側的像素鏡射到外側。因此，mean kernel 在邊緣附近加總的數值不同。`constant=0` 常會將亮背景的邊緣拉暗，`reflect` 在強度平滑延伸時通常較連續。
 #
-#    距離邊界足夠遠的像素不需要外推值，兩種模式的結果應相同。邊界差異的影響範圍與 kernel 半徑有關。常見誤解是把 `mode` 當成繪圖排版選項；它實際會參與數值計算。
+#    距離邊界足夠遠的像素不需要外推值，兩種模式的結果應相同。邊界差異的影響範圍與 kernel 半徑有關。`mode` 會參與數值計算，和繪圖排版無關。
 #    ```
 #
 # 2. Gaussian noise 與 impulse noise 需要用什麼方式分別處理與比較？
@@ -678,7 +684,7 @@ imshow_all(search_image, hog_image, titles=["input", "HOG visualization"])
 #
 #    $$\operatorname{MSE}=\frac{1}{N}\sum_p(\hat x[p]-x[p])^2$$
 #
-#    並併看 PSNR、SSIM、邊緣剖面與 residual image。單看平滑程度會偏好過度模糊的結果。另一個常見誤解是將 median filter 當成通用的 cryo-EM 去雜訊器；它的優勢與脈衝型污染的模型直接相關。
+#    並併看 PSNR、SSIM、邊緣剖面與 residual image。單看平滑程度會偏好過度模糊的結果。Median filter 的優勢來自脈衝型污染模型；面對一般 cryo-EM 背景時，要先從影像與頻譜判斷雜訊特性。
 #    ```
 #
 # 3. Canny 邊緣偵測比直接對 gradient magnitude 切閾值多了哪些步驟？每一步解決什麼問題？
@@ -701,10 +707,10 @@ imshow_all(search_image, hog_image, titles=["input", "HOG visualization"])
 #
 #    取得二值遮罩後，opening 以結構元素檢查形狀：先侵蝕再膨脹，細小或無法容納該結構元素的部分會被移除。`remove_small_objects()` 則先找 connected components，再依像素面積移除小於門檻的物件。兩者的判斷依據分別是局部形狀與連通區面積。
 #
-#    相鄰物件可先計算前景的 distance transform，在每個物件內找局部極大值作為獨立 marker，再對負的 distance map 做 watershed。若所有前景只有同一個 marker label，watershed 只會得到一個流域；要分開兩個相鄰物件，通常需要兩個可靠的前景 markers。物理上重疊的透明投影不一定符合這個幾何模型，這是方法的適用限制。
+#    相鄰物件可先計算前景的 distance transform，在每個物件內找局部極大值作為獨立 marker，再對負的 distance map 做 watershed。若所有前景只有同一個 marker label，watershed 只會得到一個流域；要分開兩個相鄰物件，通常需要兩個可靠的前景 markers。物理上重疊的透明投影會把訊號混在同一組像素裡，單靠這個幾何模型無法拆回原來的投影。
 #    ```
 #
-# 5. Local normalization、whitening 與 NCC 在粒子挑選中各自處理什麼？為什麼 NCC 高分位置還需要後續檢查？
+# 5. Local normalization、whitening 與 NCC 在粒子挑選中各自處理什麼？
 #
 #    ```{dropdown} 參考答案
 #    Local normalization 在每個位置估計局部平均 $\mu(x)$ 與標準差 $\sigma(x)$，形式類似
@@ -717,5 +723,5 @@ imshow_all(search_image, hog_image, titles=["input", "HOG visualization"])
 #
 #    $$\operatorname{NCC}(p,t)=\frac{\langle p-\bar p,t-\bar t\rangle}{\|p-\bar p\|\,\|t-\bar t\|}.$$
 #
-#    高分表示這個局部方框與模板相似。污染、碳膜邊緣、冰晶或模板偏好的取向也可以得到高分。後續應查看座標分布、挑選影像、2D 分類和獨立資料的結果。常見誤解是把相似度當成「真實粒子的機率」；NCC 本身沒有提供這種機率解釋。
+#    高分表示這個局部方框與模板相似。污染、碳膜邊緣、冰晶或模板偏好的取向也可以得到高分。後續應查看座標分布、挑選影像與 2D 分類結果，確認高分來自哪些影像內容。NCC 是相似度，公式本身沒有把分數解釋成「真實粒子的機率」。
 #    ```

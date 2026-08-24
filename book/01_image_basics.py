@@ -61,7 +61,7 @@ def imshow_all(*images, titles=None, size=4, **kwargs):
 # %% [markdown]
 # ## 影像是帶有慣例的陣列
 #
-# 灰階影像通常是 `(row, column)` 的二維陣列；彩色影像再加一個 channel 維度。`shape` 只告訴我們有多少格，沒有告訴我們一格是幾 Å，也沒有說數值是電子計數、正規化強度或其他量。
+# 灰階影像通常是 `(row, column)` 的二維陣列；彩色影像再加一個通道（channel）維度。`shape` 只告訴我們有多少格，沒有告訴我們一格是幾 Å，也沒有說數值是電子計數、正規化強度或其他量。
 
 # %%
 coins = ski.data.coins()
@@ -165,7 +165,7 @@ assert np.array_equal(ski.util.img_as_float(float_outside_unit), float_outside_u
 # | TIFF | 可無損也可壓縮；顯微鏡與出版 | 支援多頁、多種 bit depth 與較豐富的中繼資料，但要確認讀寫程式支援的子類型 |
 # | JPEG | 有損；一般照片與網路預覽 | 重新讀回後像素通常不會逐點相同，不可當作定量分析的中間格式 |
 #
-# 下面直接在記憶體中編碼與解碼，避免在範例執行時留下暫存檔。這和「寫檔後再讀回」走過的 codec 路徑相同。
+# 下面讓同一張影像分別通過 PNG、TIFF 與 JPEG 的編碼器，再解碼回 NumPy 陣列。比較讀回的像素與檔案大小，就能直接看出無損與有損壓縮的差別。
 
 # %%
 def codec_round_trip(image, extension, params=None):
@@ -203,7 +203,7 @@ assert np.array_equal(gradient16_back, gradient16)
 print("16-bit PNG dtype:", gradient16_back.dtype, "range:", gradient16_back.min(), gradient16_back.max())
 
 # %% [markdown]
-# JPEG 的檔案往往較小，代價是區塊狀壓縮痕跡與高頻細節的改變。兩張影像視覺上可能很接近，像素值卻已經改變；上面的 exact equality 與 mean absolute error 分別檢查這兩個層次。
+# JPEG 的檔案往往較小，代價是區塊狀壓縮痕跡與高頻細節的改變。兩張影像視覺上可能很接近，像素值卻已經改變；上面的逐像素相等檢查與 mean absolute error 分別檢查這兩個層次。
 
 
 # %% [markdown]
@@ -501,22 +501,26 @@ imshow_all(
 #
 # MRC 是一種檔案容器。同樣的格式可以儲存 2D micrograph、粒子堆疊或 3D 密度圖，資料的含義要連同 shape、header 與外部中繼資料解讀。與一般影像相同，幾何重新取樣會改變頻率內容；對粒子影像做旋轉或位移時，插值方法、邊界模式與輸出畫布仍然會影響後續對位。
 #
-# ```{admonition} 這個範例涵蓋的條件
-# :class: caution
+# ```{admonition} 換成低劑量影像時
+# :class: note
 #
-# 本章的灰階照片用來練習陣列操作。低劑量 cryo-EM 影像還受 shot noise、gain correction、motion、ice 與 DQE 等因素影響，一般相機常用的 `[0,255]` 數值範圍無法完整描述直接電子偵測器的響應。
+# 本章先用灰階照片練習陣列操作。讀取低劑量 cryo-EM 影像時，還要把 shot noise、gain correction、motion、ice 與 DQE 放進解讀；直接電子偵測器的響應也無法用一般相機常見的 `[0,255]` 範圍完整描述。遇到負值或大於 1 的浮點數時，應先查清楚處理步驟與單位，再決定如何顯示或轉型。
 # ```
+#
+# ## 延伸閱讀
+#
+# - 影像取樣、幾何變換與色彩表示可接著讀 {cite}`szeliski2022,forsyth2012`。
+# - OpenCV 的色彩順序與檔案讀寫範例可參考 {cite}`howse2020`；函式參數則以目前安裝版本的官方文件為準。
 #
 # ## 理解檢查
 #
-# 1. 一個 `float32` 陣列的最大值是 12，這項資訊足以判定它有沒有正規化嗎？同一張影像儲存成 PNG 和 JPEG 後，像素逐點相等的檢查會有什麼差別？
+# 1. 一個 `float32` 陣列的最大值是 12，為什麼還不能判定它是否經過正規化？
 #
 #    ```{dropdown} 參考答案
 #    資料不足。`float32` 只規定數值的儲存方式與可表示範圍，正規化則是資料的數值慣例。最大值 12 可能來自原始量測值，也可能是某種自訂尺度的正規化結果。還需要查讀檔案說明、數值範圍與處理程式，才能判定 12 的意義。
 #
-#    PNG 使用無損壓縮。當寫入與讀回時使用相容的 dtype、bit depth 和 color mode，讀回後應有機會通過 `np.array_equal()`。JPEG 會做有損壓縮，常見的色度子取樣與 DCT 係數量化都會改變像素，所以應用 mean absolute error 之類的量來描述差異。
-#
-#    常見誤解有兩個：把 floating-point 直接當成 `[0,1]`，以及把 PNG 的「無損」解讀成任何轉換都不會改變數值。若寫檔前曾做 dtype 轉換或量化，PNG 讀回後也可能與原陣列不同。
+#    例如資料若以電子計數表示，12 可以是正常量測值；若定義為零平均、單位變異數，12 又可能是極端值。
+#    判讀時要一起查看單位、預期範圍、是否扣除平均，以及前一步做過哪些縮放或轉型。
 #    ```
 #
 # 2. 灰階區域的 saturation 很低時，用 hue 做分類會遇到什麼問題？
@@ -527,7 +531,7 @@ imshow_all(
 #    分類時可先設 saturation 下限。只有高於下限的像素才使用 hue，其餘像素可依 brightness、RGB 距離或其他特徵處理。問題來自色相在低飽和度時的不穩定性，與 HSV 轉換程式是否正確無關。
 #    ```
 #
-# 3. 百分位對比伸展讓粒子顯示得更清楚時，可以對訊雜比與解析度下什麼結論？
+# 3. 百分位對比伸展讓粒子顯示得更清楚時，能從圖上確定什麼？訊雜比與解析度又該如何判斷？
 #
 #    ```{dropdown} 參考答案
 #    只能得到「在這組顯示參數下，人眼較容易看出強度差」。若將下百分位 $p_l$ 與上百分位 $p_h$ 間的像素線性映射至 $[0,1]$，中間區間可寫成
@@ -536,7 +540,7 @@ imshow_all(
 #
 #    這個映射同時放大訊號與雜訊的局部差異，也會將區間外的數值截斷。它沒有自動增加樣品傳遞到偵測器的資訊。
 #
-#    訊雜比需要明確的 signal/noise 定義與估計法；解析度則要根據獨立資料的頻域指標，例如 half-map FSC。視覺對比、訊雜比和解析度要分開報告。
+#    訊雜比需要明確的 signal/noise 定義與估計法；解析度則要根據獨立資料的頻域指標，例如 half-map FSC。可以把原圖與顯示後的圖並排，再分別計算訊雜比與 FSC，避免用「看起來更清楚」代替這兩項數值。
 #    ```
 #
 # 4. pixel size 為 1.5 Å/pixel 時，Nyquist frequency 與 Nyquist resolution 各是多少？
@@ -553,14 +557,12 @@ imshow_all(
 #    頻率的單位是 cycles/Å，解析度則以 Å 表示。數值較大的頻率對應較小的結構尺度。Nyquist resolution 是離散取樣允許的理論上限，實際可達解析度還會受訊雜比、CTF、motion 與重建流程影響。
 #    ```
 #
-# 5. Euclidean、Similarity、Affine 與 Projective 變換各保留哪些幾何性質？`warp(image, forward.inverse)` 為什麼要傳入 `inverse`？
+# 5. `warp(image, forward.inverse)` 為什麼要傳入 `inverse`？
 #
 #    ```{dropdown} 參考答案
-#    這四種變換可排成逐步放寬的階層。Euclidean 變換包含旋轉與平移，保留長度和角度；Similarity 多了一個全域縮放，保留角度與長度比；Affine 允許各向異性縮放與 shear，保留直線、平行性與同一直線上的比例；Projective 允許透視效應，保留共線性與交比，平行線可在透視圖中相交。
-#
 #    `forward` 描述輸入座標如何移到輸出畫布。建立輸出影像時，程式逐一走訪輸出像素 $\mathbf{x}_{out}$，再透過
 #
 #    $$\mathbf{x}_{in}=T^{-1}\mathbf{x}_{out}$$
 #
-#    找到輸入影像的取樣位置。這種 output-to-input 的 pull sampling 可避免 forward mapping 在輸出畫布留下空洞。這裡的 `inverse` 只指座標映射方向，與像素值的反向變化或矩陣乘上 $-1$ 無關。
+#    找到輸入影像的取樣位置。這種 output-to-input 的 pull sampling 可避免 forward mapping 在輸出畫布留下空洞。這裡的 `inverse` 只指座標映射方向，與像素值的反向變化或矩陣乘上 $-1$ 無關。Euclidean、Similarity、Affine 與 Projective 的保留性質可回到本節表格比較，不會改變 `warp()` 所需的映射方向。
 #    ```

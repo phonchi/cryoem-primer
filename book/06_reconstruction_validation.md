@@ -18,9 +18,9 @@ $$
 =\widehat V\!\left(R^{\mathsf T}[k_x,k_y,0]^{\mathsf T}\right).
 $$
 
-一張投影的 2D Fourier transform，對應到 3D Fourier volume 中通過原點的一個平面。若取向已知且覆蓋足夠，可把許多切片插值到 3D 格點，再做 inverse FFT；也可在實空間用 weighted backprojection，或以 ART／SIRT 等迭代法解離散線性系統 {cite}`penczek2010`（pp. 5–24）。
+一張投影的 2D Fourier transform，對應到 3D Fourier volume 中通過原點的一個平面。若取向已知且覆蓋足夠，可把許多切片插值到 3D 格點，再做 inverse FFT；也可在實空間用 weighted backprojection，或以 ART／SIRT 等迭代法解離散線性系統 {cite}`penczek2010`。
 
-有限方向、非均勻取樣、CTF 零點與插值都讓反演不適定。偏好取向（preferred orientation）會使 Fourier 空間某些方向取樣較弱，造成各向異性解析度。正則化可以穩定數值解；缺少觀測的方向仍然缺乏資訊。
+有限方向、非均勻取樣、CTF 零點與插值都讓反演不適定。偏好取向（preferred orientation）會使 Fourier 空間某些方向取樣較弱，造成各向異性解析度。方向分布圖若集中在少數區域，重建圖上常可看到某些方向較模糊或被拉長。正則化能穩定數值解，但無法補出未取樣方向的資訊。
 
 (soft-assignment)=
 ## SPA 多了一個未知量：姿態
@@ -40,21 +40,23 @@ r_i(z)\propto p(I_i\mid z,V)\,p(z),
 \qquad \sum_z r_i(z)=1.
 $$
 
-更新模型時使用 $r_i(z)$ 加權所有候選，讓影像保留多個可能姿態。Bayesian／MAP 方法再加入結構先驗或頻率相依正則化。這些方法比較能表達不確定性；結果仍取決於概似函數、雜訊模型、先驗分布、離散網格與初始模型 {cite}`scheres2010,singer2020`（Sigworth et al., pp. 273–277；Singer & Sigworth, pp. 175–180）。
+更新模型時使用 $r_i(z)$ 加權所有候選，讓影像保留多個可能姿態。Bayesian／MAP 方法再加入結構先驗或頻率相依正則化。後驗權重若集中在單一候選附近，表示目前模型下的姿態較明確；權重分散時，影像仍支持多個方向或位移。權重形狀也會隨概似函數、雜訊模型、先驗分布、離散網格與初始模型而改變 {cite}`scheres2010,singer2020`。
 
 (reconstruction)=
 ## 從加權切片到 3D volume
 
 實際重建會同時處理 CTF、取樣密度與正則化。對同一 Fourier voxel，來自不同粒子的觀測可帶有不同 CTF 正負號與振幅；合併時需保留這些權重，並在所有影像都缺乏資訊的頻率避免不穩定除法。不同軟體可能採用 gridding、backprojection、iterative least squares 或數種方法的組合，實作內容遠超過單一步驟的反投影。
 
-演算法停止迭代，只能說數值已經收斂。概似值趨於穩定、相鄰兩輪 map 很相似，或方向不再大幅改變，都可能發生在局部最佳解附近；初始模型偏差與錯誤的雜訊模型也可能留在結果中。
+概似值趨於穩定、相鄰兩輪 map 很相似，或方向不再大幅改變時，演算法通常會停止迭代。這些現象表示更新幅度已經很小，也可能發生在局部最佳解附近。接下來可更換初始模型或合理參數重跑，再比較方向分布、half-map 與密度特徵是否一致。
 
 (validation)=
 ## Gold-standard half-set：把獨立性放進流程
 
 常見做法是在 refinement 前把粒子隨機分成兩半，兩組從此獨立 refinement，得到 half-map A 與 half-map B。兩邊可共享事先確定的處理規則；高頻 map、姿態，以及由完整資料高頻細節製作的 mask 必須維持分離，否則 half-map correlation 會被人為提高。
 
-「Gold-standard」指的是用資料分割降低高頻過擬合的原則。結構正確性還需要方向分布、局部解析度與生化證據等檢查。若同一個物理粒子、同一段 movie 的重複觀測或高度相關資料被分到兩邊，兩組資料的獨立性也會被削弱。
+實際資料流可寫成：**particle stack → 分成兩組 particle IDs → 各自估計姿態並重建 → half-map A／B → FSC**。若兩張 half-map 的低頻輪廓相近，但其中一張在局部顯得較模糊，可先比較兩組的粒子數、方向分布與局部解析度。
+
+「Gold-standard」指的是用資料分割降低高頻過擬合的原則。若同一個物理粒子、同一段 movie 的重複觀測或高度相關資料被分到兩邊，兩組資料的獨立性就會降低。方向分布、局部解析度與生化證據則從其他角度檢查重建結果。
 
 ## FSC 衡量兩張 half-map 的一致性
 
@@ -67,9 +69,21 @@ $$
 \sum_{\mathbf k\in s}|F_B(\mathbf k)|^2}}.
 $$
 
-FSC = 1 表示該 shell 的 Fourier 係數完全一致，接近 0 表示缺少線性一致性。FSC 不直接衡量真實性。Half-map FSC 常用 0.143 交點報告整體解析度；這個閾值建立在獨立 half-map 與特定訊號—雜訊模型的前提上。局部解析度、方向各向異性與模型正確性需要其他檢查 {cite}`singer2020`（supplement pp. 5–6）。
+FSC = 1 表示兩組 Fourier 係數完全線性一致；若其中一組只是另一組乘上共同的正比例常數，FSC 仍為 1，
+所以它不要求每個係數的振幅數值完全相同。接近 0 則表示兩張圖在該頻帶缺少線性一致性。Half-map FSC
+常用 0.143 交點估計整體解析度；這個閾值建立在獨立 half-map 與特定訊號—雜訊模型的前提上。局部解析度圖
+與方向性 FSC 可進一步顯示整體曲線隱藏的空間和方向差異 {cite}`singer2020`。
 
-報告 FSC 時至少要交代 half-set 如何建立、map 是否套用 mask、mask 如何產生、曲線是否校正 mask effect，以及交點前後是否出現不符合物理預期的變化。
+```{figure} images/pptx/s24_2.png
+:width: 72%
+:name: fig-fsc-unmasked
+
+這條 unmasked FSC 曲線在約 $0.267\ \mathrm{\mathring A^{-1}}$ 穿過 0.143，對應解析度
+$1/0.267\approx3.74\ \mathrm{\mathring A}$。先找交點，再檢查高頻是否異常上升；加入 mask 後，還要把
+masked 與 unmasked 曲線並排比較。
+```
+
+讀 FSC 曲線時，先確認 half-set 如何建立，再查看 map 是否套用 mask、mask 如何產生，以及曲線是否校正 mask effect。若曲線在高頻突然上升或 masked 與 unmasked 結果差異很大，應回頭檢查 mask 與 half-set 的獨立性。
 
 ## Mask 能提高穩定性，也能製造相關
 
@@ -77,18 +91,24 @@ Mask 排除大面積溶劑，可降低雜訊並改善數值穩定性；邊界太
 
 過度擬合也可能來自把一半資料估出的高頻姿態資訊帶到另一半。High-resolution noise substitution、phase randomization 或獨立重跑可協助檢查；每種方法都有自己的適用條件。
 
-## 驗證要回答多個問題
+## 從幾張圖一起讀重建結果
 
-判讀 SPA 結果時，至少要檢查以下幾點：
+一條 FSC 曲線無法呈現所有細節。把下列資訊放在一起看，較容易找出結果中的弱點：
 
-- **重現性**：更換 half-set 的分法、隨機種子或合理處理設定後，是否得到相容結果？
+- **重現性**：更換 half-set 的分法、隨機種子或合理處理設定後，主要密度特徵是否仍然出現？
 - **方向覆蓋**：是否有 preferred orientation 與各向異性解析度？
 - **局部品質**：只看整體 FSC 時，是否掩蓋了局部解析度與構形彈性的差異？
-- **資料—模型一致性**：投影與反投影的殘差是否帶有系統性結構？
+- **資料—模型一致性**：投影與反投影的殘差若帶有系統性結構，通常表示模型仍漏掉影像中的規律。
 - **處理偏差**：粒子篩選、初始模型、對稱性與 mask 是否把預期答案帶進結果？
-- **生物合理性**：密度中的組成與構形是否有獨立的生化或功能證據可相互印證？
+- **生物背景**：密度中的組成與構形可與生化或功能實驗相互比較。
 
-原子模型擬合屬於後續主題。整體 half-map FSC 很高時，仍要另外檢查模型幾何、map-to-model agreement 與交叉驗證。
+原子模型擬合屬於後續主題。進行擬合後，還要查看模型幾何、map-to-model agreement 與交叉驗證；這些量測針對原子模型，與 half-map FSC 的問題不同。
+
+## 延伸閱讀
+
+- Fourier slice、姿態估計與重建的完整推導可參考 Singer 與 Sigworth 的綜述 {cite}`singer2020`。
+- Maximum-likelihood 與 Bayesian refinement 的方法背景可參考 Scheres 等人的工作 {cite}`scheres2010`。
+- 實際查看 half-map、mask 與 FSC 時，可搭配 [RELION post-processing 文件](https://relion.readthedocs.io/en/release-5.0/)閱讀。
 
 ## 理解檢查
 
@@ -111,7 +131,7 @@ $$
 
 並讓所有候選依權重參與模型更新。權重的分散程度直接反映姿態的不確定性；單一最佳方向只留下最大值的位置。
 
-常見誤解是把 soft assignment 當成自動排除 model bias 的保證。候選網格、先驗、雜訊模型與初始結構仍會改變後驗權重，結果仍需獨立驗證。
+因此，讀後驗權重時也要記下候選網格、先驗、雜訊模型與初始結構；這些設定都會改變權重分布。
 ```
 
 3. 哪些資訊若跨 half-set 傳遞，會讓 FSC 過度樂觀？
@@ -125,9 +145,9 @@ Half-set 獨立的重點是讓兩邊的高頻雜訊無法互相學習。事先�
 4. FSC 的 0.143 交點能說明什麼？Masked FSC 升高時，還要檢查哪些資訊？
 
 ```{dropdown} 參考答案
-在兩張 half-map 維持獨立、FSC 定義與 mask 校正都清楚的前提下，0.143 交點可作為整體解析度的慣用估計。FSC 衡量的是兩張 half-map 在各 Fourier shell 的一致性；結構正確性、局部解析度與方向各向異性需要另外評估。
+在兩張 half-map 維持獨立、FSC 定義與 mask 校正都清楚的前提下，0.143 交點可作為整體解析度的慣用估計。FSC 衡量兩張 half-map 在各 Fourier shell 的一致性；局部解析度圖與方向性 FSC 會顯示整體數值中看不到的空間與方向差異。
 
 Masked FSC 升高可能來自合理排除溶劑雜訊，也可能來自 mask 讓兩張 half-map 帶有相同邊界。判讀時要查看 mask 的來源、柔邊寬度、masked 與 unmasked 曲線、phase randomization 或 noise substitution 檢查，以及局部解析度和方向分布。
 
-常見誤解是把單一 0.143 數值當成整個結構的品質證明。這個交點只在上述前提下提供整體的一致性尺度。
+因此，0.143 交點提供的是整體一致性尺度，需和 mask 資訊、局部解析度與方向分布一起閱讀。
 ```
