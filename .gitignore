@@ -1,7 +1,14 @@
 book/_build/
 book/data/output/
+book/_build_scratch/
+.jupyter_cache/
+.pytest_cache/
+*.egg-info/
 .ipynb_checkpoints/
 __pycache__/
 *.pyc
+*.err.log
+logs/aspire-*.log
+book/logs/aspire-*.log
 .virtual_documents/
 .env

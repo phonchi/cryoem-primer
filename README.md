@@ -1,30 +1,36 @@
-# Cryo-EM 單顆粒分析入門（教學網站）
+# Cryo-EM 單顆粒分析入門
 
-專題生教材：從一般影像處理到 cryo-EM 單顆粒分析，重點是**合成資料的生成**（ASPIRE、70S 核糖體、5,000 張模擬粒子）。
+這是一套給大三以上專題生使用的繁體中文教材。主線從數位影像與 Fourier 分析出發，接到 cryo-EM 的成像模型、單顆粒分析流程、3D 重建與驗證，最後用 ASPIRE 產生一套具有 ground truth 的合成資料。
 
-- 網站：https://phonchi.github.io/cryoem-primer/
-- 教材本體：`book/`（Jupyter Book，8 章；各章以 jupytext py:percent 格式撰寫，`.py` 是 single source of truth）
-- 文獻摘要：`notes/ref_digest/`（供備課引用）
+- 公開網站：https://phonchi.github.io/cryoem-primer/
+- 教材來源：`book/`
+- 文獻摘要與 provenance：`notes/ref_digest/`、`notes/reference_catalog/`
+- `.py` 是可執行章節的 single source of truth；`.ipynb` 由 Jupytext 同步產生。
 
-## 建置
-
-```bash
-conda create -n cryoem-book --clone aspire-2sdr   # 或依 environment.yml
-conda run -n cryoem-book pip install jupyter-book jupytext ipykernel \
-  opencv-python-headless PyWavelets ghp-import
-conda run -n cryoem-book python -m ipykernel install --user --name cryoem-book
-
-# .py 修改後同步回 .ipynb
-conda run -n cryoem-book jupytext --sync book/*.py
-
-conda run -n cryoem-book jupyter-book build book/
-# 開啟 book/_build/html/index.html
-```
-
-首次建置會實際執行所有 notebook（第 7 章生成 5,000 張 130×130 模擬影像，需數分鐘；輸出寫到 `book/data/output/`，不進版控）。
-
-## 部署
+## 建立環境
 
 ```bash
-conda run -n cryoem-book ghp-import -n -p -f book/_build/html
+conda env create -f environment.yml
+conda activate cryoem-book
+python -m ipykernel install --user --name cryoem-book
 ```
+
+## 常用命令
+
+```bash
+make sync          # 將 book/*.py 同步到 paired notebooks
+make qa-fast       # 100 張模擬影像：測試、同步檢查與零警告 build
+make build-full    # 5,000 張模擬影像：發布前完整 build
+make linkcheck     # 外部連結檢查
+make ingest        # 更新本機 References/document_cache（不會發布全文）
+```
+
+第 7 章的完整模擬會寫出約數百 MB 的 MRCS 與 provenance 檔。預設輸出位於 repo 外的暫存目錄；可用 `CRYOEM_OUTPUT_DIR` 指定位置。生成資料不會進入網站 artifact。
+
+## 引用與版權
+
+原始 PDF 與抽取全文只保留在本機 `References/document_cache/`。公開 repo 僅保存來源 registry、自行撰寫的摘要、claim map、短引文與 BibTeX。教材中的數值、公式、方法比較與限制性主張，均應能回溯到原始頁碼、式號或官方文件。
+
+## 發布
+
+推送 `main` 後，GitHub Actions 會建立完整網站並部署同一份已驗收的 artifact 至 GitHub Pages。不要手動執行 `ghp-import`，以免發布內容與 CI 驗證內容不同。

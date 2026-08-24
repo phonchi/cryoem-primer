@@ -17,9 +17,22 @@ html:
   use_repository_button: false
   use_issues_button: false
   home_page_in_navbar: true
+  extra_footer: >-
+    本教材以可重現的程式與可追溯的文獻為準；教學模型的假設會在正文中明列。
 
 sphinx:
+  extra_extensions:
+    - sphinxcontrib.bibtex
   config:
     html_show_copyright: false
     nb_merge_streams: true
+    bibtex_bibfiles: ["references.bib"]
+    bibtex_reference_style: author_year
+    linkcheck_ignore:
+      - '^https://doi\.org/'
     suppress_warnings: ["mystnb.unknown_mime_type"]
+    exclude_patterns:
+      - _build/**
+      - _build_scratch/**
+      - data/output/**
+      - "**/.ipynb_checkpoints/**"

@@ -2,6 +2,14 @@
 
 本目錄彙整 cryo-EM 教學網站（`cryoem-primer`）用到的參考文獻精讀筆記。每份 digest 對應 `References/` 下一篇論文或教科書章節，格式統一為「一句話定位／關鍵主張／可引用公式圖表／適用章節」。網站章節代號：**01** 陣列基礎、**02** 濾波與分割、**03** 傅立葉、**04** 小波、**05** cryo-EM 背景、**06** cryo-EM workflow、**07** 合成資料生成、**08** 資源。
 
+> 覆蓋狀態與 SHA 的機器可讀權威檔是 `notes/reference_catalog/source_registry.jsonl`。本索引只提供人類閱讀入口；完整抽取文字保留在本機 `References/document_cache/`，不隨網站發布。
+
+## 覆蓋摘要
+
+- `full_digest`：SPA 核心來源，包含既有獨立 digest，以及 [2010 核心補充](mie2010-core-addenda.md)與 [2016 核心補充](mie2016-core-addenda.md)。
+- `route_note`：相鄰方法與會變動的工具入口，見 [路由筆記](route-notes.md)及三本 computer vision 索引。
+- `out_of_scope`：cryo-ET、helical reconstruction、electron crystallography、atomic model building，見 [範圍界線](scope-boundaries.md)。
+
 | 檔名 | 一句話定位 | 適用章節 |
 |---|---|---|
 | [2015-principles-spa.md](2015-principles-spa.md) | 最精簡好讀的 SPR（single-particle reconstruction）原理導論，適合當 06 章 workflow 骨架，也給 07 章「為何要模擬雜訊與 CTF」的量化理由。 | 06（主）、07（主）、03、05、02 |

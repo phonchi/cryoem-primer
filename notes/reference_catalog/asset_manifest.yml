@@ -1,0 +1,661 @@
+schema_version: 1
+policy: public_metadata_only
+assets:
+  - path: "book/images/blastoise.png"
+    sha256: 91a704fe0ed0a207260bffd970000c3ba52c0e31793c270484ed714ef630697c
+    size_bytes: 30970
+    referenced: true
+    provenance: project_provided
+    license_status: needs_review
+    alt_text_status: needs_review
+  - path: "book/images/charizard-mega-x.png"
+    sha256: 5800e4b8905522739387a864826bc5476d39deed56d181bb3e90c5da94042952
+    size_bytes: 20166
+    referenced: false
+    provenance: project_provided
+    license_status: needs_review
+    alt_text_status: needs_review
+  - path: "book/images/charizard-mega-y.png"
+    sha256: 316649c158b572c3e6728e4aa95489438668a17140fecc3af6819ebc1df599d8
+    size_bytes: 19825
+    referenced: false
+    provenance: project_provided
+    license_status: needs_review
+    alt_text_status: needs_review
+  - path: "book/images/cover3.png"
+    sha256: 1b6bf30919923b911de348dad56d81034b232cadd4ec4042c04fa53a7c2bdd89
+    size_bytes: 315126
+    referenced: false
+    provenance: project_provided
+    license_status: needs_review
+    alt_text_status: needs_review
+  - path: "book/images/pptx/s02_1.png"
+    sha256: 2c90fb3d1f32eb8aeed9f85ac1ba38edad368aa6500a69f7f5580918e173bd6b
+    size_bytes: 334259
+    referenced: true
+    provenance: project_provided
+    license_status: needs_review
+    alt_text_status: needs_review
+  - path: "book/images/pptx/s02_2.png"
+    sha256: 78c57557717bc0b59e6a5e0eebd8745416df1b2ad69b6b6a28731e96ec2f73c3
+    size_bytes: 10379
+    referenced: false
+    provenance: project_provided
+    license_status: needs_review
+    alt_text_status: needs_review
+  - path: "book/images/pptx/s02_3.png"
+    sha256: b99a726c3477f8346bb9635ca5c8adfbf485730dab71f4a4da6164fea5726601
+    size_bytes: 42188
+    referenced: true
+    provenance: project_provided
+    license_status: needs_review
+    alt_text_status: needs_review
+  - path: "book/images/pptx/s03_1.png"
+    sha256: a5a34cb2a82a250914643ac2184909e091475e61ca2b21c0da31d25bc771f2f0
+    size_bytes: 109792
+    referenced: true
+    provenance: project_provided
+    license_status: needs_review
+    alt_text_status: needs_review
+  - path: "book/images/pptx/s04_1.png"
+    sha256: 34f119a0f8231d65f3e8a11b0c729807b2a6f624c7e47d3b3428d014b0d42b50
+    size_bytes: 636139
+    referenced: true
+    provenance: project_provided
+    license_status: needs_review
+    alt_text_status: needs_review
+  - path: "book/images/pptx/s04_2.png"
+    sha256: 5b7c37525d69be05749ef1b58c5ac2470dc952db11c3b5a311405670edc56323
+    size_bytes: 15733
+    referenced: false
+    provenance: project_provided
+    license_status: needs_review
+    alt_text_status: needs_review
+  - path: "book/images/pptx/s04_3.png"
+    sha256: 0b9cadfc1be4ec0798334dd0e11d3dd9c3b8ee3beb122d1ddaff946bff176183
+    size_bytes: 102884
+    referenced: false
+    provenance: project_provided
+    license_status: needs_review
+    alt_text_status: needs_review
+  - path: "book/images/pptx/s04_4.png"
+    sha256: 33ad13c105c83e945e46c660b2acb275b9f3ebf2deed9880eef10ca31c4e4e41
+    size_bytes: 481580
+    referenced: true
+    provenance: project_provided
+    license_status: needs_review
+    alt_text_status: needs_review
+  - path: "book/images/pptx/s04_5.png"
+    sha256: 54c2d6150d51780ac4da5ec918c53ca76fc947190ee98e1aff2ef4a291e1d634
+    size_bytes: 206473
+    referenced: true
+    provenance: project_provided
+    license_status: needs_review
+    alt_text_status: needs_review
+  - path: "book/images/pptx/s05_1.png"
+    sha256: df8efb72158e3f6abac7aab449682380614316bbbef4a8d8be0afd3f6cf79bb0
+    size_bytes: 74725
+    referenced: true
+    provenance: project_provided
+    license_status: needs_review
+    alt_text_status: needs_review
+  - path: "book/images/pptx/s05_2.png"
+    sha256: 5a03cf774b002c4422829b9e89857209390da6d8c593b1083db6ecfba8539cf2
+    size_bytes: 36680
+    referenced: false
+    provenance: project_provided
+    license_status: needs_review
+    alt_text_status: needs_review
+  - path: "book/images/pptx/s06_1.png"
+    sha256: d212983776e15e7a6e01613bc4b473b1b8e69be7011c77ffeb45125ce6957d57
+    size_bytes: 138540
+    referenced: false
+    provenance: project_provided
+    license_status: needs_review
+    alt_text_status: needs_review
+  - path: "book/images/pptx/s06_2.png"
+    sha256: 82e344fcf201e8db15aa90226af007734ff400cf57ea3a992bb6477a73f9628a
+    size_bytes: 130483
+    referenced: true
+    provenance: project_provided
+    license_status: needs_review
+    alt_text_status: needs_review
+  - path: "book/images/pptx/s06_3.png"
+    sha256: e8cc43c8640d1c1c55cd4c2ab950d51234c83f81d3a3e242b366a1af59a0e3d8
+    size_bytes: 198938
+    referenced: true
+    provenance: project_provided
+    license_status: needs_review
+    alt_text_status: needs_review
+  - path: "book/images/pptx/s06_4.png"
+    sha256: d1958f9b4559bb875fb05e3ae4e1f56eae87965d4edfe08395636d5d53febeb6
+    size_bytes: 401
+    referenced: false
+    provenance: project_provided
+    license_status: needs_review
+    alt_text_status: needs_review
+  - path: "book/images/pptx/s06_5.png"
+    sha256: e38503c160f63980573762a1406d617de73443633890377ddac19f56cbea26b0
+    size_bytes: 443
+    referenced: false
+    provenance: project_provided
+    license_status: needs_review
+    alt_text_status: needs_review
+  - path: "book/images/pptx/s06_6.png"
+    sha256: 4d16914333ff4e122f51e45fb1025fcc6ba7db58812b2e9ff582f7dccc007647
+    size_bytes: 482
+    referenced: false
+    provenance: project_provided
+    license_status: needs_review
+    alt_text_status: needs_review
+  - path: "book/images/pptx/s07_1.png"
+    sha256: f42c4fd2e10f0c8e82575af8496cb05a2b7747c61fb7dbf28d3a5bbbd9fd05a4
+    size_bytes: 39876
+    referenced: false
+    provenance: project_provided
+    license_status: needs_review
+    alt_text_status: needs_review
+  - path: "book/images/pptx/s07_2.png"
+    sha256: b4b07247e977cf970dcc0f6b7d41fca8a1b25a8ed79f50078a1c236f495887e2
+    size_bytes: 933238
+    referenced: false
+    provenance: project_provided
+    license_status: needs_review
+    alt_text_status: needs_review
+  - path: "book/images/pptx/s07_3.png"
+    sha256: b0509b43aca5cfdaa21eaa3ad3ed160375d4be266e2c3b50a726914cd821f77b
+    size_bytes: 1503784
+    referenced: false
+    provenance: project_provided
+    license_status: needs_review
+    alt_text_status: needs_review
+  - path: "book/images/pptx/s08_1.png"
+    sha256: ae44c2ff210df91c6888904b030ed33486afeafb964c5e6bc1483d37bed9493c
+    size_bytes: 193407
+    referenced: true
+    provenance: project_provided
+    license_status: needs_review
+    alt_text_status: needs_review
+  - path: "book/images/pptx/s08_2.png"
+    sha256: 7b2353cf94a770ff5099303c86c4dbba187bae78daf9d6746f8713826044f087
+    size_bytes: 508380
+    referenced: true
+    provenance: project_provided
+    license_status: needs_review
+    alt_text_status: needs_review
+  - path: "book/images/pptx/s08_3.png"
+    sha256: 8ece8597d826eb83fc74d120768cc3e694e4ef5f1b6db33e69f5b715d40c739d
+    size_bytes: 62022
+    referenced: false
+    provenance: project_provided
+    license_status: needs_review
+    alt_text_status: needs_review
+  - path: "book/images/pptx/s09_1.png"
+    sha256: 9044e35584a26b28231212ce348f593e4214f59c690e95ab2261967c15c8991c
+    size_bytes: 1036923
+    referenced: true
+    provenance: project_provided
+    license_status: needs_review
+    alt_text_status: needs_review
+  - path: "book/images/pptx/s09_2.png"
+    sha256: 7a18b30f98d8159124df5bcc3b91033f59688b26dfa68cba2f469f33be7095b5
+    size_bytes: 1150920
+    referenced: false
+    provenance: project_provided
+    license_status: needs_review
+    alt_text_status: needs_review
+  - path: "book/images/pptx/s10_1.png"
+    sha256: 5a6dc2876b2b5faf8d4ae81a7dcaa6e091e9a7c635f2446609b315c276585081
+    size_bytes: 44824
+    referenced: false
+    provenance: project_provided
+    license_status: needs_review
+    alt_text_status: needs_review
+  - path: "book/images/pptx/s10_2.png"
+    sha256: cd60d98d799461c5d26bfe03df6484dfa670bc32d0687d08af59164f8c64f4d5
+    size_bytes: 1248791
+    referenced: true
+    provenance: project_provided
+    license_status: needs_review
+    alt_text_status: needs_review
+  - path: "book/images/pptx/s10_3.png"
+    sha256: 412e08d4000a7bf04c37dd7e04e0d4f12c522637705bebae184308d0b02d4b1c
+    size_bytes: 57201
+    referenced: false
+    provenance: project_provided
+    license_status: needs_review
+    alt_text_status: needs_review
+  - path: "book/images/pptx/s10_4.png"
+    sha256: 0b9cadfc1be4ec0798334dd0e11d3dd9c3b8ee3beb122d1ddaff946bff176183
+    size_bytes: 102884
+    referenced: false
+    provenance: project_provided
+    license_status: needs_review
+    alt_text_status: needs_review
+  - path: "book/images/pptx/s10_5.png"
+    sha256: 7431a0c1d897b1bda46c78ff5e2fe9bc30953e76faae019b53790e79a77c82d6
+    size_bytes: 94523
+    referenced: false
+    provenance: project_provided
+    license_status: needs_review
+    alt_text_status: needs_review
+  - path: "book/images/pptx/s11_1.png"
+    sha256: 1f3e2b1a17ac091afd706aa61076b682b50717d8932bc30864443213b502fb63
+    size_bytes: 2200
+    referenced: false
+    provenance: project_provided
+    license_status: needs_review
+    alt_text_status: needs_review
+  - path: "book/images/pptx/s11_2.png"
+    sha256: 707ef35af6698abf6452e438385922807771277e08f3832a3f3b0a1e272dea1a
+    size_bytes: 1468
+    referenced: false
+    provenance: project_provided
+    license_status: needs_review
+    alt_text_status: needs_review
+  - path: "book/images/pptx/s11_3.png"
+    sha256: 6d1b6fcd85b81736e75b41ec72e14d0bf8fd5ab8532aae64399e85c001bcfe11
+    size_bytes: 20419
+    referenced: false
+    provenance: project_provided
+    license_status: needs_review
+    alt_text_status: needs_review
+  - path: "book/images/pptx/s11_4.png"
+    sha256: 218616c900a7565118e4f3be60725eefb0ad2487184225a787c6146f47c82bba
+    size_bytes: 2433
+    referenced: false
+    provenance: project_provided
+    license_status: needs_review
+    alt_text_status: needs_review
+  - path: "book/images/pptx/s11_5.png"
+    sha256: 7d72c2f84a18b551b5061649dee3e7aaf2d8733e065a0e34e8e23891357c811a
+    size_bytes: 13893
+    referenced: false
+    provenance: project_provided
+    license_status: needs_review
+    alt_text_status: needs_review
+  - path: "book/images/pptx/s11_6.png"
+    sha256: f6a1a62e1794fbb1430aecc99768dcf842ec6c5479a6a217f8dd3a347079a762
+    size_bytes: 13209
+    referenced: false
+    provenance: project_provided
+    license_status: needs_review
+    alt_text_status: needs_review
+  - path: "book/images/pptx/s12_1.png"
+    sha256: 66097be98676ee423b69b210dd0243999cd18bbc046ecb7d4e93e9a3d520d61f
+    size_bytes: 55208
+    referenced: false
+    provenance: project_provided
+    license_status: needs_review
+    alt_text_status: needs_review
+  - path: "book/images/pptx/s12_2.png"
+    sha256: 8c8ba5f4219e8da0819a4758997d3e3b242f8e1bfce833424a4d6465e9afe70b
+    size_bytes: 9977
+    referenced: true
+    provenance: project_provided
+    license_status: needs_review
+    alt_text_status: needs_review
+  - path: "book/images/pptx/s12_3.png"
+    sha256: 9238a2e789171c7bb4f5ff5d59265e2940c82fbd3f376ae32f03e8daedee1ca0
+    size_bytes: 104646
+    referenced: false
+    provenance: project_provided
+    license_status: needs_review
+    alt_text_status: needs_review
+  - path: "book/images/pptx/s12_4.png"
+    sha256: e645cd4bd77fb4931880218af0e2d41ee157a8697c1cd2aa5a1507425a7d22d8
+    size_bytes: 17453
+    referenced: true
+    provenance: project_provided
+    license_status: needs_review
+    alt_text_status: needs_review
+  - path: "book/images/pptx/s12_5.png"
+    sha256: 9019e89d241ef0a962b70a6ac6ed78536ef61ad12464665a45d9c6fd7680fa17
+    size_bytes: 105885
+    referenced: false
+    provenance: project_provided
+    license_status: needs_review
+    alt_text_status: needs_review
+  - path: "book/images/pptx/s12_6.png"
+    sha256: 70db8d3566cf382921398852885115670b11e0d4df2b2272ff4a7a6da0e6adad
+    size_bytes: 17848
+    referenced: false
+    provenance: project_provided
+    license_status: needs_review
+    alt_text_status: needs_review
+  - path: "book/images/pptx/s12_7.png"
+    sha256: 0b9cadfc1be4ec0798334dd0e11d3dd9c3b8ee3beb122d1ddaff946bff176183
+    size_bytes: 102884
+    referenced: false
+    provenance: project_provided
+    license_status: needs_review
+    alt_text_status: needs_review
+  - path: "book/images/pptx/s12_8.png"
+    sha256: 7431a0c1d897b1bda46c78ff5e2fe9bc30953e76faae019b53790e79a77c82d6
+    size_bytes: 94523
+    referenced: false
+    provenance: project_provided
+    license_status: needs_review
+    alt_text_status: needs_review
+  - path: "book/images/pptx/s13_1.png"
+    sha256: 6d1b6fcd85b81736e75b41ec72e14d0bf8fd5ab8532aae64399e85c001bcfe11
+    size_bytes: 20419
+    referenced: false
+    provenance: project_provided
+    license_status: needs_review
+    alt_text_status: needs_review
+  - path: "book/images/pptx/s13_2.png"
+    sha256: 48b86fe335d67bb0752ac491c8e8d5c67b0c158ad1b118141697a965625715f3
+    size_bytes: 2278
+    referenced: false
+    provenance: project_provided
+    license_status: needs_review
+    alt_text_status: needs_review
+  - path: "book/images/pptx/s13_3.png"
+    sha256: 0b9cadfc1be4ec0798334dd0e11d3dd9c3b8ee3beb122d1ddaff946bff176183
+    size_bytes: 102884
+    referenced: true
+    provenance: project_provided
+    license_status: needs_review
+    alt_text_status: needs_review
+  - path: "book/images/pptx/s13_4.png"
+    sha256: 7d72c2f84a18b551b5061649dee3e7aaf2d8733e065a0e34e8e23891357c811a
+    size_bytes: 13893
+    referenced: false
+    provenance: project_provided
+    license_status: needs_review
+    alt_text_status: needs_review
+  - path: "book/images/pptx/s13_5.png"
+    sha256: f6a1a62e1794fbb1430aecc99768dcf842ec6c5479a6a217f8dd3a347079a762
+    size_bytes: 13209
+    referenced: false
+    provenance: project_provided
+    license_status: needs_review
+    alt_text_status: needs_review
+  - path: "book/images/pptx/s14_1.png"
+    sha256: 2064656315a29e84341cc8604f61ed3d50aacabf8e53a5c97b2550c141e80f84
+    size_bytes: 316901
+    referenced: false
+    provenance: project_provided
+    license_status: needs_review
+    alt_text_status: needs_review
+  - path: "book/images/pptx/s15_1.png"
+    sha256: f5e12155280025cfbb74417268ba40f9a0000d1b4bbe81db0c3a1980440be304
+    size_bytes: 9465
+    referenced: false
+    provenance: project_provided
+    license_status: needs_review
+    alt_text_status: needs_review
+  - path: "book/images/pptx/s15_2.png"
+    sha256: 3d53f6e512e17cc9b2af6e3dffb7aa1587c524bc96d39911e38765e7b9a0dccd
+    size_bytes: 161785
+    referenced: false
+    provenance: project_provided
+    license_status: needs_review
+    alt_text_status: needs_review
+  - path: "book/images/pptx/s15_3.png"
+    sha256: 4c831529ecdd0e83c3ba1a1be6e526c76aaf53bf1431ee7564d9638f267be3e5
+    size_bytes: 454107
+    referenced: false
+    provenance: project_provided
+    license_status: needs_review
+    alt_text_status: needs_review
+  - path: "book/images/pptx/s15_4.png"
+    sha256: 17040ee2d05c7cf0c063336ea98e0148af0863d35f6afebe5a6bc6d60a27466a
+    size_bytes: 360939
+    referenced: false
+    provenance: project_provided
+    license_status: needs_review
+    alt_text_status: needs_review
+  - path: "book/images/pptx/s15_5.png"
+    sha256: 7a10c7da4d7174581be44136de833290a6ba6267f577fe96fbfb0f62c5f863e8
+    size_bytes: 5210
+    referenced: false
+    provenance: project_provided
+    license_status: needs_review
+    alt_text_status: needs_review
+  - path: "book/images/pptx/s15_6.png"
+    sha256: c49653cb5e7e527f5ceb001f0bddaecbcc6f6ac2ed8e579fbfa92aae57f6e619
+    size_bytes: 27798
+    referenced: false
+    provenance: project_provided
+    license_status: needs_review
+    alt_text_status: needs_review
+  - path: "book/images/pptx/s15_7.png"
+    sha256: 69cd1f5bb18b878ad4b024431f84b07dac689eb40d7b3bf220ea9a8f1aaa5bb0
+    size_bytes: 57932
+    referenced: false
+    provenance: project_provided
+    license_status: needs_review
+    alt_text_status: needs_review
+  - path: "book/images/pptx/s15_8.png"
+    sha256: d633ddd7405dbd000328f929e2ff5af7dee02387ebd324f2f0a60b0e7d4d4228
+    size_bytes: 28834
+    referenced: false
+    provenance: project_provided
+    license_status: needs_review
+    alt_text_status: needs_review
+  - path: "book/images/pptx/s17_1.png"
+    sha256: 43d70d95da2f2dee17e5acbff3a88b5588428da6cc305e9a27f5d954401882e2
+    size_bytes: 849441
+    referenced: false
+    provenance: project_provided
+    license_status: needs_review
+    alt_text_status: needs_review
+  - path: "book/images/pptx/s20_1.png"
+    sha256: 23d1a92c70fb87a431f78ec0760415990942e73a3c86d5f72bafc32c8bee8c2e
+    size_bytes: 49067
+    referenced: false
+    provenance: project_provided
+    license_status: needs_review
+    alt_text_status: needs_review
+  - path: "book/images/pptx/s20_2.png"
+    sha256: aab92c96fe5c141e5127ad5a98b26b4664f69aa0bd089bc34dbb252c8f8afe26
+    size_bytes: 9861
+    referenced: false
+    provenance: project_provided
+    license_status: needs_review
+    alt_text_status: needs_review
+  - path: "book/images/pptx/s20_3.png"
+    sha256: 4d1630c41f52ab2107ee53356b296b47de2f136c99b5856206395dee637352ac
+    size_bytes: 15487
+    referenced: false
+    provenance: project_provided
+    license_status: needs_review
+    alt_text_status: needs_review
+  - path: "book/images/pptx/s20_4.png"
+    sha256: 379e35e12ab539b5d3b8ec9065a2a415c3c9260cb01be22416366c8dd144ebb9
+    size_bytes: 19639
+    referenced: false
+    provenance: project_provided
+    license_status: needs_review
+    alt_text_status: needs_review
+  - path: "book/images/pptx/s20_5.png"
+    sha256: 08536f112be262cc11c719f29d47e42bfe5f138d3b2e52a2149dd042c483c688
+    size_bytes: 88659
+    referenced: false
+    provenance: project_provided
+    license_status: needs_review
+    alt_text_status: needs_review
+  - path: "book/images/pptx/s21_1.png"
+    sha256: 8a0ca07b2ed5f038a6b3e2106be6247fd471aac4e8a15f1a0c2cce7186c45f52
+    size_bytes: 847289
+    referenced: false
+    provenance: project_provided
+    license_status: needs_review
+    alt_text_status: needs_review
+  - path: "book/images/pptx/s21_2.png"
+    sha256: 27d03920dacb2d5cdd280594757cdb3372f322d465d77578a321d343c678328f
+    size_bytes: 17742
+    referenced: false
+    provenance: project_provided
+    license_status: needs_review
+    alt_text_status: needs_review
+  - path: "book/images/pptx/s21_3.png"
+    sha256: f862d66d15cee83fd1b33cd09148ceee0ede9e6fdf97dde0ee4e333bb9f2e5c7
+    size_bytes: 11559
+    referenced: false
+    provenance: project_provided
+    license_status: needs_review
+    alt_text_status: needs_review
+  - path: "book/images/pptx/s22_1.png"
+    sha256: 8f2787c0be11f5c4ba5556a906f9b7021869ea8306fd24a5b089f4c5a6263bce
+    size_bytes: 211887
+    referenced: true
+    provenance: project_provided
+    license_status: needs_review
+    alt_text_status: needs_review
+  - path: "book/images/pptx/s22_10.png"
+    sha256: 571d11078aae0a5f2d19f952398d97836866f3e91bd6e9a6bda6dd6cca8ae435
+    size_bytes: 8966
+    referenced: false
+    provenance: project_provided
+    license_status: needs_review
+    alt_text_status: needs_review
+  - path: "book/images/pptx/s22_11.png"
+    sha256: 74d43fb54bbafa5f08ae6d58404b1995e90e33b38d4a8b26fbfcdb14c37a0b5c
+    size_bytes: 8556
+    referenced: false
+    provenance: project_provided
+    license_status: needs_review
+    alt_text_status: needs_review
+  - path: "book/images/pptx/s22_12.png"
+    sha256: 5b7c37525d69be05749ef1b58c5ac2470dc952db11c3b5a311405670edc56323
+    size_bytes: 15733
+    referenced: false
+    provenance: project_provided
+    license_status: needs_review
+    alt_text_status: needs_review
+  - path: "book/images/pptx/s22_2.png"
+    sha256: 2ac9825593f38b0cab70a2862326bf3406b8603283aaf92ed98021fcb4fcdf4e
+    size_bytes: 10759
+    referenced: false
+    provenance: project_provided
+    license_status: needs_review
+    alt_text_status: needs_review
+  - path: "book/images/pptx/s22_3.png"
+    sha256: f75a5fd2ef14ed889ad092e85ef3fd6dda5c5372bc9664a792a022dfadf57188
+    size_bytes: 25191
+    referenced: false
+    provenance: project_provided
+    license_status: needs_review
+    alt_text_status: needs_review
+  - path: "book/images/pptx/s22_4.png"
+    sha256: 5637c43b0651c81808bb0bf0c5f11d421dfd932bc9c65bd5e8ae7928a08c62de
+    size_bytes: 11449
+    referenced: false
+    provenance: project_provided
+    license_status: needs_review
+    alt_text_status: needs_review
+  - path: "book/images/pptx/s22_5.png"
+    sha256: 2a12053eefabcdbae37d0fd5edf458d76c37aa96796b843f9825b5c4599437a5
+    size_bytes: 24756
+    referenced: false
+    provenance: project_provided
+    license_status: needs_review
+    alt_text_status: needs_review
+  - path: "book/images/pptx/s22_6.png"
+    sha256: 7d33ef22de01fbfb6668dd4011f82af850a346422ea6bfce86afacb1f85764de
+    size_bytes: 10853
+    referenced: false
+    provenance: project_provided
+    license_status: needs_review
+    alt_text_status: needs_review
+  - path: "book/images/pptx/s22_7.png"
+    sha256: eefd32dc5452d8a01fca63c4a0204b6de1bb742679baf353c0fa9cc719efa174
+    size_bytes: 23638
+    referenced: false
+    provenance: project_provided
+    license_status: needs_review
+    alt_text_status: needs_review
+  - path: "book/images/pptx/s22_8.png"
+    sha256: c88a01ee1a6ed8f89f9c4574298d68c70d9302735181b7aa05b4fc3a862eaf4a
+    size_bytes: 8733
+    referenced: false
+    provenance: project_provided
+    license_status: needs_review
+    alt_text_status: needs_review
+  - path: "book/images/pptx/s22_9.png"
+    sha256: cb05bd01cd8ccedff144b9470e955367dca097593d649505ee829c6d28116e1a
+    size_bytes: 9012
+    referenced: false
+    provenance: project_provided
+    license_status: needs_review
+    alt_text_status: needs_review
+  - path: "book/images/pptx/s24_1.png"
+    sha256: cc49a53018e375ac327be0adeea3b2b6a8ea3d391672dfd690e0fe8a75916f34
+    size_bytes: 140832
+    referenced: false
+    provenance: project_provided
+    license_status: needs_review
+    alt_text_status: needs_review
+  - path: "book/images/pptx/s24_2.png"
+    sha256: 638bfe4b33a344a6f8abc0f4beeb7c313dc64b9316b846466d840ed3e79d2a10
+    size_bytes: 108455
+    referenced: false
+    provenance: project_provided
+    license_status: needs_review
+    alt_text_status: needs_review
+  - path: "book/images/pptx/s25_1.png"
+    sha256: ecf765732ac9b3897dba5720e90c9439585bc7c13443ff7692dd9f849a3f67c0
+    size_bytes: 66890
+    referenced: false
+    provenance: project_provided
+    license_status: needs_review
+    alt_text_status: needs_review
+  - path: "book/images/pptx/s25_2.png"
+    sha256: d6125b674d988186b5cf5b8761882d18bde96103e41f847936887c2c50d1fd7d
+    size_bytes: 79427
+    referenced: false
+    provenance: project_provided
+    license_status: needs_review
+    alt_text_status: needs_review
+  - path: "book/images/pptx/s25_3.png"
+    sha256: eeb281ce1d0549990604349bac520502a4b8bf1369cfd957c08868aa546c5e99
+    size_bytes: 70000
+    referenced: false
+    provenance: project_provided
+    license_status: needs_review
+    alt_text_status: needs_review
+  - path: "book/images/pptx/s25_4.png"
+    sha256: 8f05060d2017569f06c75d9fe5199f3b7dc8753db561d3fca6ec5316cf166aad
+    size_bytes: 71618
+    referenced: false
+    provenance: project_provided
+    license_status: needs_review
+    alt_text_status: needs_review
+  - path: "book/images/pptx/s25_5.png"
+    sha256: 3035a06a23bdf3213eede33bcc92b060157539697885e0d544f5f4e30676f653
+    size_bytes: 4112
+    referenced: false
+    provenance: project_provided
+    license_status: needs_review
+    alt_text_status: needs_review
+  - path: "book/images/pptx/s26_1.png"
+    sha256: e1fb33892c32e863f345fe5cb0c27605f76abbbcb73118e4eea740d46672bace
+    size_bytes: 99157
+    referenced: false
+    provenance: project_provided
+    license_status: needs_review
+    alt_text_status: needs_review
+  - path: "book/images/pptx/s26_2.png"
+    sha256: 6e2fe14a196c7081a64c625aa49012da33f93fb5096a0dda7feb3838d3b35ca1
+    size_bytes: 115108
+    referenced: false
+    provenance: project_provided
+    license_status: needs_review
+    alt_text_status: needs_review
+  - path: "book/images/venusaur-f.png"
+    sha256: d5da273005df188254904060aa902dd1e9e8adba3b85e896a16577249b268b5a
+    size_bytes: 1496
+    referenced: false
+    provenance: project_provided
+    license_status: needs_review
+    alt_text_status: needs_review
+  - path: "book/images/venusaur.png"
+    sha256: 1fcc410aa0b03977b1e9b71abb7c5a7af132096cbc182081693e6767e25cbde6
+    size_bytes: 659
+    referenced: false
+    provenance: project_provided
+    license_status: needs_review
+    alt_text_status: needs_review

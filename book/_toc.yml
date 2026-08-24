@@ -1,11 +1,22 @@
 format: jb-book
 root: 00_intro
-chapters:
-  - file: 01_image_basics
-  - file: 02_filter_segment
-  - file: 03_fourier
-  - file: 04_wavelet
-  - file: 05_background
-  - file: 06_workflow
-  - file: 07_synthetic_data
-  - file: 08_resources
+parts:
+  - caption: 影像與訊號基礎
+    chapters:
+      - file: 01_image_basics
+      - file: 02_filter_segment
+      - file: 03_fourier
+      - file: 04_wavelet
+  - caption: 單顆粒分析
+    chapters:
+      - file: 05_background
+      - file: 05_image_formation
+      - file: 06_workflow
+      - file: 06_reconstruction_validation
+  - caption: 合成資料
+    chapters:
+      - file: 07_synthetic_data
+  - caption: 查閱與延伸
+    chapters:
+      - file: 08_resources
+      - file: appendix_conventions

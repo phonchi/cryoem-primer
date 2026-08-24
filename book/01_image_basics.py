@@ -14,274 +14,226 @@
 # ---
 
 # %% [markdown]
-# # 影像處理基礎：從 NumPy 陣列到幾何變換
+# # 影像處理基礎：像素、取樣與 MRC
 #
-# ```{admonition} 本章重點
+# 一張數位影像不只是「一堆數字」。要正確解讀它，至少要同時知道陣列形狀、資料型別、像素值的意義，以及每個像素對應的實際長度。本章先把這四件事釐清。
+#
+# ```{admonition} 學習目標
 # :class: important
-# - 影像在電腦裡就是一個 `NumPy` 陣列：形狀（shape）、資料型別（dtype）與數值範圍決定了它能怎麼被處理。
-# - `NumPy` 索引慣例是 `(row, column)`，原點在左上角，這與數學課本常用的笛卡兒座標 `(x, y)` 不同。
-# - 讀寫影像、在 RGB / RGBA / 灰階 / HSV 之間轉換，以及理解 OpenCV 的 BGR 通道順序。
-# - 用對比拉伸與直方圖等化，把「看起來很平」的影像變得可判讀。
-# - 幾何變換有一個由簡到繁的階層：Euclidean → Similarity → Affine → Projective，各自保留不同的幾何性質。
+#
+# - 使用 `(row, column)` 索引影像，並正確轉成 `(x, y)` 座標。
+# - 分清 dtype 的可表示範圍與資料實際採用的數值慣例。
+# - 從 pixel size、取樣率與 Nyquist frequency 判斷 aliasing。
+# - 讀取 MRC 的陣列與 header，不把檔案格式誤當成物理單位。
+# - 說明 `warp()` 為什麼需要 output → input 的反向座標映射。
 # ```
 
-# %% [markdown]
-# ## 影像就是 NumPy 陣列
-#
-# `scikit-image`（本書慣用寫法 `ski`）把影像單純表示成 `NumPy` 陣列，因此可以無縫接上 `NumPy`、`SciPy`、`matplotlib` 整個科學計算生態系。灰階影像是二維陣列 `(row, col)`；彩色影像則多一個通道維度 `(row, col, channel)`。這個表示法會貫穿本書所有章節——之後會看到，一張 cryo-EM micrograph，說穿了也只是一個尺寸很大、雜訊很多的 2D 浮點數陣列。下面先用一張隨機雜訊陣列與 `skimage.data` 內建的範例影像熱身。
-
 # %%
-import numpy as np
-import matplotlib.pyplot as plt
-import skimage as ski
-import cv2
+from pathlib import Path
 
-plt.rcParams['image.cmap'] = 'gray'
-plt.rcParams['figure.figsize'] = (6, 5)
+import matplotlib.pyplot as plt
+import mrcfile
+import numpy as np
+import skimage as ski
+
+plt.rcParams["image.cmap"] = "gray"
+plt.rcParams["figure.figsize"] = (6, 5)
 
 
 def imshow_all(*images, titles=None, size=4, **kwargs):
-    """並排顯示多張影像，方便比較。"""
-    images = [ski.util.img_as_float(im) for im in images]
+    """並排顯示影像；不在此函式偷偷改變數值範圍。"""
     if titles is None:
-        titles = [''] * len(images)
-    fig, axes = plt.subplots(nrows=1, ncols=len(images), figsize=(size * len(images), size))
-    if len(images) == 1:
-        axes = [axes]
-    for ax, im, title in zip(axes, images, titles):
-        ax.imshow(im, **kwargs)
+        titles = [""] * len(images)
+    fig, axes = plt.subplots(1, len(images), figsize=(size * len(images), size))
+    axes = np.atleast_1d(axes)
+    for ax, image, title in zip(axes, images, titles):
+        ax.imshow(image, **kwargs)
         ax.set_title(title)
-        ax.axis('off')
-    plt.tight_layout()
+        ax.axis("off")
+    fig.tight_layout()
     return fig, axes
 
 
-def plot_img_and_hist(image, axes, bins=256):
-    """左邊畫影像，右邊畫直方圖與累積分布函數（CDF）。"""
-    image = ski.util.img_as_float(image)
-    ax_img, ax_hist = axes
-    ax_cdf = ax_hist.twinx()
-
-    ax_img.imshow(image, cmap='gray')
-    ax_img.axis('off')
-
-    ax_hist.hist(image.ravel(), bins=bins, histtype='step', color='black')
-    ax_hist.set_xlim(0, 1)
-    ax_hist.set_yticks([])
-    ax_hist.set_xlabel('Pixel intensity')
-
-    img_cdf, bin_centers = ski.exposure.cumulative_distribution(image, bins)
-    ax_cdf.plot(bin_centers, img_cdf, 'r')
-    ax_cdf.set_yticks([])
-
-    return ax_img, ax_hist, ax_cdf
-
-# %%
-random_image = np.random.default_rng(0).random((256, 256))
-print('type:', type(random_image))
-print('dtype:', random_image.dtype)
-print('shape:', random_image.shape)
-
-fig, ax = plt.subplots()
-im = ax.imshow(random_image)
-ax.set_title('Random noise as a 2D array')
-plt.colorbar(im, ax=ax)
-plt.show()
+# %% [markdown]
+# ## 影像是帶有慣例的陣列
+#
+# 灰階影像通常是 `(row, column)` 的二維陣列；彩色影像再加一個 channel 維度。`shape` 只告訴我們有多少格，沒有告訴我們一格是幾 Å，也沒有說數值是電子計數、正規化強度或其他量。
 
 # %%
 coins = ski.data.coins()
-print('type:', type(coins))
-print('dtype:', coins.dtype)
-print('shape:', coins.shape)
+print("shape:", coins.shape, "dtype:", coins.dtype)
+print("min/max/mean:", coins.min(), coins.max(), coins.mean())
+assert coins.ndim == 2
 
-plt.imshow(coins)
-plt.title('skimage.data.coins()')
-plt.axis('off')
-plt.show()
 
 # %% [markdown]
-# ## 座標與索引慣例
+# ## 陣列索引、繪圖座標與物理座標
 #
-# 因為影像就是陣列，`NumPy` 的索引與切片（indexing / slicing）在這裡完全適用，也可以拿來讀取或修改像素值。
+# `image[row, column]` 的第一個索引沿畫面向下，第二個索引沿畫面向右。若把欄當成 $x$、列當成 $y$，陣列索引 `[r, c]` 對應座標 `(x=c, y=r)`。
 #
-# 📌 請特別注意：陣列的第一個維度是**列（row）**，第二個維度是**欄（column）**，原點 `(0, 0)` 在**左上角**。這與矩陣（線性代數）的慣例一致，卻和 `matplotlib` 座標軸、笛卡兒座標常用的 `(x, y)`（原點在左下角）不同——這是初學者最容易搞混、也最容易寫出座標對調 bug 的地方。
+# `matplotlib.pyplot.imshow()` 預設 `origin="upper"`，所以 `(0, 0)` 和陣列一樣畫在左上角。只有設定 `origin="lower"` 時，顯示座標的垂直方向才會反轉。一般笛卡兒座標常把原點畫在左下；那是另一套慣例。
 
 # %%
-venusaur = ski.io.imread('images/venusaur.png')
-print('shape:', venusaur.shape, ' dtype:', venusaur.dtype)
-print('min/max/mean:', venusaur.min(), venusaur.max(), venusaur.mean())
+demo = np.zeros((5, 8), dtype=float)
+demo[1, 6] = 1.0
 
-venusaur_demo = venusaur.copy()
-print('pixel at (row=11, col=21):', venusaur_demo[11, 21])
+fig, axes = plt.subplots(1, 2, figsize=(9, 3))
+axes[0].imshow(demo, origin="upper")
+axes[0].set_title("imshow default: origin='upper'")
+axes[1].imshow(demo, origin="lower")
+axes[1].set_title("origin='lower'")
+fig.tight_layout()
 
-# 用布林遮罩（boolean mask）選取一個圓形區域並塗黑
-nrows, ncols = venusaur_demo.shape
-row, col = np.mgrid[0:nrows, 0:ncols]
-cnt_row, cnt_col = nrows / 2, ncols / 2
-outer_disk_mask = (row - cnt_row) ** 2 + (col - cnt_col) ** 2 > (nrows / 2) ** 2
-venusaur_demo[outer_disk_mask] = 0
+row, col = np.unravel_index(np.argmax(demo), demo.shape)
+assert (row, col) == (1, 6)
+print(f"array index [row, col] = [{row}, {col}]; plot coordinate (x, y) = ({col}, {row})")
 
-imshow_all(venusaur, venusaur_demo, titles=['original', 'circular mask applied']);
 
 # %% [markdown]
-# ## 資料型別（dtype）與數值範圍
-#
-# `skimage` 假設不同 dtype 各自對應固定的數值範圍：`uint8` 是 `[0, 255]`、`uint16` 是 `[0, 65535]`、浮點數是 `[-1, 1]` 或 `[0, 1]`。**直接對影像用 `.astype()` 轉型別非常危險**，因為它只改變表示法、不會重新縮放數值；正確做法是使用 `img_as_float()`、`img_as_ubyte()` 等轉換函式，它們會同時處理縮放。
+# 若像素大小是 $p$ Å/pixel，忽略額外的原點偏移時，像素中心可寫成 $(x,y)=(cp,rp)$ Å。真實 MRC／STAR workflow 可能另有 origin、binning 與 crop offset；換座標系時必須一起追蹤。
 
 # %%
-image = np.arange(0, 50, 10, dtype=np.uint8)
-print('原始 uint8:      ', image)
-print('.astype(float):  ', image.astype(float))          # 數值沒有被重新縮放，仍是 0-40
-print('img_as_float():  ', ski.util.img_as_float(image))  # 正確縮放到 [0, 1]
+pixel_size_A = 1.2
+x_A, y_A = col * pixel_size_A, row * pixel_size_A
+print(f"physical coordinate: ({x_A:.1f}, {y_A:.1f}) Å")
 
-float_image = np.array([0, 0.5, 1], dtype=float)
-print('\nimg_as_ubyte([0, 0.5, 1]) ->', ski.util.img_as_ubyte(float_image))
 
 # %% [markdown]
-# ## 影像輸入／輸出（Image I/O）
+# ## dtype 不等於數值範圍慣例
 #
-# `skimage.io.imread()` 會把常見的影像檔案格式（PNG、JPEG、TIFF……）讀成 `NumPy` 陣列；`imsave()` 則反向把陣列寫回檔案。scikit-image 內部會自動挑選可用的後端函式庫（imageio、pillow 等），使用者通常不需要關心細節。
+# 整數 dtype 有固定的可表示範圍，例如 `uint8` 是 0–255。浮點 dtype 只規定精度與可表示範圍，**不保證**影像落在 `[0, 1]` 或 `[-1, 1]`。許多 `scikit-image` 函式以這些區間作為 float 影像慣例，但資料本身仍可能是電子計數、z-score 或任意實數。
+#
+# `img_as_float()` 會把整數依 dtype 範圍縮放；輸入若已是 float，通常保留原值。因此 `.astype(float)` 與 `img_as_float()` 對整數的結果不同，對 float 則都不會自動替你正規化。
 
 # %%
-blastoise = ski.io.imread('images/blastoise.png')
-print('blastoise:', blastoise.shape, blastoise.dtype)
+integer_image = np.array([0, 64, 255], dtype=np.uint8)
+float_outside_unit = np.array([-2.0, 0.5, 3.0], dtype=np.float32)
 
-plt.imshow(blastoise)
-plt.title('Loaded with ski.io.imread')
-plt.axis('off')
-plt.show()
+print("astype(float):", integer_image.astype(float))
+print("img_as_float(uint8):", ski.util.img_as_float(integer_image))
+print("img_as_float(float):", ski.util.img_as_float(float_outside_unit))
+
+assert np.allclose(ski.util.img_as_float(integer_image), integer_image / 255)
+assert np.array_equal(ski.util.img_as_float(float_outside_unit), float_outside_unit)
 
 # %% [markdown]
-# ## 色彩模型：RGB / RGBA / 灰階 / HSV
+# ```{admonition} 轉型前先問
+# :class: caution
 #
-# 彩色影像通常是三維陣列，最後一個維度代表色彩通道：RGB 影像有 3 個通道（紅、綠、藍），若額外帶有透明度資訊則是 RGBA（多一個 alpha 通道，0 表示全透明、255 表示不透明）。
+# 這個函式期待哪個數值區間？負值有沒有意義？輸出要拿來顯示，還是進入定量重建？若答案不清楚，不要先 clip 到 `[0,1]`；clip 會永久丟掉資訊。
+# ```
 
-# %%
-r, g, b, a = [blastoise[:, :, i] for i in range(4)]
-
-fig, axes = plt.subplots(1, 5, figsize=(16, 4))
-for ax in axes:
-    ax.axis('off')
-axes[0].imshow(r, cmap='Reds_r'); axes[0].set_title('R channel')
-axes[1].imshow(g, cmap='Greens_r'); axes[1].set_title('G channel')
-axes[2].imshow(b, cmap='Blues_r'); axes[2].set_title('B channel')
-axes[3].imshow(a, cmap='gray'); axes[3].set_title('Alpha channel')
-axes[4].imshow(np.stack([r, g, b], axis=2)); axes[4].set_title('RGB (stacked)')
-plt.tight_layout()
-plt.show()
 
 # %% [markdown]
-# 把彩色影像轉成灰階時，`skimage.color.rgb2gray()` 並不是單純取三通道平均，而是依人眼對不同色光的敏感度加權（[相對亮度公式](https://en.wikipedia.org/wiki/Grayscale#Converting_color_to_grayscale)）：
+# (sampling)=
+# ## 取樣、Nyquist frequency 與 aliasing
 #
-# $$
-# Y = 0.2126R + 0.7152G + 0.0722B
-# $$
+# 若 pixel size 是 $p$ Å/pixel，取樣率為 $1/p$ cycles/Å，而 Nyquist frequency 是
 #
-# 除了 RGB，HSV（色相 hue、飽和度 saturation、明度 value）也是常用的色彩空間，三個分量彼此較為獨立，在需要依「顏色」而非「亮度」做篩選時特別方便。
+# $$f_N=\frac{1}{2p}\quad\text{cycles/Å}.$$
+#
+# 相對應的 Nyquist resolution 是 $2p$ Å。這是取樣網格能表示的上限，不保證資料真的含有該解析度的可靠訊號。高於 Nyquist 的頻率會折回較低頻率，形成 aliasing；降採樣前先低通濾波，就是為了移除會折回的頻率。
 
 # %%
-rgb = ski.color.rgba2rgb(blastoise)  # alpha 混合，預設背景為白色
-gray_skimage = ski.color.rgb2gray(rgb)
-gray_manual = rgb @ [0.2126, 0.7152, 0.0722]
+def nyquist_frequency(pixel_size):
+    """由正的 pixel size 計算 Nyquist frequency。"""
+    if pixel_size <= 0:
+        raise ValueError("pixel_size must be positive")
+    return 1.0 / (2.0 * pixel_size)
 
-imshow_all(gray_skimage, gray_manual, titles=['skimage.color.rgb2gray', 'manual weighted formula']);
+
+assert np.isclose(nyquist_frequency(1.2), 1 / 2.4)
+print("pixel size 1.2 Å/pixel -> Nyquist resolution 2.4 Å")
 
 # %%
-hsv = ski.color.rgb2hsv(rgb)
-imshow_all(hsv[..., 0], hsv[..., 1], hsv[..., 2], titles=['Hue', 'Saturation', 'Value']);
+n = 64
+index = np.arange(n)
+# 0.60 cycles/pixel 超過 0.5 Nyquist，離散樣本與 0.40 cycles/pixel 無法區分（相位符號除外）。
+above_nyquist = np.cos(2 * np.pi * 0.60 * index)
+aliased = np.cos(2 * np.pi * 0.40 * index)
+assert np.allclose(above_nyquist, aliased)
+
+fig, ax = plt.subplots(figsize=(8, 3))
+ax.plot(index[:20], above_nyquist[:20], "o-", label="sampled 0.60 cycles/pixel")
+ax.plot(index[:20], aliased[:20], "x--", label="0.40 cycles/pixel alias")
+ax.set_xlabel("sample index")
+ax.legend()
+fig.tight_layout()
+
 
 # %% [markdown]
-# ## OpenCV 中的色彩順序：BGR vs. RGB
+# ## MRC：陣列之外還有 header
 #
-# `OpenCV`（`cv2`）也是以 `NumPy` 陣列操作影像，因此可以跟 `scikit-image` 混用；**但 `cv2.imread()` 預設把彩色影像讀成 BGR（藍、綠、紅）順序，而不是 RGB**。忘記這件事是最常見的踩雷點之一：直接用 `matplotlib` 顯示 `cv2` 讀進來的影像，顏色會是錯的（藍紅對調）。
+# MRC 常用來存 micrograph、particle stack 與 3D density map。header 會記錄陣列尺寸、儲存 mode、cell dimensions 等欄位；常用套件把 voxel size 暴露成較易讀的屬性。header 的值可能缺漏或被舊程式寫錯，分析前仍要和 acquisition／processing metadata 交叉核對。
 
 # %%
-bgr = cv2.imread('images/blastoise.png')  # 注意：預設丟棄 alpha 通道，回傳 3 通道 BGR
-rgb_fixed = bgr[:, :, ::-1]               # 反轉最後一個軸即可轉回 RGB，row/col 不受影響
+mrc_path = Path("data/70S_Conform1.mrc")
+with mrcfile.mmap(mrc_path, permissive=True, mode="r") as volume_mrc:
+    volume_shape = volume_mrc.data.shape
+    volume_dtype = volume_mrc.data.dtype
+    voxel_size = tuple(float(v) for v in volume_mrc.voxel_size.tolist())
+    mrc_mode = int(volume_mrc.header.mode)
 
-fig, axes = plt.subplots(1, 2, figsize=(8, 4))
-axes[0].imshow(bgr); axes[0].set_title('cv2 image shown as-is (wrong colors)'); axes[0].axis('off')
-axes[1].imshow(rgb_fixed); axes[1].set_title('image[:, :, ::-1] (correct RGB)'); axes[1].axis('off')
-plt.tight_layout()
-plt.show()
+print("MRC shape:", volume_shape)
+print("MRC dtype/mode:", volume_dtype, mrc_mode)
+print("voxel size [Å]:", voxel_size)
+assert len(volume_shape) == 3
+assert all(length > 0 for length in volume_shape)
 
 # %% [markdown]
-# ## 對比與直方圖等化
+# ```{dropdown} MRC 的軸順序為什麼特別容易出錯？
 #
-# 影像的可用數值範圍由 dtype 決定，但實際像素值常常只集中在其中一小段——這就是「對比度低」。`skimage.exposure` 提供了幾種常見的增強手法：
-#
-# - **對比拉伸（contrast stretching）**：用 `rescale_intensity()`，把某個百分位數區間線性拉伸到整個範圍。
-# - **直方圖等化（histogram equalization）**：`equalize_hist()`，讓累積分布函數趨近線性，使各強度區間被「平均」表示。
-# - **適應性等化（adaptive equalization, CLAHE）**：`equalize_adapthist()`，在影像的局部子區塊分別等化，可校正局部對比度不均的問題。
+# `mrcfile` 回傳的 3D NumPy 陣列通常以 `(section, row, column)` 存取，也就是常寫的 `(z, y, x)`；MRC header 另有 `mapc/mapr/maps` 描述檔案欄、列、切片對應哪個空間軸。只看陣列 shape 不足以判定生物結構的方向。
+# ```
 
-# %%
-moon = ski.data.moon()
-
-p2, p98 = np.percentile(moon, (2, 98))
-moon_rescale = ski.exposure.rescale_intensity(moon, in_range=(p2, p98))
-moon_eq = ski.exposure.equalize_hist(moon)
-moon_adapteq = ski.exposure.equalize_adapthist(moon, clip_limit=0.03)
-
-# %%
-images = [moon, moon_rescale, moon_eq, moon_adapteq]
-titles = ['Low contrast (original)', 'Contrast stretching', 'Histogram equalization', 'Adaptive equalization (CLAHE)']
-
-fig, axes = plt.subplots(2, 4, figsize=(16, 7))
-for col, (img, title) in enumerate(zip(images, titles)):
-    plot_img_and_hist(img, axes[:, col])
-    axes[0, col].set_title(title)
-plt.tight_layout()
-plt.show()
 
 # %% [markdown]
-# ## 幾何變換的階層：Euclidean → Similarity → Affine → Projective
+# ## RGB、灰階與顯示
 #
-# `skimage.transform` 裡的幾何變換（homography）依保留的幾何性質由嚴到鬆排成一個階層，變換矩陣的自由度也隨之增加：
-#
-# | 變換 | 保留性質 | 自由度 | 常見用途 |
-# |---|---|---|---|
-# | Euclidean（剛體） | 距離、角度 | 旋轉 + 平移 | 對齊拍攝角度略有偏差的影像 |
-# | Similarity（相似） | 形狀、角度 | 上者 + 縮放 | 對齊不同放大倍率的影像 |
-# | Affine（仿射） | 平行線 | 上者 + 剪切 | 校正輕微的透鏡或投影誤差 |
-# | Projective（投影） | 直線 | 完整 3×3 矩陣 | 校正透視畸變（如翻拍的照片） |
-#
-# 所有變換都可用一個 `3×3` 矩陣（齊次座標）表示；要「變換影像內容」而非「變換座標系」，套用時需要取反矩陣（`tform.inverse`），這是 `warp()` 的標準用法。
+# 一般照片適合用來練習 channel，但 cryo-EM 強度影像通常是灰階。`rgb2gray()` 採用版本所定義的亮度權重；目前 `scikit-image` 使用的係數是 0.2125、0.7154、0.0721，和常見 Rec. 709 四捨五入係數略有差異。
 
 # %%
-img = ski.util.img_as_float(rgb)
+rgba = ski.io.imread("images/blastoise.png")
+rgb = ski.color.rgba2rgb(rgba)
+gray = ski.color.rgb2gray(rgb)
+gray_manual = rgb @ np.array([0.2125, 0.7154, 0.0721])
+assert np.allclose(gray, gray_manual)
+imshow_all(rgb, gray, titles=["RGB", "grayscale"])
 
-tform_euclidean = ski.transform.EuclideanTransform(rotation=np.pi / 12, translation=(30, -20))
-tform_similarity = ski.transform.SimilarityTransform(scale=0.7, rotation=np.pi / 12, translation=(30, -20))
-
-img_euclidean = ski.transform.warp(img, tform_euclidean.inverse)
-img_similarity = ski.transform.warp(img, tform_similarity.inverse)
-
-imshow_all(img, img_euclidean, img_similarity,
-           titles=['original', 'Euclidean (rotate + translate)', 'Similarity (+ scale)']);
-
-# %%
-tform_affine = ski.transform.AffineTransform(shear=np.pi / 8)
-img_affine = ski.transform.warp(img, tform_affine.inverse)
-
-text = ski.data.text()
-src = np.array([[0, 0], [0, 50], [300, 50], [300, 0]])
-dst = np.array([[155, 15], [65, 40], [260, 130], [360, 95]])
-tform_projective = ski.transform.ProjectiveTransform.from_estimate(src, dst)
-text_warped = ski.transform.warp(text, tform_projective, output_shape=(50, 300))
-
-fig, axes = plt.subplots(1, 3, figsize=(14, 4))
-axes[0].imshow(img_affine); axes[0].set_title('Affine (shear)'); axes[0].axis('off')
-axes[1].imshow(text, cmap='gray'); axes[1].plot(dst[:, 0], dst[:, 1], '.r')
-axes[1].set_title('Projective: perspective-distorted text'); axes[1].axis('off')
-axes[2].imshow(text_warped, cmap='gray'); axes[2].set_title('Projective: rectified'); axes[2].axis('off')
-plt.tight_layout()
-plt.show()
 
 # %% [markdown]
-# ````{admonition} 與 cryo-EM 的連結
-# :class: note
-# - 一張 **micrograph**（顯微鏡直接拍下的原始影像）本質上就是本章開頭介紹的那種東西：一個 2D 浮點數陣列，只是尺寸通常是數千 × 數千像素。
-# - 偵測器記錄的是**電子計數**（electron counts），也就是入射到每個像素上的電子數目；動態範圍與雜訊特性因此和一般相機的可見光影像不同，直接套用「一般照片」的直覺常會出錯。
-# - Cryo-EM 為了避免高能量電子束破壞脆弱的生物樣品，必須採用**低劑量成像**（low-dose imaging）。劑量越低，訊噪比越差，這正是為什麼 cryo-EM micrograph 看起來對比極低、幾乎像一片灰霧——樣品的訊號被淹沒在雜訊裡，需要後續大量的濾波、平均與分類才能重建出結構。
-# - Cryo-EM 資料常以 **MRC 格式**儲存：一個 MRC 檔案基本上就是「一段 header（記錄影像尺寸、dtype、像素大小等中繼資料）加上一段陣列資料」——概念上與本章「影像 = shape + dtype + 數值陣列」完全一致，只是多包了一層檔案格式的外殼。
-# ````
+# ## 幾何變換：`warp()` 問的是反向映射
+#
+# 幾何變換常以 forward map 表示「輸入點會移到哪裡」。但要產生每一個輸出像素，`warp()` 必須回到輸入影像查值，因此參數 `inverse_map` 的方向是 **output → input**。這裡的 inverse 是反向座標映射，不是把矩陣乘以 $-1$。
+
+# %%
+image = ski.util.img_as_float(ski.data.camera())[::2, ::2]
+forward = ski.transform.EuclideanTransform(rotation=np.deg2rad(8), translation=(15, -8))
+warped = ski.transform.warp(image, inverse_map=forward.inverse)
+
+# 若已知輸出矩形座標 `output_xy` 對應輸入影像中的 `input_xy`，直接估計的就是 output → input。
+output_xy = np.array([[0, 0], [0, 80], [160, 80], [160, 0]])
+input_xy = np.array([[35, 10], [15, 100], [175, 90], [155, 5]])
+output_to_input = ski.transform.ProjectiveTransform.from_estimate(output_xy, input_xy)
+rectified = ski.transform.warp(image, inverse_map=output_to_input, output_shape=(80, 160))
+
+imshow_all(image, warped, rectified, titles=["input", "Euclidean warp", "projective rectification"])
+
+
+# %% [markdown]
+# ## 與 cryo-EM 的連結
+#
+# 偵測器先輸出 movie frames；經 motion correction 的加權或未加權 sum 才通常稱為 micrograph。從 micrograph 擷取 particle images 後，pixel size、crop origin、binning 與座標慣例都要跟著資料走。MRC 只是一種容器：同樣的 MRC 格式可以裝 2D micrograph、particle stack 或 3D density map，真正含義來自 shape、header 與外部 metadata 的組合。
+#
+# ```{admonition} 主張範圍
+# :class: caution
+#
+# 本章的灰階照片用來教陣列操作，不代表直接電子偵測器的完整 response。低劑量 cryo-EM 的雜訊還受 shot noise、gain correction、motion、ice 與 DQE 等因素影響，不能只用一般相機的 `[0,255]` 直覺解讀。
+# ```
+#
+# ## 理解檢查
+#
+# 1. 一個 `float32` 陣列的最大值是 12，能否僅憑 dtype 判定它「沒有正規化」？
+# 2. pixel size 為 1.5 Å/pixel 時，Nyquist frequency 與 Nyquist resolution 各是多少？
+# 3. 為什麼 `warp(image, forward.inverse)` 中的 `inverse` 不是「把影像做反變換」的口語說法？
+# 4. 只看到一個 MRC 的 shape 是 `(256, 256, 256)`，還缺哪些資訊才能解讀三個軸？

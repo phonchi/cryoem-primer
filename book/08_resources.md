@@ -1,44 +1,53 @@
-# 延伸資源與下一步
+# 延伸資源與查閱路徑
 
-```{admonition} 本章重點
-:class: important
-- 這一章是「地圖」：告訴你每個主題可以去哪裡深入。
-- 最完整的資源索引是老師維護的 [Computational-CryoEM](https://github.com/phonchi/Computational-CryoEM) 清單，本章按照本書章節對應整理其入口。
+這一章不再列一長串沒有順序的連結。先確定目前卡在哪一層，再選對應資料；軟體頁面用來查操作，方法主張仍應回到原始論文。
+
+## 第一次讀這個領域
+
+- Sigworth 的 *Principles of cryo-EM single-particle image processing* 適合在讀完成像模型後回頭看物理與統計假設 {cite}`sigworth2016`。
+- Singer 與 Sigworth 的 *Computational Methods for Single-Particle Electron Cryomicroscopy* 適合補 Fourier、取向估計、最大概似與重建 {cite}`singer2020`。
+- Bendory、Bartesaghi 與 Singer 的訊號處理綜述提供完整 SPA 問題地圖 {cite}`bendory2020`。
+- [Computational-CryoEM](https://github.com/phonchi/Computational-CryoEM) 可用來找方法、論文與軟體入口；它是 curated index，不是正文主張的唯一證據。
+
+## 依學習任務查找
+
+| 目前要解決的問題 | 先讀本站 | 再查 |
+|---|---|---|
+| 影像陣列、取樣與 MRC | 第 1 章、慣例附錄 | MRC2014 規格、scikit-image 文件 |
+| 濾波、模板匹配與 picking | 第 2 章 | Szeliski、APPLE／KLT picker 原始論文 |
+| Fourier、CTF 與校正 | 第 3 章、成像模型 | Sigworth、CTFFIND 方法與官方文件 |
+| SPA pipeline | 第 6 章 | RELION、cryoSPARC、Scipion 官方教學 |
+| 重建與 FSC | 重建與驗證章 | gold-standard FSC 與 validation 原始文獻 |
+| 合成資料與 ground truth | 第 7 章 | ASPIRE API、Simulation 實作與版本說明 |
+
+## 軟體與官方文件
+
+- [RELION 5.0 文件](https://relion.readthedocs.io/en/release-5.0/)：Bayesian refinement、classification 與 post-processing。
+- [cryoSPARC](https://guide.cryosparc.com/)：互動式 SPA workflow 與 heterogeneous refinement。
+- [Scipion 文件](https://scipion-em.github.io/docs/)：跨套件 workflow 與 provenance。
+- [EMAN2](https://blake.bcm.edu/emanwiki/doku.php?id=eman2)：單顆粒分析工具與教學。
+- [ASPIRE-Python](https://github.com/ComputationalCryoEM/ASPIRE-Python)：第 7 章使用的數學與模擬程式庫。
+
+版本會影響 API 與預設參數。重現本站結果時，以 `environment.yml` 鎖定的 ASPIRE 0.14.3 為準，不把最新版文件的行為直接套回舊版程式。
+
+## 資料、格式與慣例
+
+- [EMPIAR](https://www.ebi.ac.uk/empiar/) 保存原始 movie、micrograph 與 particle data。
+- [EMDB](https://www.ebi.ac.uk/emdb/) 保存重建密度圖與相關 metadata。
+- [3DEM conventions](https://github.com/azazellochg/3DEM-conventions) 整理 Euler 角與跨軟體慣例；實作時仍要核對所用版本。
+- 本站的 {doc}`appendix_conventions` 固定教材內使用的座標、頻率、術語與資料層級。
+
+## 可以繼續做的觀察
+
+這些活動不另附解答。每一項都要求先寫下預期，再改一個變因並保存實際輸出。
+
+1. 在第 7 章加入已知平移，比較未對齊平均與用 ground-truth offset 回復後的平均。
+2. 對同一批 CTF-modulated 影像分別做 phase flipping 與 Wiener-style correction，比較零點附近的行為。
+3. 固定 clean projections，只改 global AWGN 的 SNR，量測 realized SNR 與 class average 的變化。
+4. 選一個小型公開資料集，把其 movie、micrograph、particle stack 與 final map 對回第 6 章的資料層級。
+
+## 本站引用文獻
+
+```{bibliography}
+:style: plain
 ```
-
-## 按主題的延伸資源
-
-### 入門與綜述（對應第 5–6 章）
-
-- **[Computational-CryoEM](https://github.com/phonchi/Computational-CryoEM)** — 依 workflow 12 階段整理的論文/軟體/教學索引，本書第 6 章的每個階段都能在這裡找到對應小節。
-- Sigworth (2016), *Principles of cryo-EM single-particle image processing* — 單顆粒方法的物理與統計原理短篇綜述。
-- Singer & Sigworth (2020), *Computational Methods for Single-Particle Electron Cryomicroscopy* — 數學視角的完整 review。
-- Bendory, Bartesaghi & Singer (2020), IEEE Signal Processing Magazine review — 訊號處理視角。
-
-### 主流軟體（對應第 6 章）
-
-| 軟體 | 特色 |
-|---|---|
-| [RELION](https://relion.readthedocs.io/) | 貝葉斯最大後驗框架，學界標準 |
-| [CryoSPARC](https://cryosparc.com/) | 商用、速度快、UI 友善 |
-| [Scipion](http://scipion.i2pc.es/) | 整合多套軟體的 workflow 引擎 |
-| [EMAN2](https://blake.bcm.edu/emanwiki/EMAN2) / [SPHIRE](http://sphire.mpg.de/) | 老牌全功能套件 |
-| [ASPIRE-Python](https://github.com/ComputationalCryoEM/ASPIRE-Python) | 演算法研究導向，本書第 7 章使用 |
-
-### 資料格式與慣例（對應第 7 章）
-
-- MRC/MRCS 格式規格與 STAR 檔（RELION metadata）——第 7 章實作過讀寫。
-- [3DEM Conventions](https://github.com/azazellochg/3DEM-conventions)：各軟體 Euler 角慣例對照——跨軟體轉檔時的頭號陷阱。
-- 公開資料集：[EMPIAR](https://www.ebi.ac.uk/empiar/)（原始影像）、[EMDB](https://www.ebi.ac.uk/emdb/)（密度圖）。
-
-### 影像處理教科書(對應第 1–4 章)
-
-- Szeliski, *Computer Vision: Algorithms and Applications*（[免費電子版](https://szeliski.org/Book/)）— 第 3 章（濾波/傅立葉）、第 7 章（特徵）對應本書 1–4 章。
-- [scikit-image 官方範例集](https://scikit-image.org/docs/stable/auto_examples/)。
-
-## 建議的下一步練習
-
-1. **異質性資料集**：`dataset` 內還有第二個構型 `70S_Conform2.mrc`。把兩個構型各生成一半影像混合，用第 7 章的 `purity_score` 檢驗 2D 分群能否分開兩種構型。
-2. **打開被關掉的變因**：第 7 章刻意設 `offsets=0`（無平移）。打開隨機平移後，觀察對齊與分類的難度變化。
-3. **CTF 修正實作**：結合第 3 章的 Wiener 去卷積與第 7 章的 CTF 參數，對模擬影像做 phase flipping，比較修正前後的 2D 平均品質。
-4. **真實資料**：從 EMPIAR 下載一組小型資料集，用 RELION 或 CryoSPARC 跑完整 pipeline，對照第 6 章的每個階段。
