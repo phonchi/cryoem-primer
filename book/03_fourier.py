@@ -144,7 +144,7 @@ print("rectangular DFT checks passed")
 # %% [markdown]
 # ## `fftshift` 只改顯示順序
 #
-# FFT 輸出的 DC 位於 `[0,0]`。`fftshift()` 把它移到畫面中央，方便看低頻到高頻的空間排列；它不會新增資訊，也不會改變頻率係數。
+# FFT 輸出的 DC 位於 `[0,0]`。`fftshift()` 只重新排列頻率係數，把 DC 移到畫面中央，方便觀察低頻到高頻的空間排列。
 
 # %%
 camera = ski.util.img_as_float(ski.data.camera())
@@ -162,7 +162,7 @@ imshow_all(camera, log_magnitude, phase,
 #
 # $$b_{k_y,k_x}[y,x]=e^{i2\pi(k_y y/N+k_x x/M)}.$$
 #
-# 實數的 cosine 需要一對共軷頻率來表示。`fftfreq` 會依取樣間隔產生正確頻率軸；對 pixel size 為 $p$ 的影像，單位為 cycles per physical length，Nyquist frequency 為 $1/(2p)$。條紋的空間方向與頻率向量 $(f_y,f_x)$ 垂直；因此讀取頻譜方向時，不能把「亮點的方向」當成「條紋延伸的方向」。
+# 實數的 cosine 需要一對共軛頻率來表示。`fftfreq` 會依取樣間隔產生正確頻率軸；對 pixel size 為 $p$ 的影像，單位為 cycles per physical length，Nyquist frequency 為 $1/(2p)$。條紋的空間方向與頻率向量 $(f_y,f_x)$ 垂直；頻譜亮點指出頻率向量的方向，與條紋延伸方向相差 $90^\circ$。
 
 # %%
 n_rows, n_cols = 96, 144
@@ -222,7 +222,7 @@ imshow_all(camera, shifted_camera,
 # %% [markdown]
 # ## 有限觀測與 spectral leakage
 #
-# DFT 把有限長度訊號視為週期重複。若觀測窗內不是整數週期，首尾接合會產生不連續，能量便散到鄰近 frequency bins，稱為 spectral leakage。加窗能降低遠端 leakage，但會拓寬主峰；zero-padding 只把頻譜取樣畫得更密，不會提高由觀測長度決定的真實解析力。
+# DFT 把有限長度訊號視為週期重複。若觀測窗內含有非整數個週期，首尾接合會產生不連續，能量便散到鄰近 frequency bins，稱為 spectral leakage。加窗能降低遠端 leakage，但會拓寬主峰；zero-padding 會增加頻譜的取樣點，真正的頻率解析力仍由觀測長度決定。
 
 # %%
 n = 128
@@ -245,7 +245,7 @@ assert np.isclose(np.fft.rfftfreq(n)[1], 1 / n)
 assert np.isclose(np.fft.rfftfreq(8 * n)[1], 1 / (8 * n))
 
 # %% [markdown]
-# Hann window 以較寬的 main lobe 換取較低的 side lobes，因此適合減少遠離主峰的 leakage，卻不會無償提高頻率解析度。將 128 點補零成 1024 點只是在同一個有限視窗的 discrete-time Fourier transform 上取得更密的樣本；真正分開相近頻率的能力仍由原始觀測長度與 window 決定 {cite}`szeliski2022`。
+# Hann window 以較寬的 main lobe 換取較低的 side lobes，因此適合減少遠離主峰的 leakage；頻率解析度則受變寬的主瓣限制。將 128 點補零成 1024 點，只是在同一個有限視窗的 discrete-time Fourier transform 上取得更密的樣本；真正分開相近頻率的能力仍由原始觀測長度與 window 決定 {cite}`szeliski2022`。
 
 
 # %% [markdown]
@@ -288,7 +288,7 @@ assert np.allclose(spatial_full, fft_full, atol=1e-12)
 # %% [markdown]
 # ## 頻域濾波：從 transfer function 讀出空間效應
 #
-# 頻域濾波器直接乘在影像頻譜上。Low-pass 保留緩慢變化，high-pass 保留快速變化，band-pass 只保留一段尺度，notch filter 則壓低特定方向與頻率。這些名稱描述的是 transfer function，不是特定的實作。例如 ideal low-pass 的截止邊界不連續，其 impulse response 具有長距離振盪，因而在強邊緣附近產生 ringing；Gaussian 轉換平滑，空間域也不會產生同類的負 lobes。Butterworth 的 order 則提供兩者之間的過渡 {cite}`szeliski2022,forsyth2012`。
+# 頻域濾波器直接乘在影像頻譜上。Low-pass 保留緩慢變化，high-pass 保留快速變化，band-pass 只保留一段尺度，notch filter 則壓低特定方向與頻率。這些名稱描述 transfer function，可用不同方法實作。例如 ideal low-pass 的截止邊界不連續，其 impulse response 具有長距離振盪，因而在強邊緣附近產生 ringing；Gaussian 轉換平滑，空間域的 impulse response 保持正值。Butterworth 的 order 則提供兩者之間的過渡 {cite}`szeliski2022,forsyth2012`。
 
 # %%
 def frequency_radius(shape):
@@ -351,7 +351,7 @@ assert gaussian_impulse.min() > -1e-10
 # %% [markdown]
 # ### Low-pass、high-pass、band-pass 與 notch 是可組合的工具
 #
-# High-pass 可以用 $1-L$ 從 low-pass $L$ 建立；band-pass 可由兩個不同截止頻率的 low-pass 相減。Notch filter 必須成對放在 $(f_y,f_x)$ 與 $(-f_y,-f_x)$，才會對應實數輸出。頻率濾波可壓低已知干擾，但無法分辨「同頻率的物件細節」與「干擾」；被 notch 移除的頻率資訊不會自動復原。
+# High-pass 可以用 $1-L$ 從 low-pass $L$ 建立；band-pass 可由兩個不同截止頻率的 low-pass 相減。Notch filter 必須成對放在 $(f_y,f_x)$ 與 $(-f_y,-f_x)$，才會對應實數輸出。頻率濾波會一起壓低同頻率的物件細節與干擾；notch 移除的資訊也會留在結果中。
 
 # %%
 radius = frequency_radius(filter_image.shape)
@@ -392,9 +392,9 @@ assert np.max(np.abs(notch_complex_output.imag)) < 1e-12
 # %% [markdown]
 # ## Inverse filtering 是病態問題
 #
-# 若 $G=HF+N$，沒有雜訊時可以形式上寫 $F=G/H$。但 $H$ 接近零時，任何微小的 $N$ 都會被放大。程式裡直接寫 `G / (H + eps)` 已經不是 exact inverse；`eps` 改變了 transfer function，且可能連相位也一起偏移。
+# 若 $G=HF+N$，在 $N=0$ 且 $H\ne0$ 時可寫成 $F=G/H$。當 $H$ 接近零，微小的 $N$ 也會被大幅放大。程式裡的 `G / (H + eps)` 屬於帶偏差的近似；`eps` 改變了 transfer function，也可能造成相位偏移。
 #
-# 較透明的示範是 truncated inverse：只在 $|H|\ge\tau$ 的頻率做除法，其餘設為零。$\tau$ 是明確的 regularization parameter；結果不應稱為「完美復原」。
+# 較透明的示範是 truncated inverse：只在 $|H|\ge\tau$ 的頻率做除法，其餘設為零。$\tau$ 是明確的 regularization parameter，輸出屬於帶正則化的近似復原。
 
 # %%
 def psf_to_otf(psf, shape):
@@ -442,7 +442,7 @@ imshow_all(original, noisy_blurred, restored_truncated,
 #
 # $$\widehat F=\frac{H^*}{|H|^2+K}G.$$
 #
-# $K$ 代表 noise-to-signal power 的近似；$K$ 越大，越不願意在 transfer 弱的頻率放大觀測值。這是 bias–variance trade-off，不會創造零點處沒有被量到的資訊。
+# $K$ 代表 noise-to-signal power 的近似；$K$ 越大，在 transfer 弱的頻率給予的增益越小。這是 bias–variance trade-off，零點處未被量到的資訊仍然缺失。
 
 # %%
 def wiener_frequency(observed, transfer, regularization):
@@ -462,7 +462,7 @@ imshow_all(noisy_blurred, restored_truncated, restored_wiener,
 # %% [markdown]
 # ### Regularization 強度決定 bias–variance trade-off
 #
-# $K$ 太小時，弱 transfer 處的雜訊被大幅放大；$K$ 太大時，復原過度平滑。下例因為有已知參考影像，可以計算均方誤差（mean squared error, MSE）與峰值訊雜比（peak signal-to-noise ratio, PSNR）。處理真實資料時並沒有未模糊的已知真值，所以不能照抄這裡的最佳 $K$；必須依雜訊模型與獨立驗證選擇。PSNR 也只衡量像素誤差，不會單獨保證科學結構正確。
+# $K$ 太小時，弱 transfer 處的雜訊被大幅放大；$K$ 太大時，復原過度平滑。下例因為有已知參考影像，可以計算均方誤差（mean squared error, MSE）與峰值訊雜比（peak signal-to-noise ratio, PSNR）。真實資料缺少未模糊的已知真值，選擇 $K$ 時要配合雜訊模型與獨立驗證。PSNR 衡量像素誤差，科學結構是否正確還需要其他證據。
 
 # %%
 regularization_values = np.array([1e-6, 1e-4, 2e-3, 5e-2])
@@ -546,7 +546,7 @@ def electron_wavelength_A(voltage_kv):
 
 def ctf_1d(spatial_frequency, defocus_A, voltage_kv=300.0, cs_mm=2.7,
            amplitude_contrast=0.0, phase_shift_rad=0.0, b_factor_A2=0.0):
-    """Isotropic CTF；不含 astigmatism，envelope 以可選 B factor 近似。"""
+    """Isotropic CTF；envelope 以可選 B factor 近似，astigmatism 留待二維模型。"""
     s = np.asarray(spatial_frequency, dtype=float)
     if not 0 <= amplitude_contrast < 1:
         raise ValueError("amplitude_contrast must be in [0, 1)")
@@ -643,18 +643,81 @@ imshow_all(true_projection, observed, phase_flipped, wiener_corrected,
 
 
 # %% [markdown]
-# ```{admonition} 主張範圍
+# ```{admonition} 這段示範包含的條件
 # :class: caution
 #
-# 這個 CTF demo 假設 isotropic defocus，並用單一 B factor 代表 envelope；沒有完整建模 astigmatism、anisotropic magnification、beam tilt、higher-order aberrations、DQE 或 colored noise。它用來區分 correction operators，不是 production CTF estimation pipeline。
+# 這個 CTF 示範採用 isotropic defocus，並用單一 B factor 近似 envelope，適合比較 phase flipping 與 Wiener-style correction 的運算差異。完整的 CTF estimation 還要處理 astigmatism、anisotropic magnification、beam tilt、higher-order aberrations、DQE 與 colored noise。
 # ```
 #
 # ## 理解檢查
 #
-# 1. 對 shape `(N, M)` 的影像，為什麼 `k_y` 必須除以 `N`、`k_x` 必須除以 `M`？
-# 2. `H[0,0]` 與影像平均值差一個什麼因子？
-# 3. 將影像平移時，為什麼 Fourier magnitude 不變，phase 卻會改變？
-# 4. 加 Hann window 與 zero-padding 分別改變頻譜的哪個部分？
-# 5. 為什麼 ideal low-pass 比 Gaussian low-pass 更容易在邊緣附近產生 ringing？
-# 6. 為什麼 `G/(H+eps)` 不能稱為 exact inverse filter？
-# 7. Phase flipping 是否會復原 CTF 壓低的振幅？Wiener regularization 又付出什麼代價？
+# 1. 對 shape `(N, M)` 的影像，二維 DFT 的正規化因子如何決定？`H[0,0]` 又和影像平均值差多少？
+#
+#    ```{dropdown} 參考答案
+#    令影像為 $h[n,m]$，其中 $0\le n<N$、$0\le m<M$。正向 DFT 的指數項是
+#
+#    $$
+#    e^{-i2\pi(kn/N+\ell m/M)},
+#    $$
+#
+#    因此垂直頻率索引 $k$ 要除以列數 $N$，水平頻率索引 $\ell$ 要除以欄數 $M$。若交換兩個分母，矩形影像的基底頻率便會算錯。採用 NumPy 預設慣例時，正向轉換不乘正規化常數，反向轉換乘 $1/(NM)$。零頻係數為
+#
+#    $$
+#    H[0,0]=\sum_{n=0}^{N-1}\sum_{m=0}^{M-1}h[n,m]=NM\,\bar h.
+#    $$
+#
+#    例如 $2\times3$ 影像的平均值是 4，則 `H[0,0]` 是 $6\times4=24$。常見誤解是把 DC coefficient 直接當成平均值；只有使用 `norm="ortho"` 或自行正規化時，比例才會不同。回答這類問題時要先寫明採用的 DFT 慣例。
+#    ```
+#
+# 2. 影像平移後，Fourier magnitude 與 phase 會如何改變？
+#
+#    ```{dropdown} 參考答案
+#    若 $g(y,x)=f(y-\Delta y,x-\Delta x)$，translation theorem 給出
+#
+#    $$
+#    G(f_y,f_x)=F(f_y,f_x)e^{-i2\pi(f_y\Delta y+f_x\Delta x)}.
+#    $$
+#
+#    右側新增的因子絕對值為 1，所以 $|G|=|F|$；phase 則多出一個隨頻率線性變化的斜坡。以向右平移 3 pixels 為例，水平頻率 $f_x$ 的相位改變 $-2\pi(3f_x)$。這項性質說明 magnitude spectrum 無法單獨決定影像位置。離散影像若採 circular shift，公式可直接套用；實際裁切、補零或邊界截斷會改變影像內容，此時 magnitude 也可能跟著改變。
+#    ```
+#
+# 3. Hann window 與 zero-padding 各自改變了什麼？為什麼 ideal low-pass 容易產生 ringing？
+#
+#    ```{dropdown} 參考答案
+#    Hann window 先讓訊號兩端平順降到接近零，可減輕週期接合處的不連續，因此遠離主峰的 spectral leakage 會下降；代價是主瓣變寬，鄰近頻率更難分開。Zero-padding 只在既有 DFT 取樣點之間加入更密的頻率取樣，畫出的頻譜較平滑，觀測時間與真正的頻率解析力都沒有增加。
+#
+#    Ideal low-pass 在截止頻率處突然從 1 跳到 0。其 inverse Fourier transform 含有延伸很遠的振盪旁瓣，強邊緣經過卷積後便出現正負交替的波紋。Gaussian low-pass 的 transfer function 平滑，impulse response 也保持 Gaussian 形狀，因此同類 ringing 較弱。常見誤解是把 zero-padding 後較密的頻譜當成新增解析度，或把 ringing 當成影像原有的細節。
+#    ```
+#
+# 4. 已知 $G=HF+N$ 時，為何 `G/(H+eps)` 仍會產生偏差？正則化如何在雜訊與細節之間取捨？
+#
+#    ```{dropdown} 參考答案
+#    理想反濾波 $F=G/H$ 需要 $N=0$ 且每個頻率的 $H\ne0$。加入 `eps` 後，對無雜訊資料得到
+#
+#    $$
+#    \widehat F=\frac{HF}{H+\varepsilon}
+#    =F\frac{H}{H+\varepsilon},
+#    $$
+#
+#    乘上的比例通常偏離 1，所以估計帶有偏差；若 $H$ 為複數，直接加實數 `eps` 還可能改變相位。Wiener-style filter 常寫成
+#
+#    $$
+#    \widehat F=\frac{H^*}{|H|^2+K}G.
+#    $$
+#
+#    在 $|H|$ 很小的頻率，分母中的 $K$ 可抑制雜訊放大；$K$ 太大會抹去可恢復的細節，太小則接近不穩定的 inverse filter。例如 $H=0.01$、$K=0.01$ 時，Wiener gain 約為 $0.01/(0.0001+0.01)\approx0.99$，遠低於 inverse gain 100。`eps` 或 $K$ 都需要配合雜訊水準與任務評估，沒有一個值能通用於所有影像。
+#    ```
+#
+# 5. Phase flipping 與 Wiener-style CTF correction 分別改變哪些 Fourier 資訊？
+#
+#    ```{dropdown} 參考答案
+#    Phase flipping 把觀測頻譜乘上 $\operatorname{sign}(\mathrm{CTF})$。在 $\mathrm{CTF}\ne0$ 的頻率，乘數的絕對值是 1，所以觀測振幅保持不變；CTF 為負時，相位會翻回來。依本章實作，零點的乘數設為 0。CTF 已壓低的振幅與零點處遺失的資訊仍維持原狀。
+#
+#    Wiener-style correction 使用
+#
+#    $$
+#    \frac{\mathrm{CTF}^*}{|\mathrm{CTF}|^2+K},
+#    $$
+#
+#    同時調整相位與振幅。$K$ 防止 CTF 接近零時增益暴增，也會讓估計產生平滑偏差。舉例來說，CTF 為 $-0.5$、$K=0.05$ 時，gain 為 $-0.5/(0.25+0.05)\approx-1.67$；phase flipping 的 gain 則是 $-1$。兩者都無法憑單張影像補回 CTF 零點，實務上會利用不同離焦影像互補頻率資訊，並配合更完整的 CTF 與雜訊模型。
+#    ```

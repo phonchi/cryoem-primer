@@ -49,6 +49,19 @@ def test_view_expansion_preserves_image_count_and_balances_repeats():
     assert np.all((0 <= angles[:, 2]) & (angles[:, 2] < 2 * np.pi))
 
 
+def test_uniform_offsets_are_bounded_and_reproducible():
+    sample_uniform_offsets, = _load_functions("sample_uniform_offsets")
+    offsets_a = sample_uniform_offsets(np.random.default_rng(8), 2000, 4.0)
+    offsets_b = sample_uniform_offsets(np.random.default_rng(8), 2000, 4.0)
+    offsets_c = sample_uniform_offsets(np.random.default_rng(9), 2000, 4.0)
+
+    assert offsets_a.shape == (2000, 2)
+    assert np.all((-4.0 <= offsets_a) & (offsets_a <= 4.0))
+    np.testing.assert_array_equal(offsets_a, offsets_b)
+    assert not np.array_equal(offsets_a, offsets_c)
+    assert abs(np.std(offsets_a) - 4 / np.sqrt(3)) < 0.08
+
+
 def test_ctf_dc_and_200_kv_wavelength_match_chapter_convention():
     electron_wavelength, ctf_1d = _load_functions("electron_wavelength", "ctf_1d")
 
@@ -83,6 +96,11 @@ def test_synthetic_chapter_declares_reproducibility_contract():
         "amplitude_contrast = 0.15",
         "synthetic_data_output",
         "3DEM-conventions",
+        "sample_uniform_offsets",
+        "max_shift_px = 4.0",
+        "offsets=offsets",
+        '"offset_px"',
+        "chung2020",
     }
     assert not {term for term in required_terms if term not in source}
     assert "relion_source._metadata" not in source

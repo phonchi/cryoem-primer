@@ -15,7 +15,7 @@ python -m ipykernel install --user --name cryoem-book
 jupyter notebook
 ```
 
-第一次執行第 7 章時，可先把影像數設為 100；確認流程後再生成完整的 5,000 張影像。輸出資料夾內會包含 STAR、MRCS、已知真值與執行參數紀錄。
+第一次執行第 7 章時，可先把影像數設為 100；確認流程後再產生完整的 5,000 張影像。輸出資料夾內會包含 STAR、MRCS 與每張影像的已知真值。
 
 ## 引用與版權
 

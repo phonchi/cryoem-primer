@@ -37,15 +37,24 @@ def test_no_ai_tool_residue_or_mainland_terms():
         "volume_sha256",
         "Jupyter Book",
         "_build/synthetic",
+        "可辯護",
+        "主張範圍",
+        "下游",
+        "短暂",
+        "調制",
+        "默認",
+        "生成",
     )
     sources = list(BOOK.glob("*.md")) + list(BOOK.glob("*.py"))
     for source in sources:
         text = source.read_text(encoding="utf-8")
-        language_tokens = forbidden if source.name != "appendix_conventions.md" else forbidden[:3]
-        for token in language_tokens:
+        for token in forbidden:
             assert token not in text, f"{source.name}: forbidden token {token}"
-        if source.name != "appendix_conventions.md":
-            assert not re.search(r"(?<!演)算法", text), f"{source.name}: 中國用語「算法」"
+        assert not re.search(r"(?<!演)算法", text), f"{source.name}: 中國用語「算法」"
+        assert not re.search(
+            r"不是.{0,40}而是|不只是|不代表|不等於|不能只|不能單靠",
+            text,
+        ), f"{source.name}: 請改成直接說明成立條件與限制"
 
 
 def test_student_facing_title_and_toc_terms():

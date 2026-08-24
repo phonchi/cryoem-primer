@@ -59,9 +59,9 @@ def imshow_all(*images, titles=None, size=4, **kwargs):
 # %% [markdown]
 # ## 全域頻譜看得到頻率，看不到位置
 #
-# 有限長度 DFT 的 frequency-bin spacing 由觀測時間決定；非整數週期還會產生 spectral leakage。因此 Fourier spectrum 提供的是整段訊號的頻率組成，不是無條件「精確列出所有頻率」。
+# 有限長度 DFT 的 frequency-bin spacing 由觀測時間決定；非整數週期還會產生 spectral leakage。因此 Fourier spectrum 描述整段訊號在各個頻率 bins 的能量，解析精度仍受觀測長度與 window 影響。
 #
-# 下例中訊號 A 讓四個頻率全程同時存在，訊號 B 則讓它們依序出現。兩者都在相同頻率附近有能量，但 B 的每個成分只持續四分之一秒，峰值較低，分段邊界也造成明顯 leakage；不能說兩張 magnitude spectra 幾乎相同。
+# 下例中訊號 A 讓四個頻率全程同時存在，訊號 B 則讓它們依序出現。兩者都在相同頻率附近有能量，但 B 的每個成分只持續四分之一秒，峰值較低，分段邊界也造成明顯 leakage；兩張 magnitude spectra 的形狀與幅度因此有清楚差異。
 
 # %%
 sample_rate = 200
@@ -101,7 +101,7 @@ fig.tight_layout()
 # %% [markdown]
 # ## STFT 與 CWT 採用不同的解析度策略
 #
-# Short-time Fourier transform（STFT）用固定長度 window 切出局部頻譜，因此時間／頻率解析度由同一個 window 決定。短 window 能較精準定位變化時間，但頻率 bins 較粗；長 window 能分開較接近的頻率，卻會把短暂事件拉寬。下例使用 SciPy `ShortTimeFFT`；window、overlap、padding 與 scaling 都是轉換定義的一部分，解讀時必須一起報告。完整參數見 [SciPy `ShortTimeFFT` 文件](https://docs.scipy.org/doc/scipy/reference/generated/scipy.signal.ShortTimeFFT.html)。
+# Short-time Fourier transform（STFT）用固定長度 window 切出局部頻譜，因此時間／頻率解析度由同一個 window 決定。短 window 能較精準定位變化時間，但 frequency bins 較粗；長 window 能分開較接近的頻率，卻會把短暫事件拉寬。下例使用 SciPy `ShortTimeFFT`；window、overlap、padding 與 scaling 都是轉換定義的一部分，解讀時必須一起報告。完整參數見 [SciPy `ShortTimeFFT` 文件](https://docs.scipy.org/doc/scipy/reference/generated/scipy.signal.ShortTimeFFT.html)。
 
 # %%
 stft_short = signal.ShortTimeFFT.from_window(
@@ -137,7 +137,7 @@ fig.tight_layout()
 #
 # $$W(a,b)=\frac{1}{\sqrt{|a|}}\int h(t)\psi^*\!\left(\frac{t-b}{a}\right)dt.$$
 #
-# 大尺度通常對應較低 pseudo-frequency 與較寬的時間支撐；小尺度對應較高 pseudo-frequency 與較窄的時間支撐。CWT 對每個尺度保留密集的位移取樣，結果可畫成尺度圖（scalogram）。尺度和 Hz 的換算依母小波與取樣週期而定，不能只寫成「尺度就是頻率倒數」。PyWavelets 的 `cwt` 會依 `sampling_period` 和母小波的 central frequency 回傳 pseudo-frequency，參數意義可查閱 [CWT 官方文件](https://pywavelets.readthedocs.io/en/stable/ref/cwt.html)。
+# 大尺度通常對應較低 pseudo-frequency 與較寬的時間支撐；小尺度對應較高 pseudo-frequency 與較窄的時間支撐。CWT 對每個尺度保留密集的位移取樣，結果可畫成尺度圖（scalogram）。母小波與取樣週期共同決定尺度和 Hz 的換算，尺度的倒數只提供粗略直覺。PyWavelets 的 `cwt` 會依 `sampling_period` 和母小波的 central frequency 回傳 pseudo-frequency，參數意義可查閱 [CWT 官方文件](https://pywavelets.readthedocs.io/en/stable/ref/cwt.html)。
 
 # %%
 scales = np.arange(1, 65)
@@ -156,7 +156,7 @@ ax.set_title("CWT scalogram")
 fig.tight_layout()
 
 # %% [markdown]
-# 訊號邊界附近無法將完整小波放進觀測區間，程式只能藉由 padding 或 extension 處理。尺度越大，受邊界影響的時間範圍越寬；這個 cone-of-influence 區域不應與中央的係數一樣解讀。若一個事件只出現在訊號起點，應設法取得更長觀測，並比較不同 extension 設定，而不是把邊界係數當成已驗證的物理事件。
+# 訊號邊界附近放不下完整小波，程式會藉由 padding 或 extension 處理。尺度越大，受邊界影響的時間範圍越寬；解讀 cone-of-influence 區域時要比中央係數保守。若事件只出現在訊號起點，宜取得更長的觀測，並比較不同 extension 設定，再判斷它是否為穩定的物理訊號。
 
 
 # %% [markdown]
@@ -166,7 +166,7 @@ fig.tight_layout()
 #
 # $$\psi_{j,k}(t)=2^{-j/2}\psi(2^{-j}t-k).$$
 #
-# 以 CWT 參數理解，就是 $a=2^j$、$b=k2^j$：尺度變大時，位移網格也變粗，不是每個尺度都任取同一組整數位移。正交／雙正交 DWT 再利用特定 scaling function 與 wavelet，形成可逆、非冗餘或低冗餘的離散表示。
+# 以 CWT 參數理解，就是 $a=2^j$、$b=k2^j$：尺度變大時，位移網格也跟著變粗。正交／雙正交 DWT 再利用特定 scaling function 與 wavelet，形成可逆、非冗餘或低冗餘的離散表示。
 #
 # 實作上，一階 DWT 將訊號分別通過 analysis low-pass 與 high-pass filters，再 downsample by 2，得到 approximation coefficients $cA_1$ 與 detail coefficients $cD_1$。下一階只繼續分解 $cA_1$。Inverse DWT 則 upsample、通過 synthesis filters 並相加。
 
@@ -180,9 +180,9 @@ assert len(wavelet.dec_lo) == len(wavelet.dec_hi)
 
 
 # %% [markdown]
-# ## `wavefun(level=...)` 不是 decomposition level
+# ## `wavefun(level=...)` 與 decomposition level
 #
-# `Wavelet.wavefun(level=r)` 的 `level` 是 cascade／refinement 的取樣精細度：增加它會用更多點近似同一個 scaling function 與 mother wavelet，並不表示對某筆資料做了 $r$ 階 DWT，也不是把母小波「拉伸」。真正的 decomposition level 是 `wavedec(..., level=L)` 的 `L`。
+# `Wavelet.wavefun(level=r)` 的 `level` 是 cascade／refinement 的取樣精細度：增加它會用更多點近似同一個 scaling function 與 mother wavelet。`wavedec(..., level=L)` 的 `L` 才是資料的 decomposition level；兩個參數同名，控制的運算不同。
 
 # %%
 fig, axes = plt.subplots(1, 2, figsize=(10, 3.5))
@@ -206,7 +206,7 @@ fig.tight_layout()
 #
 # 離散小波的 order、vanishing moments、symmetry、filter length 與支撐區間（support）會一起影響係數的局部性與邊緣表現。Haar（`haar`，也是 `db1`）最局部且完全對稱，卻只有一個 vanishing moment。高 order Daubechies（`db`）可消去較高階多項式，但 filter 變長且不對稱。Symlets（`sym`）追求近似對稱；Coiflets（`coif`）同時要求 scaling function 與 wavelet 的 moments；biorthogonal（`bior`）使用不同 analysis／synthesis bases 換取線性相位與對稱性。
 #
-# CWT 另使用連續小波：Mexican hat（`mexh`）是 real-valued second derivative of Gaussian；Morlet（`morl`）用正弦調變 Gaussian，適合呈現局部振盪。這些家族不能只擇一張「看起來最漂亮」的係數圖；選擇時要連同 noise model、boundary 與下游任務驗證。
+# CWT 另使用連續小波：Mexican hat（`mexh`）是 real-valued second derivative of Gaussian；Morlet（`morl`）用正弦調變 Gaussian，適合呈現局部振盪。選擇小波家族時，除了係數圖，也要檢查 noise model、boundary effect，以及後續分析結果。
 
 # %%
 discrete_families = ["haar", "db4", "sym4", "coif2", "bior2.2"]
@@ -275,7 +275,7 @@ for boundary_mode in ("zero", "symmetric", "periodization"):
     assert error < 1e-10
 
 # %% [markdown]
-# ```{admonition} Perfect reconstruction 不等於去雜訊成功
+# ```{admonition} Perfect reconstruction 與去雜訊是兩項不同檢查
 # :class: note
 #
 # Perfect reconstruction 只驗證 transform pair 沒有在「不改係數」時丟資料。只要 threshold、truncate 或量化係數，輸出便帶有偏差；是否更接近未知真訊號需要另外評估。
@@ -340,7 +340,7 @@ fig.tight_layout()
 # %% [markdown]
 # ### Multiband blending：低頻平滑過渡，高頻保留局部邊緣
 #
-# 直接用 binary mask 拼接兩張影像會產生一條高頻接縫。Multiband blending 在每個 Laplacian level 使用對應尺度的 Gaussian mask：粗尺度採寬廣過渡，細尺度則保留局部細節。這是多尺度表示的經典影像應用，也提醒我們：「尺度」不只是顯示圖的縮放倍率，而是對不同空間頻帶分工處理。
+# 直接用 binary mask 拼接兩張影像會產生一條高頻接縫。Multiband blending 在每個 Laplacian level 使用對應尺度的 Gaussian mask：粗尺度採寬廣過渡，細尺度則保留局部細節。這項經典應用把「尺度」落實為不同空間頻帶的分工，內容比單純縮放顯示圖更完整。
 
 # %%
 left_image = pyramid_image
@@ -368,7 +368,7 @@ imshow_all(direct_blend, multiband_blend,
 # %% [markdown]
 # ## 二維 DWT：四個子帶
 #
-# Separable 2D DWT 先沿一軸、再沿另一軸套 filter bank，一階得到 approximation `cA` 與 horizontal、vertical、diagonal details。不同套件對 `LH/HL` 命名方向可能不同；使用 PyWavelets 時應依 `(cH, cV, cD)` API 語意，不只看字母猜方向。
+# Separable 2D DWT 先沿一軸、再沿另一軸套 filter bank，一階得到 approximation `cA` 與 horizontal、vertical、diagonal details。不同套件對 `LH/HL` 命名方向可能不同；使用 PyWavelets 時應依 `(cH, cV, cD)` API 語意與測試影像確認方向。
 
 # %%
 image = ski.util.img_as_float(ski.data.camera())
@@ -384,7 +384,7 @@ imshow_all(cA, cH, cV, cD,
 # %% [markdown]
 # ### 二維 multilevel DWT
 #
-# `wavedec2` 回傳 `[cA_L, (cH_L,cV_L,cD_L), ..., (cH_1,cV_1,cD_1)]`。最粗的 approximation 不是原圖的小縮圖加上三張「邊緣圖」就能直接解讀：每層係數都受具體 filters、downsampling 和 extension mode 影響。未修改係數時，`waverec2` 應在數值誤差內還原影像。
+# `wavedec2` 回傳 `[cA_L, (cH_L,cV_L,cD_L), ..., (cH_1,cV_1,cD_1)]`。最粗的 approximation 和三個 detail subbands 都受所選 filters、downsampling 與 extension mode 影響，無法只當成原圖縮圖與三張一般「邊緣圖」。未修改係數時，`waverec2` 應在數值誤差內還原影像。
 
 # %%
 coefficients_2d = pywt.wavedec2(image, "db4", level=3, mode="symmetric")
@@ -403,7 +403,7 @@ print("2D coefficient shapes:", [
 #
 # Wavelet shrinkage 假設目標在選定 wavelet domain 中相對 sparse，且許多小 detail coefficients 主要來自可建模雜訊。Hard threshold 將小係數設為零、保留大係數，在 threshold 處不連續；soft threshold 再將保留的大係數往零收縮，較平滑但會產生 bias。
 #
-# 對長度 $N$ 的白 Gaussian noise，universal threshold 常寫成 $\tau=\hat\sigma\sqrt{2\log N}$；$\hat\sigma$ 可用最細層 diagonal coefficients 的 median absolute deviation（MAD）估計：$\hat\sigma=\operatorname{median}(|cD_1|)/0.6745$。BayesShrink 改為每個子帶估計 threshold。這些公式都不是「不需調整的最佳解」；若雜訊有空間相關性、CTF-shaped spectrum 或非平穩變異，簡單白雜訊假設未必合適，弱小但真實的高解析訊號也可能被刪掉。
+# 對長度 $N$ 的白 Gaussian noise，universal threshold 常寫成 $\tau=\hat\sigma\sqrt{2\log N}$；$\hat\sigma$ 可用最細層 diagonal coefficients 的 median absolute deviation（MAD）估計：$\hat\sigma=\operatorname{median}(|cD_1|)/0.6745$。BayesShrink 改為每個子帶估計 threshold。這些公式仍需配合資料調整；遇到空間相關雜訊、CTF-shaped spectrum 或非平穩變異時，簡單白雜訊假設可能失準，弱小但真實的高解析訊號也可能被刪掉。
 
 # %%
 original = ski.util.img_as_float(ski.data.camera())
@@ -481,7 +481,7 @@ fig.tight_layout()
 
 
 # %% [markdown]
-# 峰值訊雜比（PSNR）是 MSE 的對數量尺，SSIM 比較局部亮度、對比與結構；殘差圖（residual）則顯示法從參考影像加上或拿走了什麼。三者合用仍只是有已知真值的教學評估，不能以單一數值代替特定任務驗證。本例使用固定隨機數產生器，所以不同方法看到同一份雜訊。`estimate_sigma` 與 `denoise_wavelet` 的參數定義見 [scikit-image restoration 文件](https://scikit-image.org/docs/stable/api/skimage.restoration.html)。
+# 峰值訊雜比（PSNR）是 MSE 的對數量尺，SSIM 比較局部亮度、對比與結構；殘差圖（residual）則顯示去雜訊方法從參考影像刪掉或加入了哪些內容。三者適合用在有已知真值的教學評估，實際分析仍要加上任務相關的檢查。本例使用固定隨機數產生器，所以不同方法看到同一份雜訊。`estimate_sigma` 與 `denoise_wavelet` 的參數定義見 [scikit-image restoration 文件](https://scikit-image.org/docs/stable/api/skimage.restoration.html)。
 
 
 # %% [markdown]
@@ -524,16 +524,51 @@ fig.tight_layout()
 # ```{admonition} 與 cryo-EM 的連結
 # :class: caution
 #
-# Gaussian／Laplacian pyramids 可幫助分開粒子的整體輪廓與較局部細節；小波可作多尺度視覺化、特定稀疏先驗下的正則化，或經驗證的去雜訊元件。這些用法不能預設真實 cryo-EM 結構必然集中在少數大係數，也不能預設雜訊必然是許多獨立小係數。CTF、運動、冰層與偵測器響應都會造成相關且頻率相依的訊號／雜訊。
+# Gaussian／Laplacian pyramids 可幫助分開粒子的整體輪廓與較局部細節；小波可作多尺度視覺化、特定稀疏先驗下的正則化，或經驗證的去雜訊元件。實際資料中的結構未必集中在少數大係數，雜訊係數也可能彼此相關。CTF、運動、冰層與偵測器響應都會造成相關且頻率相依的訊號／雜訊。
 #
 # 對顯示用影像做增強可以幫助人眼檢查，但未經獨立 half-set 或已知真值驗證，不要把增強後的粒子影像直接當成定量重建輸入，也不要把「看起來更銳利」解讀成解析度提升。
 # ```
 #
 # ## 理解檢查
 #
-# 1. 為什麼訊號 A 與 B 在相同頻率附近有能量，卻不能說 magnitude spectra 幾乎相同？
-# 2. 在 dyadic family 中，尺度變成兩倍時，允許的位移網格如何改變？
-# 3. `wavefun(level=7)` 與 `wavedec(level=7)` 的 `level` 各代表什麼？
-# 4. DWT 能 perfect reconstruction，為什麼 thresholding 後仍可能刪掉真實訊號？
-# 5. 為什麼輸入平移一個樣本時，decimated DWT 不一定只是跟著平移一個係數？
-# 6. 在 cryo-EM 中，什麼證據才能支持「去雜訊改善了分析」而不只是改善視覺外觀？
+# 1. STFT 與 CWT 如何在時間定位和頻率解析度之間取捨？
+#
+#    ```{dropdown} 參考答案
+#    STFT 在每個時間位置使用同一長度的 window。若 window 含 64 個 samples，時間定位約受這 64 點寬度限制；改成 256 點後，frequency-bin spacing 約縮小為原來的四分之一，但短暫事件會在較寬的時間範圍內出現。所有頻率都共用這組取捨。
+#
+#    CWT 會縮放 mother wavelet。小尺度支撐範圍窄，適合定位快速變化；大尺度支撐範圍寬，可分辨較慢的振盪。Pseudo-frequency 還要由母小波的 central frequency 與 `sampling_period` 換算，$1/a$ 只提供尺度 $a$ 與頻率的反比趨勢。常見誤解是把 scalogram 上每個亮點都視為精確頻率；window／wavelet、取樣率與邊界效應都會影響亮點的寬度和位置。
+#    ```
+#
+# 2. Gaussian／Laplacian pyramid、STFT、CWT 與 DWT 各自如何描述位置與尺度？
+#
+#    ```{dropdown} 參考答案
+#    Gaussian pyramid 反覆做 low-pass filtering 與 downsampling：
+#
+#    $$
+#    G_{j+1}=\downarrow_2\,(g*G_j).
+#    $$
+#
+#    每層保留影像平面上的位置，但解析度與取樣密度逐層降低。Laplacian pyramid 用相鄰 Gaussian levels 的差異保留頻帶細節，配合最粗層可重建原圖。以一張同時含小亮點與寬廣亮斑的影像為例，小亮點主要出現在細層 Laplacian bands，寬廣亮斑會延續到較粗層。
+#
+#    STFT 用固定 window 取得局部頻譜，所有頻率共用相同的位置／頻率解析度。CWT 縮放 mother wavelet，對每個尺度密集取樣位置，因此高頻事件定位較細、低頻事件的頻率分辨較好。DWT 以 dyadic filters 與 downsampling 產生緊密的 multiresolution coefficients，儲存量較省，但 decimation 會帶來 shift sensitivity。這四種方法的 level 或 scale 都受 filter、取樣率與邊界設定影響，不能直接當成物理解析度；要依目標是影像縮放、局部頻率分析、事件偵測或可逆壓縮來選擇。
+#    ```
+#
+# 3. DWT 可以 perfect reconstruction，為何 thresholding 仍可能刪掉訊號？輸入平移一個 sample 又會發生什麼事？
+#
+#    ```{dropdown} 參考答案
+#    Perfect reconstruction 指 analysis 與 synthesis filters 滿足重建條件。係數未修改時，`waverec(wavedec(x))` 可在浮點誤差內還原 $x$。Thresholding 主動把部分 detail coefficients 設成零或縮小，重建輸入已經改變；若弱邊緣與雜訊都落在小係數區，兩者會一起被刪除。重建誤差此時來自係數修改，與 filter bank 是否可逆是兩回事。
+#
+#    Decimated DWT 每層 filtering 後取每隔一點的樣本。輸入平移一個 sample 會改變 downsampling 選到的奇偶位置，許多係數都可能改變，結果未必是原係數平移一格。SWT 省略 downsampling，shift sensitivity 通常較低，代價是係數量增加。常見誤解是把 perfect reconstruction 當成去雜訊品質保證；它只檢查未修改係數的可逆性。
+#    ```
+#
+# 4. 如何判斷 cryo-EM 去雜訊方法是否真的改善分析結果？
+#
+#    ```{dropdown} 參考答案
+#    有已知真值的模擬資料可先量 MSE、PSNR、SSIM，並查看殘差圖是否含有粒子結構。假設 clean image 的資料範圍是 $[0,1]$，MSE 從 0.010 降到 0.0025，則
+#
+#    $$
+#    \Delta\mathrm{PSNR}=10\log_{10}(0.010/0.0025)\approx6.02\ \mathrm{dB}.
+#    $$
+#
+#    這個數字說明像素誤差下降，還要確認解析度相關資訊有沒有被平滑掉。真實資料沒有逐張 clean target，兩個 half-sets 應分開去雜訊與估計參數，並檢查訓練、調參或共享模型是否造成跨 half-set 資訊洩漏。接著可比較對位穩定度、2D class averages、重建 FSC，以及同一生物結構特徵能否在兩個 half-maps 重現。只看影像變銳利或 PSNR 上升，無法回答姿態估計與重建是否改善；評估項目要配合方法預計改善的分析步驟。
+#    ```
