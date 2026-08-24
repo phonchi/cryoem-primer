@@ -25,6 +25,9 @@ jobs:
           environment-name: cryoem-book
           cache-environment: true
       - uses: actions/configure-pages@v6
+      - name: Register notebook kernel
+        shell: micromamba-shell {0}
+        run: python -m ipykernel install --user --name cryoem-book --display-name "Python (cryoem-book)"
       - name: Full reproducible build
         shell: micromamba-shell {0}
         run: make build-full CONDA_RUN=
