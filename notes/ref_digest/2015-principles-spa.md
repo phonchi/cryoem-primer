@@ -1,9 +1,9 @@
-# [2015] Principles of cryo-EM single-particle image processing
+# [2016] Principles of cryo-EM single-particle image processing
 
 - 作者：Fred J. Sigworth（Yale）
 - 出處：*Microscopy* 2016, 65(1): 57–67，doi:10.1093/jmicro/dfv370（線上發表 2015-12-24）
 - 頁碼對照：印刷頁 57–67 ＝ PDF 頁 1–11（`PDF 頁 = 印刷頁 − 56`）；本檔頁碼一律用印刷頁。
-- 原檔：`References/[2015] Principles of cryo-EM single-particle image.pdf`
+- 原檔：`References/[2016] Principles of cryo-EM single-particle image.pdf`
 
 ## 一句話定位
 最精簡好讀的 single-particle reconstruction (SPR) 原理導論，適合當 06 章 workflow 的骨架，也提供「為什麼要模擬雜訊與 CTF」的量化理由（SNR 決定一切）給 07 章。

@@ -13,3 +13,7 @@ logs/aspire-*.log
 book/logs/aspire-*.log
 .virtual_documents/
 .env
+
+# Local SPA validation evidence; retained on disk, not part of the teaching site.
+logs/spa_revision_20260911/
+notes/spa_revision_20260911/browser/

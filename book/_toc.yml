@@ -11,8 +11,13 @@ parts:
     chapters:
       - file: 05_background
       - file: 05_image_formation
+      - file: 05_statistical_inference
       - file: 06_workflow
+      - file: 06_alignment_classification
+      - file: 06_dimension_reduction
       - file: 06_reconstruction_validation
+      - file: 06_heterogeneity
+      - file: 06_resolution_validation
   - caption: 合成資料
     chapters:
       - file: 07_synthetic_data

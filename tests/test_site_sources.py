@@ -65,23 +65,17 @@ def test_no_ai_tool_residue_or_mainland_terms():
         ), f"{source.name}: 請改成直接說明成立條件與限制"
         assert not re.search(
             r"(?<![A-Za-z])(?:p|pp|Eq|Eqs|Fig)\.\s*\d|supplement\s+pp\.",
-            text,
+            text.split("## 延伸閱讀", maxsplit=1)[0],
         ), f"{source.name}: 精確頁碼與方程式定位應移到延伸閱讀"
 
 
-def test_understanding_checks_stay_focused_and_collapsible():
+def test_protected_chapters_keep_original_understanding_checks():
     expected = {
-        "00_intro.md": 3,
         "01_image_basics.py": 5,
         "02_filter_segment.py": 5,
         "03_fourier.py": 5,
         "04_wavelet.py": 4,
-        "05_background.md": 3,
-        "05_image_formation.md": 4,
-        "06_workflow.md": 4,
-        "06_reconstruction_validation.md": 4,
         "07_synthetic_data.py": 5,
-        "appendix_conventions.md": 3,
     }
     for name, count in expected.items():
         text = (BOOK / name).read_text(encoding="utf-8")
@@ -100,3 +94,24 @@ def test_student_facing_title_and_toc_terms():
 
 def test_generated_outputs_are_not_in_book_tree():
     assert not (BOOK / "data" / "output").exists()
+
+
+def test_revised_pages_integrate_checks_and_include_reading():
+    toc = yaml.safe_load((BOOK / "_toc.yml").read_text(encoding="utf-8"))
+    spa = next(part for part in toc["parts"] if part["caption"] == "Cryo-EM 單粒子分析")
+    stems = [chapter["file"] for chapter in spa["chapters"]]
+    for stem in stems + ["00_intro", "appendix_conventions"]:
+        text = (BOOK / f"{stem}.md").read_text(encoding="utf-8")
+        assert "理解檢查" not in text, stem
+        assert "參考答案" not in text, stem
+        assert "姿態" not in text, stem
+        assert "## 延伸閱讀" in text, stem
+        assert "{cite}" in text, stem
+
+
+def test_protected_chapters_and_assets_are_byte_identical():
+    import hashlib
+    import json
+    manifest = json.loads((ROOT / "notes/spa_revision_20260911/protected_files.json").read_text())
+    for relative, expected in manifest.items():
+        assert hashlib.sha256((ROOT / relative).read_bytes()).hexdigest() == expected, relative

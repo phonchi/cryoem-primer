@@ -165,7 +165,7 @@ assets:
   - path: "book/images/pptx/s07_3.png"
     sha256: b0509b43aca5cfdaa21eaa3ad3ed160375d4be266e2c3b50a726914cd821f77b
     size_bytes: 1503784
-    referenced: false
+    referenced: true
     provenance: project_provided
     license_status: needs_review
     alt_text_status: needs_review
@@ -186,7 +186,7 @@ assets:
   - path: "book/images/pptx/s08_3.png"
     sha256: 8ece8597d826eb83fc74d120768cc3e694e4ef5f1b6db33e69f5b715d40c739d
     size_bytes: 62022
-    referenced: false
+    referenced: true
     provenance: project_provided
     license_status: needs_review
     alt_text_status: needs_review
@@ -319,7 +319,7 @@ assets:
   - path: "book/images/pptx/s12_6.png"
     sha256: 70db8d3566cf382921398852885115670b11e0d4df2b2272ff4a7a6da0e6adad
     size_bytes: 17848
-    referenced: false
+    referenced: true
     provenance: project_provided
     license_status: needs_review
     alt_text_status: needs_review
@@ -333,7 +333,7 @@ assets:
   - path: "book/images/pptx/s12_8.png"
     sha256: 7431a0c1d897b1bda46c78ff5e2fe9bc30953e76faae019b53790e79a77c82d6
     size_bytes: 94523
-    referenced: false
+    referenced: true
     provenance: project_provided
     license_status: needs_review
     alt_text_status: needs_review
@@ -361,7 +361,7 @@ assets:
   - path: "book/images/pptx/s13_4.png"
     sha256: 7d72c2f84a18b551b5061649dee3e7aaf2d8733e065a0e34e8e23891357c811a
     size_bytes: 13893
-    referenced: false
+    referenced: true
     provenance: project_provided
     license_status: needs_review
     alt_text_status: needs_review
@@ -431,7 +431,7 @@ assets:
   - path: "book/images/pptx/s15_8.png"
     sha256: d633ddd7405dbd000328f929e2ff5af7dee02387ebd324f2f0a60b0e7d4d4228
     size_bytes: 28834
-    referenced: false
+    referenced: true
     provenance: project_provided
     license_status: needs_review
     alt_text_status: needs_review
@@ -585,14 +585,14 @@ assets:
   - path: "book/images/pptx/s24_1.png"
     sha256: cc49a53018e375ac327be0adeea3b2b6a8ea3d391672dfd690e0fe8a75916f34
     size_bytes: 140832
-    referenced: false
+    referenced: true
     provenance: project_provided
     license_status: needs_review
     alt_text_status: needs_review
   - path: "book/images/pptx/s24_2.png"
     sha256: 638bfe4b33a344a6f8abc0f4beeb7c313dc64b9316b846466d840ed3e79d2a10
     size_bytes: 108455
-    referenced: false
+    referenced: true
     provenance: project_provided
     license_status: needs_review
     alt_text_status: needs_review
@@ -642,6 +642,27 @@ assets:
     sha256: 6e2fe14a196c7081a64c625aa49012da33f93fb5096a0dda7feb3838d3b35ca1
     size_bytes: 115108
     referenced: false
+    provenance: project_provided
+    license_status: needs_review
+    alt_text_status: needs_review
+  - path: "book/images/spa/em_uncertainty.png"
+    sha256: b4a8662d3f496077b6608b03e617045afbefa7431c35b515fe6ae42cc322cb40
+    size_bytes: 101815
+    referenced: true
+    provenance: project_provided
+    license_status: needs_review
+    alt_text_status: needs_review
+  - path: "book/images/spa/heterogeneity_attenuation.png"
+    sha256: b36f0f7fe787e69277ed5b5a1b05a55ea955cdec245c426c2d5445c7164fa7cc
+    size_bytes: 98396
+    referenced: true
+    provenance: project_provided
+    license_status: needs_review
+    alt_text_status: needs_review
+  - path: "book/images/spa/pca_geometry.png"
+    sha256: 550bbaef2bb1704746a8015a300f97b49273a73a591cece1e1e45e32b41b9b3d
+    size_bytes: 138619
+    referenced: true
     provenance: project_provided
     license_status: needs_review
     alt_text_status: needs_review

@@ -51,6 +51,26 @@ class ReferencePipelineTests(unittest.TestCase):
         self.assertNotIn("/private/machine", serialized)
         self.assertNotIn("copyrighted extracted prose", serialized)
 
+    def test_unknown_paper_is_not_front_matter(self):
+        sha = "c" * 64
+        row = rp.classify("[2026] new science.pdf", sha, {sha: "[2026] new science.pdf"})
+        self.assertEqual(row["content_role"], "unrouted")
+        self.assertIsNone(row["coverage_status"])
+
+    def test_known_paratext_and_renamed_principles(self):
+        sha = "c" * 64
+        name = "2010/Preface_2010_Methods-in-Enzymology.pdf"
+        self.assertEqual(rp.classify(name, sha, {sha: name})["content_role"], "front_matter")
+        name = "[2016] Principles of cryo-EM single-particle image.pdf"
+        self.assertEqual(rp.classify(name, sha, {sha: name})["source_id"], "sigworth2016")
+
+    def test_seed_does_not_invent_verification(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "claims.jsonl"
+            with mock.patch.object(rp, "CLAIMS", [{"claim_id": "new", "source_id": "s"}]):
+                rp.seed_claims([{"source_id": "s", "sha256": "a" * 64, "content_role": "substantive"}], path)
+            self.assertEqual(rp.read_jsonl(path)[0]["verification_status"], "needs_review")
+
     def test_validate_marks_changed_claim_hash_needs_reverify(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)

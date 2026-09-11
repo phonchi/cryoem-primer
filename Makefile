@@ -20,6 +20,7 @@ qa-fast: sync
 	$(CONDA_RUN) pytest -q
 	CRYOEM_NUM_IMAGES=100 CRYOEM_OUTPUT_DIR="$(CRYOEM_OUTPUT_DIR)/fast" \
 		$(CONDA_RUN) jupyter-book build book --all -W --keep-going
+	$(CONDA_RUN) python scripts/finalize_html.py book/_build/html
 	$(CONDA_RUN) python scripts/check_site.py book/_build/html
 	git diff --exit-code -- book/*.ipynb
 
@@ -27,6 +28,7 @@ build-full: sync
 	$(CONDA_RUN) pytest -q
 	CRYOEM_NUM_IMAGES=5000 CRYOEM_OUTPUT_DIR="$(CRYOEM_OUTPUT_DIR)/full" \
 		$(CONDA_RUN) jupyter-book build book --all -W --keep-going
+	$(CONDA_RUN) python scripts/finalize_html.py book/_build/html
 	$(CONDA_RUN) python scripts/check_site.py book/_build/html
 
 linkcheck:

@@ -1,0 +1,62 @@
+{
+  "seed": 20260911,
+  "posterior_pose_A": [
+    0.7310585786300049,
+    0.5621765008857981
+  ],
+  "em_responsibilities": [
+    [
+      0.9996646498695336,
+      0.00033535013046647816
+    ],
+    [
+      0.9820137900379085,
+      0.01798620996209156
+    ],
+    [
+      0.01798620996209156,
+      0.9820137900379085
+    ],
+    [
+      0.00033535013046647816,
+      0.9996646498695336
+    ]
+  ],
+  "em_updated_means": [
+    0.5186569102230245,
+    3.481343089776976
+  ],
+  "pca_population_covariance": [
+    [
+      5.0,
+      4.0
+    ],
+    [
+      4.0,
+      5.0
+    ]
+  ],
+  "fixed_basis_signal_energies": [
+    9.0,
+    4.0,
+    0.2,
+    0.0
+  ],
+  "rank_risk": [
+    5.2,
+    2.2,
+    3.0,
+    4.0
+  ],
+  "heterogeneity_example": {
+    "state_separation_angstrom": 5,
+    "gaussian_sd_angstrom": 2
+  },
+  "map_gain": 2.0,
+  "shrinkage_mse": 0.8000000000000002,
+  "outputs": [
+    "book/images/spa/em_uncertainty.png",
+    "book/images/spa/pca_geometry.png",
+    "book/images/spa/heterogeneity_attenuation.png"
+  ]
+}

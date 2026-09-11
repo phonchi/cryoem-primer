@@ -23,7 +23,7 @@ from typing import Any, Iterable
 
 
 SCHEMA_VERSION = 1
-PIPELINE_VERSION = "1.0"
+PIPELINE_VERSION = "1.1"
 ROUTING_STATUSES = {"full_digest", "route_note", "out_of_scope"}
 
 
@@ -97,7 +97,7 @@ STANDALONE: dict[str, dict[str, str]] = {
     "Learning OpenCV 4 Computer Vision with Python 3.pdf": {
         "source_id": "opencv2020", "title": "Learning OpenCV 4 Computer Vision with Python 3", "coverage_status": "route_note", "digest_path": "notes/ref_digest/learning-opencv4-index.md", "citation_key": "howse2020"
     },
-    "[2015] Principles of cryo-EM single-particle image.pdf": {
+    "[2016] Principles of cryo-EM single-particle image.pdf": {
         "source_id": "sigworth2016", "title": "Principles of Cryo-EM Single-Particle Image Processing", "coverage_status": "full_digest", "digest_path": "notes/ref_digest/2015-principles-spa.md", "citation_key": "sigworth2016"
     },
     "[2020] IEEE_Review.pdf": {
@@ -110,6 +110,24 @@ STANDALONE: dict[str, dict[str, str]] = {
         "source_id": "singer2020-supp", "title": "Supplementary Material: Computational Methods for Single-Particle Electron Cryomicroscopy", "coverage_status": "full_digest", "digest_path": "notes/ref_digest/2020-math-review.md", "citation_key": "singer2020"
     },
 }
+
+# Explicitly reviewed additions; alternate PDFs retain distinct hashes.
+STANDALONE['[1-1] The EM algorithm.pdf'] = {'source_id': 'ma2019em', 'title': 'The EM algorithm', 'coverage_status': 'full_digest', 'digest_path': 'notes/ref_digest/spa-core-20260911.md#ma2019em', 'citation_key': 'ma2019em'}
+STANDALONE['[1998] ML_RFA.pdf'] = {'source_id': 'sigworth1998', 'title': 'A Maximum-Likelihood Approach to Single-Particle Image Refinement', 'coverage_status': 'full_digest', 'digest_path': 'notes/ref_digest/spa-core-20260911.md#sigworth1998', 'citation_key': 'sigworth1998'}
+STANDALONE['[2005] ML2D.pdf'] = {'source_id': 'scheres2005', 'title': 'Maximum-likelihood Multi-reference Refinement for Electron Microscopy Images', 'coverage_status': 'full_digest', 'digest_path': 'notes/ref_digest/spa-core-20260911.md#scheres2005', 'citation_key': 'scheres2005'}
+STANDALONE['[2010] CL2D.pdf'] = {'source_id': 'sorzano2010', 'title': 'A clustering approach to multireference alignment of single-particle projections in electron microscopy', 'coverage_status': 'full_digest', 'digest_path': 'notes/ref_digest/spa-core-20260911.md#sorzano2010', 'citation_key': 'sorzano2010'}
+STANDALONE['[2012] ISAC.pdf'] = {'source_id': 'yang2012', 'title': 'Iterative Stable Alignment and Clustering of 2D Transmission Electron Microscope Images', 'coverage_status': 'full_digest', 'digest_path': 'notes/ref_digest/spa-core-20260911.md#yang2012', 'citation_key': 'yang2012'}
+STANDALONE['[2012] ISAC-sup.pdf'] = {'source_id': 'yang2012-supp', 'title': 'Supplemental Experimental Procedures: ISAC', 'coverage_status': 'full_digest', 'digest_path': 'notes/ref_digest/spa-core-20260911.md#yang2012-supp', 'citation_key': 'yang2012'}
+STANDALONE['[2012] Relion.pdf'] = {'source_id': 'scheres2012bayes', 'title': 'A Bayesian View on Cryo-EM Structure Determination', 'coverage_status': 'full_digest', 'digest_path': 'notes/ref_digest/spa-core-20260911.md#scheres2012bayes', 'citation_key': 'scheres2012bayes'}
+STANDALONE['[2014] gSUP.pdf'] = {'source_id': 'chen2014', 'title': 'gamma-SUP: A Clustering Algorithm for Cryo-Electron Microscopy Images of Asymmetric Particles', 'coverage_status': 'full_digest', 'digest_path': 'notes/ref_digest/spa-core-20260911.md#chen2014', 'citation_key': 'chen2014'}
+STANDALONE['[2015] A Primer to cryoEM.pdf'] = {'source_id': 'cheng2015primer', 'title': 'A Primer to Single-Particle Cryo-Electron Microscopy', 'coverage_status': 'full_digest', 'digest_path': 'notes/ref_digest/spa-core-20260911.md#cheng2015primer', 'citation_key': 'cheng2015primer'}
+STANDALONE['[2017] CryoSparc.pdf'] = {'source_id': 'punjani2017', 'title': 'cryoSPARC: algorithms for rapid unsupervised cryo-EM structure determination', 'coverage_status': 'full_digest', 'digest_path': 'notes/ref_digest/spa-core-20260911.md#punjani2017', 'citation_key': 'punjani2017'}
+STANDALONE['[2017] CryoSparc_Sup.pdf'] = {'source_id': 'punjani2017-supp', 'title': 'Supplementary Information: cryoSPARC', 'coverage_status': 'full_digest', 'digest_path': 'notes/ref_digest/spa-core-20260911.md#punjani2017-supp', 'citation_key': 'punjani2017'}
+STANDALONE['[2021] 3DVA.pdf'] = {'source_id': 'punjani2021', 'title': '3D variability analysis: Resolving continuous flexibility and discrete heterogeneity from single particle cryo-EM', 'coverage_status': 'full_digest', 'digest_path': 'notes/ref_digest/spa-core-20260911.md#punjani2021', 'citation_key': 'punjani2021'}
+STANDALONE['[2022] On bias_var_overfitting_spa.pdf'] = {'source_id': 'sorzano2022', 'title': 'On bias, variance, overfitting, gold standard and consensus in single-particle analysis by cryo-electron microscopy', 'coverage_status': 'full_digest', 'digest_path': 'notes/ref_digest/spa-core-20260911.md#sorzano2022', 'citation_key': 'sorzano2022'}
+STANDALONE['[5] 2SDR.pdf'] = {'source_id': 'chung2020', 'title': 'Two-Stage Dimension Reduction for Noisy High-Dimensional Images and Application to Cryogenic Electron Microscopy', 'coverage_status': 'full_digest', 'digest_path': 'notes/ref_digest/spa-core-20260911.md#chung2020', 'citation_key': 'chung2020'}
+STANDALONE['[2] ML-EM in cryo-EM.pdf'] = {'source_id': 'mie2010-ch10-alt', 'title': 'An Introduction to Maximum-Likelihood Methods in Cryo-EM (alternate PDF)', 'coverage_status': 'route_note', 'digest_path': 'notes/ref_digest/spa-core-20260911.md#mie2010-ch10-alt', 'citation_key': 'scheres2010'}
+STANDALONE['[2] ML-EM review (Section4).pdf'] = {'source_id': 'singer2020-alt', 'title': 'Computational Methods for Single-Particle Electron Cryomicroscopy (alternate PDF)', 'coverage_status': 'route_note', 'digest_path': 'notes/ref_digest/spa-core-20260911.md#singer2020-alt', 'citation_key': 'singer2020'}
 
 
 CLAIMS: list[dict[str, Any]] = [
@@ -137,6 +155,10 @@ CLAIMS: list[dict[str, Any]] = [
     {"claim_id": "heterogeneity-identifiability", "chapter": "06_workflow", "anchor": "heterogeneity", "claim": "At sufficiently low SNR, distinct conformational populations may not be statistically identifiable.", "source_id": "sigworth2016", "locator": "pp. 63-64", "scope": "A statistical limit; additional data or signal can change identifiability."},
     {"claim_id": "simulation-noise-boundary", "chapter": "07_synthetic_data", "anchor": "noise", "claim": "Cryo-EM image noise is often modeled as additive Gaussian after frame integration, but its empirical spectrum need not be white.", "source_id": "bendory2020", "locator": "pp. 62-63", "scope": "The chapter's global iid AWGN is an explicit teaching simplification, not a realistic detector-noise claim."},
 ]
+
+
+# Claims manually checked in the 2026-09-11 SPA literature pass.
+CLAIMS.extend([{'claim_id': 'spa-sample-optimization', 'chapter': '05_background', 'anchor': 'sample-preparation', 'claim': 'Specimen quality and processing inform each other; ice and orientation distribution affect recoverable information.', 'source_id': 'cheng2015primer', 'locator': 'pp.439–440, Fig.1 and Specimen Preparation', 'scope': 'Teaching overview grounded in the 2015 primer; not a current software capability claim.', 'verification_status': 'verified', 'verification_basis': 'Manual reading of the cited local PDF passages, 2026-09-11'}, {'claim_id': 'spa-colored-noise', 'chapter': '05_image_formation', 'anchor': 'noise-model', 'claim': 'Frequency-dependent Gaussian variances permit colored noise while maintaining conditional independence assumptions in Fourier coordinates.', 'source_id': 'scheres2012bayes', 'locator': 'p.410, Eq.(6)', 'scope': 'Statistical noise approximation, not proof of empirical independence.', 'verification_status': 'verified', 'verification_basis': 'Manual reading of the cited local PDF passages, 2026-09-11'}, {'claim_id': 'spa-em-lower-bound', 'chapter': '05_statistical_inference', 'anchor': 'em-algorithm', 'claim': 'The posterior over latent variables makes the Jensen lower bound tight at the current parameters.', 'source_id': 'ma2019em', 'locator': 'PDF pp.4–5, Eqs.(6–9)', 'scope': 'Exact EM increases likelihood under a valid M-step; no global optimum guarantee.', 'verification_status': 'verified', 'verification_basis': 'Manual reading of the cited local PDF passages, 2026-09-11'}, {'claim_id': 'spa-motion-frequency-evidence', 'chapter': '06_workflow', 'anchor': 'motion-correction', 'claim': 'Motion correction may improve Thon rings even when raw and corrected real-space image sums look similar.', 'source_id': 'cheng2015primer', 'locator': 'p.440, Fig.2', 'scope': 'Evidence from the example in the primer, not a guarantee for every movie.', 'verification_status': 'verified', 'verification_basis': 'Manual reading of the cited local PDF passages, 2026-09-11'}, {'claim_id': 'spa-soft-2d-alignment', 'chapter': '06_alignment_classification', 'anchor': 'soft-alignment', 'claim': 'The 2D ML update averages transformed images using normalized weights over possible in-plane poses.', 'source_id': 'sigworth1998', 'locator': 'pp.331–332, Eqs.(12),(16),(20)', 'scope': 'Single underlying 2D view with white Gaussian noise and pose prior.', 'verification_status': 'verified', 'verification_basis': 'Manual reading of the cited local PDF passages, 2026-09-11'}, {'claim_id': 'spa-robust-cl2d', 'chapter': '06_alignment_classification', 'anchor': 'cl2d', 'claim': 'CL2D combines correntropy with divisive clustering and a class-relative robust assignment criterion.', 'source_id': 'sorzano2010', 'locator': 'pp.198–201, Sections 2.1–2.4', 'scope': 'Correntropy is a similarity measure, not a posterior probability.', 'verification_status': 'verified', 'verification_basis': 'Manual reading of the cited local PDF passages, 2026-09-11'}, {'claim_id': 'spa-isac-stability', 'chapter': '06_alignment_classification', 'anchor': 'isac', 'claim': 'Similar repeated class averages and FRC do not by themselves establish within-class homogeneity.', 'source_id': 'yang2012-supp', 'locator': 'PDF p.2, Section S2, Figs.S8–S10', 'scope': 'The supplemental experiment supports using per-particle alignment stability; not a universal purity guarantee.', 'verification_status': 'verified', 'verification_basis': 'Manual reading of the cited local PDF passages, 2026-09-11'}, {'claim_id': 'spa-gsup-updates', 'chapter': '06_alignment_classification', 'anchor': 'gamma-sup', 'claim': 'Gamma-SUP updates both centers and their representative data through a blurring self-updating process with local influence weights.', 'source_id': 'chen2014', 'locator': 'Sections 2.3,3.2, Eqs.(10–19)', 'scope': 'The compact-support regime assumes q<1 and gamma>1-q; it is not ordinary Gaussian-mixture EM.', 'verification_status': 'verified', 'verification_basis': 'Manual reading of the cited local PDF passages, 2026-09-11'}, {'claim_id': 'spa-2sdr-ranks', 'chapter': '06_dimension_reduction', 'anchor': 'two-stage', 'claim': '2SDR combines MPCA rank reduction with PCA of the compressed coefficients, using SURE then GIC for rank selection.', 'source_id': 'chung2020', 'locator': 'pp.293–297, Section 2, Eqs.(2.1–2.5), Fig.1', 'scope': 'Rank consistency depends on model and theorem assumptions; hand-chosen ranks are a teaching simplification.', 'verification_status': 'verified', 'verification_basis': 'Manual reading of the cited local PDF passages, 2026-09-11'}, {'claim_id': 'spa-map-regularization', 'chapter': '06_reconstruction_validation', 'anchor': 'map-reconstruction', 'claim': 'The MAP reconstruction update adds prior precision to a CTF/noise-weighted reconstruction denominator.', 'source_id': 'scheres2012bayes', 'locator': 'p.410, Eqs.(8–12)', 'scope': 'Gaussian prior regularizes uncertain frequencies; no recovery guarantee at unobserved frequencies.', 'verification_status': 'verified', 'verification_basis': 'Manual reading of the cited local PDF passages, 2026-09-11'}, {'claim_id': 'spa-sgd-marginalization', 'chapter': '06_reconstruction_validation', 'anchor': 'cryosparc', 'claim': 'The cryoSPARC ab initio objective marginalizes class and pose before stochastic gradient updates.', 'source_id': 'punjani2017-supp', 'locator': 'PDF pp.1–4, Supplementary Note 1, Eqs.(1–9)', 'scope': 'Uniform class probabilities and pose prior are settings of this paper, not universal assumptions.', 'verification_status': 'verified', 'verification_basis': 'Manual reading of the cited local PDF passages, 2026-09-11'}, {'claim_id': 'spa-3dva-fixed-poses', 'chapter': '06_heterogeneity', 'anchor': '3dva', 'claim': '3DVA fits linear variability with a supplied consensus map, poses and CTFs; the implementation uses the PPCA limiting least-squares updates.', 'source_id': 'punjani2021', 'locator': 'PDF p.12, Section 5.2, Eqs.(4–8)', 'scope': 'Latent coordinates are not time; pose errors may affect variability estimates.', 'verification_status': 'verified', 'verification_basis': 'Manual reading of the cited local PDF passages, 2026-09-11'}, {'claim_id': 'spa-shared-bias-fsc', 'chapter': '06_resolution_validation', 'anchor': 'fsc-bias', 'claim': 'Shared systematic errors can inflate agreement between half maps, so FSC does not by itself certify structural correctness.', 'source_id': 'sorzano2022', 'locator': 'pp.419–420, Section 5.1, Eqs.(3–4)', 'scope': 'This motivates complementary bias checks, not abandoning independent half-set validation.', 'verification_status': 'verified', 'verification_basis': 'Manual reading of the cited local PDF passages, 2026-09-11'}])
 
 
 def sha256_file(path: Path) -> str:
@@ -196,10 +218,16 @@ def classify(relative_path: str, sha: str, canonical_for_sha: dict[str, str]) ->
     metadata = _chapter_metadata(relative_path) or STANDALONE.get(relative_path)
     if metadata:
         return {**metadata, "content_role": "substantive"}
+    # Only known volume paratext is front matter. Unknown PDFs must be routed.
+    name = Path(relative_path).name
+    is_front = len(Path(relative_path).parts) == 2 and Path(relative_path).parts[0] in {"2010", "2016"} and any(
+        name.startswith(token + "_") for token in
+        ("Author-Index", "Contributors", "Copyright", "Preface", "Subject-Index", "Title-Page", "Volume-in-Series", "Series-Page")
+    )
     return {
-        "source_id": "frontmatter-" + sha[:12],
+        "source_id": ("frontmatter-" if is_front else "unrouted-") + sha[:12],
         "title": Path(relative_path).stem.replace("_", " "),
-        "content_role": "front_matter",
+        "content_role": "front_matter" if is_front else "unrouted",
         "coverage_status": None,
         "digest_path": None,
         "citation_key": None,
@@ -242,7 +270,7 @@ def seed_claims(registry: list[dict[str, Any]], path: Path, overwrite: bool = Fa
     rows = []
     for claim in CLAIMS:
         row = dict(claim)
-        row.update({"schema_version": SCHEMA_VERSION, "source_sha256": hashes[claim["source_id"]], "verification_status": "verified"})
+        row.update({"schema_version": SCHEMA_VERSION, "source_sha256": hashes[claim["source_id"]], "verification_status": claim.get("verification_status", "needs_review")})
         rows.append(row)
     write_jsonl(path, rows)
 
@@ -261,7 +289,7 @@ This is a public metadata snapshot. Extracted full text remains in the local
 - Pipeline version: {PIPELINE_VERSION}
 - Input PDF records: {len(registry)}
 - Unique SHA-256 values: {len(unique)}
-- Exact duplicate groups: {sum(1 for r in registry if r['duplicate_aliases']) // 2}
+- Exact duplicate groups: {len({r['sha256'] for r in registry if r['duplicate_aliases']})}
 - Successful extractions: {sum(r['extraction_status'] == 'ok' for r in registry)}
 - Substantive unique sources: {roles['substantive']}
 - Front matter records: {roles['front_matter']}
@@ -313,10 +341,21 @@ def upstream_ingest(args: argparse.Namespace) -> None:
     script = args.ingest_script or os.environ.get("DOCUMENT_INGEST_SCRIPT") or shutil.which("ingest_documents.py")
     if not script:
         raise RuntimeError("Source/cache SHA mismatch. Pass --ingest-script or set DOCUMENT_INGEST_SCRIPT to refresh extracted text.")
-    cmd = [sys.executable, str(script), str(args.source_root), "--output", str(args.cache_root)]
-    for term in ("cryo-em", "single-particle", "ctf", "fourier", "reconstruction", "uncertainty"):
-        cmd.extend(["--term", term])
-    subprocess.run(cmd, check=True)
+    # The generic CLI scans all extensions, including an existing in-tree cache.
+    # Reuse its extraction API with this project's explicit PDF-only source list.
+    import importlib.util
+    spec = importlib.util.spec_from_file_location("primer_document_ingest", script)
+    if spec is None or spec.loader is None:
+        raise RuntimeError(f"Cannot load document ingestion script: {script}")
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[spec.name] = module
+    spec.loader.exec_module(module)
+    text_dir = args.cache_root / "text"
+    text_dir.mkdir(parents=True, exist_ok=True)
+    records = [module.ingest_one(args.source_root / relative, args.source_root, text_dir,
+               ["cryo-em", "likelihood", "classification", "heterogeneity"])
+               for relative in sorted(live_pdf_state(args.source_root))]
+    module.write_outputs(records, args.source_root, args.cache_root)
 
 
 def ingest(args: argparse.Namespace) -> int:
@@ -369,6 +408,9 @@ def validate_paths(args: argparse.Namespace, emit: bool = True) -> dict[str, Any
     for relative_path in sorted(set(live) & set(registered)):
         if live[relative_path]["sha256"] != registered[relative_path]["sha256"]:
             errors.append(f"source SHA changed: {relative_path}")
+    for row in registry:
+        if row["content_role"] == "unrouted":
+            errors.append(f"unrouted PDF requires explicit review: {row['relative_path']}")
     substantive = [r for r in registry if r["content_role"] == "substantive"]
     ids = [r["source_id"] for r in substantive]
     if len(ids) != len(set(ids)):

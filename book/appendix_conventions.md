@@ -1,6 +1,6 @@
 # 慣例與術語速查
 
-這一頁整理最容易讓程式「算得動，答案卻轉了九十度」的細節。跨軟體交換資料前，先確認這裡列出的慣例。陣列形狀相同時，軸向與座標語意仍可能不同。
+這一頁整理影像處理常用的座標、單位與檔案慣例。跨軟體交換資料前，先確認這裡列出的慣例。陣列形狀相同時，軸向與座標語意仍可能不同。
 
 ## 本站固定用語
 
@@ -39,7 +39,7 @@ Euler 角有多套慣例。RELION、cryoSPARC、EMAN2 與程式庫可能使用�
 - matrix 的作用方向與明確座標方程；
 - image-plane-to-volume 或 volume-to-image 的方向。
 
-第 7 章的 `ground_truth.jsonl` 提供一個具體例子：`rot, tilt, psi` 使用 ASPIRE 的 ZYZ Euler angles，單位是 radians；`rotation_matrix` 則記錄同一個旋轉，並採用
+合成資料章的 `ground_truth.jsonl` 提供一個具體例子：`rot, tilt, psi` 使用 ASPIRE 的 ZYZ Euler angles，單位是 radians；`rotation_matrix` 則記錄同一個旋轉，並採用
 
 $$
 \mathbf q_{\mathrm{volume}}=R[k_x,k_y,0]^{\mathsf T}
@@ -54,7 +54,7 @@ $$
 3. **Particle stack** 是依 picking 座標從 micrograph 裁出的粒子影像集合。
 4. **3D map／volume** 是由大量未知方向的粒子影像估計出的三維密度。
 
-這四個資料層級具有不同的雜訊、中繼資料與校正方式；保留各自名稱可避免混淆。
+這四個資料層級的雜訊、中繼資料與校正方式不同，討論時要分清楚。
 
 ## MRC、MRCS 與 STAR
 
@@ -63,28 +63,44 @@ $$
 - STAR 儲存表格型中繼資料。影像位置常寫成 `index@stack.mrcs`；index 從 0 或 1 起算，請依格式規格確認。
 - 讀取後先核對資料用途，再查看 shape、dtype、pixel size、影像順序與 CTF 群組。顯示第一張、中間一張與最後一張影像，也能快速發現索引偏移或軸順序錯誤。
 
-## 理解檢查
+## SPA 公式中的統一記號
 
-1. 一個 shape 為 `(128, 128)` 的陣列，還需要哪些資訊才能判斷第一軸是 \(x\) 或 \(y\)？
+| 記號 | 本篇意義 |
+|---|---|
+| $V$、$V_k$ | 三維密度與第 $k$ 個構形的密度 |
+| $y_i$、$X_i$ | 第 $i$ 張影像的向量或矩陣表示 |
+| $R_i$ | image-plane-to-volume 的三維旋轉 |
+| $\mathbf t_i$ | 平面內位移，須配合頻率的單位 |
+| $P_{R_i}$ | 在 $R_i$ 方向的投影算子 |
+| $H_i$ | Fourier 空間的 CTF；實空間對應 PSF |
+| $z_i$ | 統計推論章中未知的角度、位移與可能的類別；異質性章會另外定義連續座標 |
+| $r_i(z)$ | 給定影像與目前模型後的正規化候選權重 |
+| $\sigma^2$、$\Sigma$ | 雜訊變異數、雜訊共變異數矩陣 |
 
-```{dropdown} 參考答案
-先查讀取程式的索引慣例，再核對 header 與中繼資料，最後用已知方向的影像確認顯示結果。Shape 只記錄每個軸的長度；第一軸可能是 row、$y$、section 或其他量。
+在 SPA 篇的旋轉定義下，投影與 Fourier slice 一起寫成
 
-NumPy 影像通常使用 `[row, column]`，也就是 `[y,x]`，但這項慣例無法由 `(128, 128)` 本身判斷。顯示時還要確認 `origin` 設定。
-```
+$$
+(P_RV)(x,y)=\int V(R[x,y,z]^{\mathsf T})\,dz,
+\qquad
+\widehat{P_RV}(k_x,k_y)=\widehat V(R[k_x,k_y,0]^{\mathsf T}).
+$$
 
-2. 兩套軟體都輸出 `(rot, tilt, psi)`，交換前還要核對哪些慣例？
+若某個來源把旋轉定義為 volume-to-image，該來源的矩陣 $R_{\mathrm{v2i}}$ 與本篇關係為 $R_{\mathrm{v2i}}=R^{\mathsf T}$。先比較座標方程，再比較矩陣數值，就能看出公式為何在不同位置使用轉置。
 
-```{dropdown} 參考答案
-先核對 Euler 軸順序與角度單位，再確認主動或被動旋轉、座標手性，以及 rotation matrix 究竟把 image-plane 座標映到 volume，或採相反方向。欄位名稱相同，只能確認三個數字的標籤相同。
+## 像素、頻率與統計量的換算例子
 
-接著用一個已知向量或已知投影，比較兩套軟體產生的 $3\times3$ rotation matrix 與實際作用結果。觀察方向、手性或平面內角度不一致時，先停止批次轉換，回頭檢查上述慣例。
-```
+像素大小為 2.82 Å/pixel 時，Nyquist 頻率為 $1/(2\times2.82)\approx0.1773$ Å⁻¹，對應的理想取樣長度是 5.64 Å。實驗可達解析度還受劑量、CTF、取向與估計誤差影響。
 
-3. 同樣 shape 為 `(100, 128, 128)` 的 MRC 資料，為何可能代表 100 張粒子影像，也可能代表一個 3D 體積？讀取時應如何判斷？
+以 Å⁻¹ 表示的頻率 $\mathbf k$，要搭配以 Å 表示的位移 $\mathbf t$，使平移因子 $e^{-2\pi\mathrm{i}\mathbf k\cdot\mathbf t}$ 的指數無單位。若程式使用 cycles/pixel，位移就應使用 pixels。
 
-```{dropdown} 參考答案
-先查檔案用途與中繼資料，再看副檔名、MRC header、voxel size 與軸對應。對 particle stack 而言，第一軸通常列舉 100 張互相獨立的 2D 影像；對 3D map 而言，第一軸通常列舉同一體積的 100 個切片。Shape 只記錄軸長，因此兩者都可能是 `(100, 128, 128)`。
+本篇 SNR 採訊號功率除以雜訊功率，SSNR 用各頻率的功率比；採振幅比的來源需要平方後才能比較。共變異數估計、遮罩、扣平均與頻帶範圍也要一併說明。全影像的單一 SNR 和局部頻帶 SNR 分別描述不同尺度的資訊。
 
-`.mrcs` 常用於影像堆疊，但副檔名無法單獨決定內容。可讀取數張索引影像、核對 STAR 的 `index@stack.mrcs` 對應；若預期是 3D volume，則在檢視器查看三個正交切面是否形成連續體積。
-```
+## 檔案之間如何對照？
+
+MRCS 存放影像堆疊，STAR 記錄影像索引、CTF 與其他參數。只有 STAR 而沒有對應影像，無法重建粒子像素；只有 MRCS 而缺少必要的 CTF 與像素資訊，則容易用錯成像模型。合成資料另提供已知真值，讀取時應逐筆以影像索引對應，避免將真值順序與重新排序的粒子堆疊混用。
+
+## 延伸閱讀
+
+- **Singer, A. 與 Sigworth, F. J.（2020）．*Computational Methods for Single-Particle Electron Cryomicroscopy*. Annual Review of Biomedical Data Science, 3, 163–190。** [開放全文](https://pmc.ncbi.nlm.nih.gov/articles/PMC8412055/)；第 2 節的成像模型提供投影、CTF 與座標的脈絡 {cite}`singer2020`。
+- **3DEM conventions：** [旋轉慣例對照](https://github.com/azazellochg/3DEM-conventions)。交換 Euler angles 時對照軸順序、主動／被動旋轉與矩陣作用方向，並使用一個已知投影確認。
+- **MRC2014：** [格式規格](https://www.ccpem.ac.uk/mrc_format/mrc2014.php)。讀 header 的軸向、取樣與 voxel size 欄位，搭配合成資料章的讀取例子。

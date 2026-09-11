@@ -1,0 +1,38 @@
+{
+  "pages": 12,
+  "viewports": [
+    1440,
+    390
+  ],
+  "observations": 24,
+  "failures": [],
+  "math_counts": {
+    "00_intro": 0,
+    "05_background": 51,
+    "05_image_formation": 135,
+    "05_statistical_inference": 85,
+    "06_workflow": 33,
+    "06_alignment_classification": 89,
+    "06_dimension_reduction": 94,
+    "06_reconstruction_validation": 92,
+    "06_heterogeneity": 72,
+    "06_resolution_validation": 100,
+    "08_resources": 0,
+    "appendix_conventions": 23
+  },
+  "details_counts": {
+    "00_intro": 0,
+    "05_background": 0,
+    "05_image_formation": 1,
+    "05_statistical_inference": 2,
+    "06_workflow": 0,
+    "06_alignment_classification": 1,
+    "06_dimension_reduction": 2,
+    "06_reconstruction_validation": 2,
+    "06_heterogeneity": 1,
+    "06_resolution_validation": 1,
+    "08_resources": 0,
+    "appendix_conventions": 0
+  },
+  "evidence_directory": "notes/spa_revision_20260911/browser/"
+}

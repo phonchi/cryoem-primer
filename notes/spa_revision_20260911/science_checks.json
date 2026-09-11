@@ -1,0 +1,49 @@
+{
+  "particles_per_square_micron": 96.35200000000002,
+  "particles_per_hole": 108.97154472912617,
+  "holes_for_200000": 1835.3415150454734,
+  "dose_upper_scale_Gy": 38452239.216,
+  "correlated_mean_variance_factor": 0.010099,
+  "effective_independent_count": 99.01970492127933,
+  "weak_phase_cross_term_sign": 2.0,
+  "first_ctf_zero_angstrom": 14.035668847618199,
+  "defocus_pi_error_nm": 62.182741116751274,
+  "cs_phase_in_pi": 0.6877969879216992,
+  "delocalization_angstrom": 123.82857142857142,
+  "dqe_ssnr_outputs": [
+    0.05,
+    0.008
+  ],
+  "dqe_count_ratio": 6.25,
+  "translation_amplitude": [
+    0.5779248964927293,
+    0.11155412024665472
+  ],
+  "rotation_tangential_sd_pixels": 1.928588823453734,
+  "rotation_edge_tangential_amplitude": 0.13010423645470587,
+  "independent_reference_distance_threshold": 321.09999999999997,
+  "rectangular_matrix_singular_values": [
+    1.7320508075688772,
+    1.0
+  ],
+  "coupled_least_squares_solution": [
+    1.0,
+    2.0
+  ],
+  "ctf_merge": {
+    "precision": 1.21,
+    "unregularized_mse": 0.8264462809917356,
+    "map_mean": 0.5475113122171945,
+    "map_variance": 0.24774267521140025,
+    "map_bias_squared": 0.20474601257140523,
+    "map_mse": 0.4524886877828055
+  },
+  "fsc_half_to_full_ssnr": {
+    "0.143": 0.3337222870478413,
+    "0.14285714285714285": 0.3333333333333333,
+    "0.2": 0.5,
+    "0.5": 2.0
+  },
+  "shared_bias_correlation": 0.5,
+  "unbiased_correlation": 0.2
+}
