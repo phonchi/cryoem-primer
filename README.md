@@ -6,6 +6,11 @@
 - 教材來源：`book/`
 - 每個可執行章節皆提供 Jupyter notebook。
 
+一般影像處理四章依原始 notebook 的教學順序、圖片與參數編排：像素與幾何 → 局部濾波與分割 → Fourier、金字塔與特徵 → 小波與去雜訊。原有數值例子和靜態圖保留；已確認的科學敘述及淘汰 API 另作修正。逐 cell 對照保存在 `notes/image_revision_20260913/ch01_coverage.md` 至 `ch04_coverage.md`。
+
+幾何變換、一維／二維卷積、Fourier 基底與濾波掃描，可直接在瀏覽器操作。互動以本機 JavaScript／Canvas 執行，不需要 Python 伺服器、API key 或付費服務；Python 靜態圖提供相同實驗的數值對照。第 7 章仍是獨立的 SPA 合成資料練習。
+
+
 ## 學生：建立環境與執行教材
 
 ```bash
@@ -14,6 +19,8 @@ conda activate cryoem-book
 python -m ipykernel install --user --name cryoem-book
 jupyter notebook
 ```
+
+圖片存於 `book/images/original_notebooks/`，共用顯示與互動程式位於 `book/_support/` 及 `book/_support/image-lab/`。執行下載的 notebook 時，請保留這些相對目錄。
 
 第一次執行第 7 章時，可先把影像數設為 100；確認流程後再產生完整的 5,000 張影像。輸出資料夾內會包含 STAR、MRCS 與每張影像的已知真值。
 
@@ -30,4 +37,6 @@ make build-full
 make linkcheck
 ```
 
-`.py` 是可執行章節的 Jupytext 來源，修改後需同步 `.ipynb`。推送 `main` 後，GitHub Actions 會建立並部署網站。
+`.py` 是可執行章節的 Jupytext 來源，修改後需同步相應 `.ipynb`。只改特定章節時，使用 `jupytext --sync book/章節名稱.py`，避免重新同步未修改章節。
+
+原始圖片與示意圖的來源、尺寸及雜湊記於 `notes/image_revision_20260913/assets.json`。`scripts/fetch_original_assets.py` 可依專案父目錄的四份原 notebook 重新擷取素材；原 notebook 是來源，不應被教材同步流程覆寫。引用路由由 `scripts/reference_pipeline.py validate` 核對。推送 `main` 後，GitHub Actions 會建立並部署網站。

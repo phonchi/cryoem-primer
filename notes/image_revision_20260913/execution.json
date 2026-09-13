@@ -1,0 +1,34 @@
+[
+  {
+    "chapter": "01_image_basics",
+    "seconds": 6.3,
+    "cells": 279,
+    "code_cells": 178,
+    "errors": 0,
+    "source_sha256": "c42cc47990569fbc2b2b34e69b3671129c199ab5a2485738b05331619fac8ed7"
+  },
+  {
+    "chapter": "02_filter_segment",
+    "seconds": 4.28,
+    "cells": 136,
+    "code_cells": 56,
+    "errors": 0,
+    "source_sha256": "db7e06877283295aef7e8707b3a70ebbcca3c56ee3b38848a0f4f59f2dea3974"
+  },
+  {
+    "chapter": "03_fourier",
+    "seconds": 11.2,
+    "cells": 131,
+    "code_cells": 52,
+    "errors": 0,
+    "source_sha256": "a5478b450dd0b147abed77fed6447052b2c5c96b22750e50a8f428cab07b4475"
+  },
+  {
+    "chapter": "04_wavelet",
+    "seconds": 4.84,
+    "cells": 73,
+    "code_cells": 48,
+    "errors": 0,
+    "source_sha256": "189eaffce0995875050d3a6f475cab6c3ef11b97394c8673e8f641c5020b915a"
+  }
+]

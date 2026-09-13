@@ -71,10 +71,6 @@ def test_no_ai_tool_residue_or_mainland_terms():
 
 def test_protected_chapters_keep_original_understanding_checks():
     expected = {
-        "01_image_basics.py": 5,
-        "02_filter_segment.py": 5,
-        "03_fourier.py": 5,
-        "04_wavelet.py": 4,
         "07_synthetic_data.py": 5,
     }
     for name, count in expected.items():
@@ -112,6 +108,30 @@ def test_revised_pages_integrate_checks_and_include_reading():
 def test_protected_chapters_and_assets_are_byte_identical():
     import hashlib
     import json
-    manifest = json.loads((ROOT / "notes/spa_revision_20260911/protected_files.json").read_text())
+    manifest = json.loads((ROOT / "notes/image_revision_20260913/protected_files.json").read_text())
     for relative, expected in manifest.items():
         assert hashlib.sha256((ROOT / relative).read_bytes()).hexdigest() == expected, relative
+
+
+def test_general_chapters_follow_originals_without_spa_or_quizzes():
+    import jupytext
+    names = ["01_image_basics", "02_filter_segment", "03_fourier", "04_wavelet"]
+    for name in names:
+        notebook = jupytext.read(BOOK / f"{name}.py")
+        prose = "\n".join(c.source for c in notebook.cells if c.cell_type == "markdown")
+        assert "理解檢查" not in prose, name
+        assert "參考答案" not in prose, name
+        assert not re.search(r"cryo|\bSPA\b|\bCTF\b|\bMRC\b", prose, re.I), name
+        assert "延伸閱讀" in prose, name
+        assert "source-cells:" in (BOOK / f"{name}.py").read_text(), name
+
+
+def test_restored_notebooks_are_paired_and_executed():
+    import jupytext
+    import nbformat
+    for name in ["01_image_basics", "02_filter_segment", "03_fourier", "04_wavelet"]:
+        script = jupytext.read(BOOK / f"{name}.py")
+        notebook = nbformat.read(BOOK / f"{name}.ipynb", as_version=4)
+        assert [(c.cell_type,c.source) for c in script.cells] == [(c.cell_type,c.source) for c in notebook.cells], name
+        assert not [o for c in notebook.cells for o in c.get("outputs",[]) if o.output_type == "error"], name
+        assert any("image/png" in o.get("data",{}) for c in notebook.cells for o in c.get("outputs",[])), name

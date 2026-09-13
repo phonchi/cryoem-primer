@@ -111,8 +111,6 @@ $$
 
 $s$ 是空間頻率、$\Delta f$ 是離焦、$\lambda$ 是電子波長、$C_s$ 是球面像差、$w$ 是振幅對比比例，$E(s)$ 是包絡。採用 $E(0)=1$ 的包絡正規化。零頻率處 $\chi(0)=0$，所以 $H(0)=-w$；$w=0.15$ 時 $H(0)=-0.15$。{doc}`07_synthetic_data` 使用同一組公式與慣例。不同軟體對離焦正負號、Fourier 指數與額外 phase shift 的慣例可能不同；比較參數時要連同 convention 一起看。
 
-與{doc}`03_fourier`對照時，先把額外 phase shift 設為零。本章的 $\chi$ 是一般 Fourier 章所用相位的負值；由 $\sin(-\chi)=-\sin\chi$、$\cos(-\chi)=\cos\chi$，在振幅對比與包絡設定相同時，兩章得到相同的 CTF。符號的改寫沒有改變影像的預測。
-
 電子波長由加速電壓決定。以相對論修正的近似式計算，200 kV 對應 $\lambda\approx0.0251\ \mathrm{\mathring A}$，300 kV 對應 $\lambda\approx0.0197\ \mathrm{\mathring A}$。這兩個數字會反覆出現在下面的估算中。
 
 ### 零點的位置可以直接算
@@ -156,6 +154,32 @@ $$
 :name: fig-ctf-theory
 不同離焦下的對比轉移示意。曲線的振盪由 $\chi(s)$ 決定，整體高頻衰減則來自包絡；兩者是不同機制。
 ```
+
+(ctf-correction-example)=
+````{dropdown} 數值例：CTF 參數、phase flipping 與 Wiener 校正
+第一張圖比較純相位 CTF 與加入振幅對比、phase shift、包絡後的曲線，參數為 300 kV、離焦 1.5 µm、球差 2.7 mm。此例的程式採
+
+$$
+\gamma(s)=\pi\lambda\Delta f s^2-\tfrac\pi2 C_s\lambda^3s^4+\phi,
+\qquad H=-E\,[\sqrt{1-w^2}\sin\gamma+w\cos\gamma].
+$$
+
+它與本章採用的 $\chi=-\gamma$ 寫法相容。比較不同公式時，需同時核對相位定義與 CTF 前面的符號。
+
+```{figure} images/spa/ctf_terms_migrated.png
+:alt: 純相位 CTF 與加入振幅對比、相位位移及包絡後的曲線。
+曲線比較使用振幅對比 0.1、額外相位 0.15 rad 與包絡 B=40 Å²；每個參數改變的效應要分開觀察。
+```
+
+再取 70S 三維密度沿一個固定方向的投影，以 2.82 Å/pixel 取樣，加入 CTF 與白高斯雜訊。此圖使用振幅對比 0.1、B=30 Å²、雜訊標準差為乾淨投影標準差的 0.03 倍；Wiener 項取 $K=0.03$。
+
+```{figure} images/spa/ctf_correction_migrated.png
+:alt: 70S 理想投影、經 CTF 加雜訊的觀測、phase flipping 及 Wiener 校正的四圖比較。
+Phase flipping 乘上 $\operatorname{sign}(H)$，保留各非零頻率的振幅；Wiener 校正乘上 $H^*/(|H|^2+K)$，同時調整振幅與抑制不穩定頻帶。各圖採各自顯示範圍，對比強弱要連同公式解讀。
+```
+
+這些運算使用同一張觀測影像，零點附近的訊號仍受到資料限制。完整成像與已知真值的產生方式見{doc}`07_synthetic_data`。
+````
 
 (detectors)=
 ## DED 與 DQE：偵測器保留了多少資訊

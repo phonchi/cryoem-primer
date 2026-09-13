@@ -1,0 +1,713 @@
+{
+  "assets": [
+    {
+      "name": "ch01-cell4-1.png",
+      "url": "https://drive.google.com/uc?id=16zc4EH8oi7RtJboZGC8Cw1mWVikKGwZB",
+      "sources": [
+        {
+          "notebook": "01_image_processing_1_zh.ipynb",
+          "cell": 4
+        }
+      ],
+      "path": "book/images/original_notebooks/ch01-cell4-1.png",
+      "sha256": "d6a18e92d1e58e2c6364d6e58b818a09e4adbbf18c0490776db0f33049d41b2f",
+      "format": "PNG",
+      "size": [
+        911,
+        511
+      ],
+      "mode": "RGB",
+      "bytes": 117467
+    },
+    {
+      "name": "ch01-cell5-1.png",
+      "url": "https://drive.google.com/uc?id=170NOZD-HtG4jt-PBKwmY_oM8-acr3a92",
+      "sources": [
+        {
+          "notebook": "01_image_processing_1_zh.ipynb",
+          "cell": 5
+        }
+      ],
+      "path": "book/images/original_notebooks/ch01-cell5-1.png",
+      "sha256": "21ec91e3e1d1c589b76f0216948361c0b7015c4e8093d97abaf1c9eedad38a9e",
+      "format": "PNG",
+      "size": [
+        1059,
+        501
+      ],
+      "mode": "RGB",
+      "bytes": 224341
+    },
+    {
+      "name": "ch01-cell6-1.png",
+      "url": "https://drive.google.com/uc?id=170igILkg6b76ofZv1eOddgUuH7-wYpit",
+      "sources": [
+        {
+          "notebook": "01_image_processing_1_zh.ipynb",
+          "cell": 6
+        }
+      ],
+      "path": "book/images/original_notebooks/ch01-cell6-1.png",
+      "sha256": "7185902b206c2386e6054c5e2f78cb555f864dd3b20273067c61e54535815999",
+      "format": "PNG",
+      "size": [
+        997,
+        560
+      ],
+      "mode": "RGB",
+      "bytes": 574161
+    },
+    {
+      "name": "venusaur.png",
+      "url": "https://img.pokemondb.net/sprites/red-blue/normal/venusaur.png",
+      "sources": [
+        {
+          "notebook": "01_image_processing_1_zh.ipynb",
+          "cell": 18
+        }
+      ],
+      "path": "book/images/original_notebooks/venusaur.png",
+      "sha256": "459707d2351c0ef99216529706e9e908cd6f0a888468853496e9de9981527694",
+      "format": "PNG",
+      "size": [
+        56,
+        56
+      ],
+      "mode": "L",
+      "bytes": 650
+    },
+    {
+      "name": "ch01-cell59-1.png",
+      "url": "https://drive.google.com/uc?id=171RCIjgsQYhQTRv_xbUaviNi59staKjE",
+      "sources": [
+        {
+          "notebook": "01_image_processing_1_zh.ipynb",
+          "cell": 59
+        }
+      ],
+      "path": "book/images/original_notebooks/ch01-cell59-1.png",
+      "sha256": "5b8369b2c7e9a9711c1dac034fbf951fd7845ce880c2f6d19836eedd89963681",
+      "format": "PNG",
+      "size": [
+        865,
+        415
+      ],
+      "mode": "RGB",
+      "bytes": 27394
+    },
+    {
+      "name": "venusaur-f.png",
+      "url": "https://img.pokemondb.net/sprites/diamond-pearl/normal/venusaur-f.png",
+      "sources": [
+        {
+          "notebook": "01_image_processing_1_zh.ipynb",
+          "cell": 60
+        }
+      ],
+      "path": "book/images/original_notebooks/venusaur-f.png",
+      "sha256": "bd171d2113ab404254f9e7d7f1901b5f60acf9f70bf2e79a7d23ea832dbb73df",
+      "format": "PNG",
+      "size": [
+        80,
+        80
+      ],
+      "mode": "P",
+      "bytes": 1299
+    },
+    {
+      "name": "blastoise.png",
+      "url": "https://img.pokemondb.net/sprites/bank/normal/blastoise-mega.png",
+      "sources": [
+        {
+          "notebook": "01_image_processing_1_zh.ipynb",
+          "cell": 104
+        }
+      ],
+      "path": "book/images/original_notebooks/blastoise.png",
+      "sha256": "0c79691b1989eb6e8ccc4d85796edca737ce58fc2faf4c83872c00c23d1ae0fa",
+      "format": "PNG",
+      "size": [
+        128,
+        128
+      ],
+      "mode": "RGBA",
+      "bytes": 5465
+    },
+    {
+      "name": "charizard-mega-x.png",
+      "url": "https://img.pokemondb.net/sprites/go/normal/charizard-mega-x.png",
+      "sources": [
+        {
+          "notebook": "01_image_processing_1_zh.ipynb",
+          "cell": 113
+        }
+      ],
+      "path": "book/images/original_notebooks/charizard-mega-x.png",
+      "sha256": "36da4252ac6408f5a1c1117eb520afa8eceb479ea72d2764d3acc6784d1dc158",
+      "format": "PNG",
+      "size": [
+        256,
+        256
+      ],
+      "mode": "RGBA",
+      "bytes": 18342
+    },
+    {
+      "name": "charizard-mega-y.png",
+      "url": "https://img.pokemondb.net/sprites/go/normal/charizard-mega-y.png",
+      "sources": [
+        {
+          "notebook": "01_image_processing_1_zh.ipynb",
+          "cell": 113
+        }
+      ],
+      "path": "book/images/original_notebooks/charizard-mega-y.png",
+      "sha256": "217cab83b601fa52f434a409516c71c4d70eaa557d9728cdca690b9d3c84d9d7",
+      "format": "PNG",
+      "size": [
+        256,
+        256
+      ],
+      "mode": "RGBA",
+      "bytes": 18104
+    },
+    {
+      "name": "ch01-cell143-1.png",
+      "url": "https://drive.google.com/uc?id=173_GZa3-rLcI6-8NIDqWBSbEAG-Reqat",
+      "sources": [
+        {
+          "notebook": "01_image_processing_1_zh.ipynb",
+          "cell": 143
+        }
+      ],
+      "path": "book/images/original_notebooks/ch01-cell143-1.png",
+      "sha256": "ba4875ea6309ca6e3a6cea12b89261763848df63392969e5286cf6b7680331ba",
+      "format": "PNG",
+      "size": [
+        935,
+        312
+      ],
+      "mode": "RGB",
+      "bytes": 40598
+    },
+    {
+      "name": "ch01-cell143-2.png",
+      "url": "https://drive.google.com/uc?id=17409c95v1CWIF26JZyC30hIdur1YWLPL",
+      "sources": [
+        {
+          "notebook": "01_image_processing_1_zh.ipynb",
+          "cell": 143
+        }
+      ],
+      "path": "book/images/original_notebooks/ch01-cell143-2.png",
+      "sha256": "dc887c24ddb4fb589663513b3eba05052200f79becc865dc8f31bfb15d4fd7cd",
+      "format": "PNG",
+      "size": [
+        1046,
+        623
+      ],
+      "mode": "RGB",
+      "bytes": 69066
+    },
+    {
+      "name": "snorlax.png",
+      "url": "https://img.pokemondb.net/sprites/sun-moon/normal/snorlax.png",
+      "sources": [
+        {
+          "notebook": "02_images_processing_2_zh.ipynb",
+          "cell": 30
+        }
+      ],
+      "path": "book/images/original_notebooks/snorlax.png",
+      "sha256": "1e48095ba24cac163f06b95df26e4d0792af1a3affbc0855b932443f4d9eab2a",
+      "format": "PNG",
+      "size": [
+        256,
+        256
+      ],
+      "mode": "RGBA",
+      "bytes": 10564
+    },
+    {
+      "name": "ch02-cell109-1.png",
+      "url": "embedded original notebook image",
+      "sources": [
+        {
+          "notebook": "02_images_processing_2_zh.ipynb",
+          "cell": 109
+        }
+      ],
+      "path": "book/images/original_notebooks/ch02-cell109-1.png",
+      "sha256": "259a0359787f6ce52b45d4fc6ce079fdd409cf8e15bbd6e4d27759b522c45947",
+      "format": "PNG",
+      "size": [
+        850,
+        454
+      ],
+      "mode": "RGB",
+      "bytes": 102777
+    },
+    {
+      "name": "gengar.png",
+      "url": "https://img.pokemondb.net/sprites/go/normal/gengar-spooky-festival.png",
+      "sources": [
+        {
+          "notebook": "03_images_processing_3_zh.ipynb",
+          "cell": 1
+        },
+        {
+          "notebook": "04_images_processing_4_zh.ipynb",
+          "cell": 1
+        }
+      ],
+      "path": "book/images/original_notebooks/gengar.png",
+      "sha256": "0138fcb489e254fc865872e482c32050564ea683f7345f1012ab6d31ed6b8b0e",
+      "format": "PNG",
+      "size": [
+        256,
+        256
+      ],
+      "mode": "RGBA",
+      "bytes": 24467
+    },
+    {
+      "name": "lucario.png",
+      "url": "https://img.pokemondb.net/sprites/go/normal/lucario.png",
+      "sources": [
+        {
+          "notebook": "03_images_processing_3_zh.ipynb",
+          "cell": 1
+        },
+        {
+          "notebook": "04_images_processing_4_zh.ipynb",
+          "cell": 1
+        }
+      ],
+      "path": "book/images/original_notebooks/lucario.png",
+      "sha256": "010296c72e5386c2fabf517086db7dc6274cadf4824a421e27d7238a8dc2313b",
+      "format": "PNG",
+      "size": [
+        256,
+        256
+      ],
+      "mode": "RGBA",
+      "bytes": 13140
+    },
+    {
+      "name": "pikachu.png",
+      "url": "https://img.pokemondb.net/sprites/home/normal/pikachu-alola-cap.png",
+      "sources": [
+        {
+          "notebook": "03_images_processing_3_zh.ipynb",
+          "cell": 1
+        },
+        {
+          "notebook": "04_images_processing_4_zh.ipynb",
+          "cell": 1
+        }
+      ],
+      "path": "book/images/original_notebooks/pikachu.png",
+      "sha256": "3a94d8f92a97bc97560354057affb5571f81388821b11f8b70db88fbae5454c6",
+      "format": "PNG",
+      "size": [
+        256,
+        256
+      ],
+      "mode": "RGBA",
+      "bytes": 25478
+    },
+    {
+      "name": "dragonite.png",
+      "url": "https://img.pokemondb.net/sprites/go/normal/dragonite.png",
+      "sources": [
+        {
+          "notebook": "03_images_processing_3_zh.ipynb",
+          "cell": 1
+        },
+        {
+          "notebook": "04_images_processing_4_zh.ipynb",
+          "cell": 1
+        }
+      ],
+      "path": "book/images/original_notebooks/dragonite.png",
+      "sha256": "772d7f500f644980242cacb1b2c2b8cac144eca12b9e050bd48070034252b67f",
+      "format": "PNG",
+      "size": [
+        256,
+        256
+      ],
+      "mode": "RGBA",
+      "bytes": 22921
+    },
+    {
+      "name": "moonlanding.png",
+      "url": "https://raw.githubusercontent.com/PacktPublishing/Hands-On-Image-Processing-with-Python/master/images/moonlanding.png",
+      "sources": [
+        {
+          "notebook": "03_images_processing_3_zh.ipynb",
+          "cell": 1
+        },
+        {
+          "notebook": "04_images_processing_4_zh.ipynb",
+          "cell": 1
+        }
+      ],
+      "path": "book/images/original_notebooks/moonlanding.png",
+      "sha256": "160f1f46d416a2c30726629c87a01ab3d6af2655f6d83759e996774f7caaca2d",
+      "format": "PNG",
+      "size": [
+        630,
+        474
+      ],
+      "mode": "L",
+      "bytes": 216481
+    },
+    {
+      "name": "chess_football.png",
+      "url": "https://raw.githubusercontent.com/PacktPublishing/Hands-On-Image-Processing-with-Python/master/images/chess_football.png",
+      "sources": [
+        {
+          "notebook": "03_images_processing_3_zh.ipynb",
+          "cell": 1
+        },
+        {
+          "notebook": "04_images_processing_4_zh.ipynb",
+          "cell": 1
+        }
+      ],
+      "path": "book/images/original_notebooks/chess_football.png",
+      "sha256": "6a0e80e9322937ae855913c0845d3cd48e5a64e0e0127a564a46eaaea7005b3b",
+      "format": "PNG",
+      "size": [
+        701,
+        355
+      ],
+      "mode": "RGBA",
+      "bytes": 58002
+    },
+    {
+      "name": "ch03-cell28-1.png",
+      "url": "https://drive.google.com/uc?id=1ArBNhQHt4OHQX6fGRsQP80J9I8e8GpyI",
+      "sources": [
+        {
+          "notebook": "03_images_processing_3_zh.ipynb",
+          "cell": 28
+        }
+      ],
+      "path": "book/images/original_notebooks/ch03-cell28-1.png",
+      "sha256": "df642c49cbf2654f95ef781578c7e4f9e8579549387346e9210f2d07a13d052e",
+      "format": "PNG",
+      "size": [
+        850,
+        107
+      ],
+      "mode": "RGB",
+      "bytes": 19111
+    },
+    {
+      "name": "ch03-cell28-2.png",
+      "url": "https://drive.google.com/uc?id=1AyaTNoPLbMAmpS3eruaZiA9JsiuQtQYk",
+      "sources": [
+        {
+          "notebook": "03_images_processing_3_zh.ipynb",
+          "cell": 28
+        }
+      ],
+      "path": "book/images/original_notebooks/ch03-cell28-2.png",
+      "sha256": "6e36f9709341c9946f834509028c4794974545147baab60f891b062aa268b4ba",
+      "format": "PNG",
+      "size": [
+        957,
+        144
+      ],
+      "mode": "RGB",
+      "bytes": 23919
+    },
+    {
+      "name": "ch03-cell46-1.png",
+      "url": "https://drive.google.com/uc?id=1B5QZeuQ3NiujL7GZjN69DMWR7NoBwuXq",
+      "sources": [
+        {
+          "notebook": "03_images_processing_3_zh.ipynb",
+          "cell": 46
+        }
+      ],
+      "path": "book/images/original_notebooks/ch03-cell46-1.png",
+      "sha256": "b322cc6ae3247c20e614e994d19b36fe400900bf90c1c9e8f0085f8783a2733a",
+      "format": "PNG",
+      "size": [
+        1158,
+        416
+      ],
+      "mode": "RGB",
+      "bytes": 99173
+    },
+    {
+      "name": "ch03-cell47-1.png",
+      "url": "https://drive.google.com/uc?id=1BAhUknFnpeQeRdqO8LaviZksTv7l_nQ-",
+      "sources": [
+        {
+          "notebook": "03_images_processing_3_zh.ipynb",
+          "cell": 47
+        }
+      ],
+      "path": "book/images/original_notebooks/ch03-cell47-1.png",
+      "sha256": "e002d2b58c9d8cf13eed0cef3e57d84fc80503c8c93349b3b34f6f3b23fc14e8",
+      "format": "PNG",
+      "size": [
+        1153,
+        403
+      ],
+      "mode": "RGB",
+      "bytes": 75067
+    },
+    {
+      "name": "ch03-cell101-1.png",
+      "url": "https://drive.google.com/uc?id=1BLZ-Chch9k3r9EHNsnkbi75maq_a7n-y",
+      "sources": [
+        {
+          "notebook": "03_images_processing_3_zh.ipynb",
+          "cell": 101
+        }
+      ],
+      "path": "book/images/original_notebooks/ch03-cell101-1.png",
+      "sha256": "ab82a391c0ec50ebddec1118c4456cf00bebc7545ad72f0304ac7722d3c0cd28",
+      "format": "PNG",
+      "size": [
+        668,
+        504
+      ],
+      "mode": "RGB",
+      "bytes": 51872
+    },
+    {
+      "name": "ch03-cell101-2.png",
+      "url": "https://drive.google.com/uc?id=1BOq0GkhwEvPCRG6YGpZCClzvcVryP1RQ",
+      "sources": [
+        {
+          "notebook": "03_images_processing_3_zh.ipynb",
+          "cell": 101
+        }
+      ],
+      "path": "book/images/original_notebooks/ch03-cell101-2.png",
+      "sha256": "6e7fdf80343f29e3d8fe9a3b46a8b3586678036c1405b5b727b17b92b19c8f71",
+      "format": "PNG",
+      "size": [
+        982,
+        554
+      ],
+      "mode": "RGB",
+      "bytes": 39054
+    },
+    {
+      "name": "ch03-cell114-1.png",
+      "url": "https://drive.google.com/uc?id=1C-bXNQH9ad1HNGMHvqh4XUJjHAoZ8FcZ",
+      "sources": [
+        {
+          "notebook": "03_images_processing_3_zh.ipynb",
+          "cell": 114
+        }
+      ],
+      "path": "book/images/original_notebooks/ch03-cell114-1.png",
+      "sha256": "47547e3761e63f3b6672e35165f0c6861288c6776fb73d88ff1e83cc237dd525",
+      "format": "PNG",
+      "size": [
+        1053,
+        305
+      ],
+      "mode": "RGB",
+      "bytes": 31525
+    },
+    {
+      "name": "ch03-cell114-2.png",
+      "url": "https://drive.google.com/uc?id=1BPel1EjTj2gqHeHNlT2uz80CaXhd2vlr",
+      "sources": [
+        {
+          "notebook": "03_images_processing_3_zh.ipynb",
+          "cell": 114
+        }
+      ],
+      "path": "book/images/original_notebooks/ch03-cell114-2.png",
+      "sha256": "2c8b6c263e6e93c9f9c91a606d9418aaa4736346676eb47447c6770c33dcd840",
+      "format": "PNG",
+      "size": [
+        720,
+        456
+      ],
+      "mode": "RGB",
+      "bytes": 184877
+    },
+    {
+      "name": "ch04-cell3-1.png",
+      "url": "https://drive.google.com/uc?id=1C8ITJkJtXxewppV0I-7AGm2qHRYCkk_J",
+      "sources": [
+        {
+          "notebook": "04_images_processing_4_zh.ipynb",
+          "cell": 3
+        }
+      ],
+      "path": "book/images/original_notebooks/ch04-cell3-1.png",
+      "sha256": "d63d9f18adc11acdb7bb231ec7170b34727bb100a9eafbe9302af95dc673cd5b",
+      "format": "PNG",
+      "size": [
+        856,
+        378
+      ],
+      "mode": "RGBA",
+      "bytes": 96937
+    },
+    {
+      "name": "ch04-cell4-1.png",
+      "url": "https://drive.google.com/uc?id=1C8ZHTWEzMP2ccNgVxkuE6ShcRu4ut9JT",
+      "sources": [
+        {
+          "notebook": "04_images_processing_4_zh.ipynb",
+          "cell": 4
+        }
+      ],
+      "path": "book/images/original_notebooks/ch04-cell4-1.png",
+      "sha256": "51ccd48814f01c07d6e79d264408e8a6eef9b3c1dd80d049f1d81db1ffb3ca34",
+      "format": "JPEG",
+      "size": [
+        622,
+        607
+      ],
+      "mode": "RGB",
+      "bytes": 74273
+    },
+    {
+      "name": "ch04-cell6-1.png",
+      "url": "https://drive.google.com/uc?id=1C8pVteFtFA2ElDVq-tTAuSEc4hqIToOX",
+      "sources": [
+        {
+          "notebook": "04_images_processing_4_zh.ipynb",
+          "cell": 6
+        }
+      ],
+      "path": "book/images/original_notebooks/ch04-cell6-1.png",
+      "sha256": "19c5054aaca397382daf58b1de22f6f68e010e0e28745a6e37eadb93264ef921",
+      "format": "JPEG",
+      "size": [
+        413,
+        123
+      ],
+      "mode": "RGB",
+      "bytes": 22460
+    },
+    {
+      "name": "ch04-cell7-1.png",
+      "url": "https://drive.google.com/uc?id=1UBQ-rJAtcM8GxzzkOvKcS47Z2ZGM2K9S",
+      "sources": [
+        {
+          "notebook": "04_images_processing_4_zh.ipynb",
+          "cell": 7
+        }
+      ],
+      "path": "book/images/original_notebooks/ch04-cell7-1.png",
+      "sha256": "5342ef3faf01e4f5d69abcea7593cd3b3107421ca4e754eaff1b157a4c33ec2e",
+      "format": "PNG",
+      "size": [
+        393,
+        94
+      ],
+      "mode": "RGBA",
+      "bytes": 7186
+    },
+    {
+      "name": "ch04-cell22-1.png",
+      "url": "https://drive.google.com/uc?id=1CBbSFKCbAd1aeHM0Iwr0cqMlPhV2USl8",
+      "sources": [
+        {
+          "notebook": "04_images_processing_4_zh.ipynb",
+          "cell": 22
+        }
+      ],
+      "path": "book/images/original_notebooks/ch04-cell22-1.png",
+      "sha256": "eeb7f8445fbe1490ff3568ad4e19a793fa4f468795a7bf5cbaad35b2aaae17aa",
+      "format": "PNG",
+      "size": [
+        1024,
+        670
+      ],
+      "mode": "RGBA",
+      "bytes": 204795
+    },
+    {
+      "name": "ch04-cell22-2.png",
+      "url": "https://drive.google.com/uc?id=1CSQ4p28-P0LAV94d_cJ-qLHKTw29_S2A",
+      "sources": [
+        {
+          "notebook": "04_images_processing_4_zh.ipynb",
+          "cell": 22
+        }
+      ],
+      "path": "book/images/original_notebooks/ch04-cell22-2.png",
+      "sha256": "f67113bb757558d3aafd9b250f6e3c7d6e1c583d5929c1767c1afcd1bd1050d5",
+      "format": "PNG",
+      "size": [
+        950,
+        319
+      ],
+      "mode": "RGB",
+      "bytes": 21962
+    },
+    {
+      "name": "ch04-cell26-1.png",
+      "url": "https://drive.google.com/uc?id=1CKm-W2KyjcBTtq8HJ5BtihIkX8_qFjfw",
+      "sources": [
+        {
+          "notebook": "04_images_processing_4_zh.ipynb",
+          "cell": 26
+        }
+      ],
+      "path": "book/images/original_notebooks/ch04-cell26-1.png",
+      "sha256": "b8b28bf379faaf7aa6c8512aa7c719d711423e3de3bc51ed134ab67b21fcabdd",
+      "format": "PNG",
+      "size": [
+        516,
+        271
+      ],
+      "mode": "RGB",
+      "bytes": 12353
+    },
+    {
+      "name": "ch04-cell32-1.png",
+      "url": "https://drive.google.com/uc?id=1CCfQ-3lE1A3aHwnuI5rXipH6kF6SRnAr",
+      "sources": [
+        {
+          "notebook": "04_images_processing_4_zh.ipynb",
+          "cell": 32
+        }
+      ],
+      "path": "book/images/original_notebooks/ch04-cell32-1.png",
+      "sha256": "36e85b7bf9d206258d893b94a2fa007f716116a8d1bb3bf4140a538edcbd594d",
+      "format": "PNG",
+      "size": [
+        948,
+        329
+      ],
+      "mode": "RGB",
+      "bytes": 26808
+    },
+    {
+      "name": "ch03-cell28-3.png",
+      "url": "https://upload.wikimedia.org/wikipedia/commons/f/fa/2D_Fourier_Transform_and_Base_Images.png",
+      "path": "book/images/original_notebooks/ch03-cell28-3.png",
+      "sha256": "8a7b14d939eeaf78962307a9f42c3ff3485a3b86de4aff1bbe9f508b6c201dcc",
+      "format": "PNG",
+      "size": [
+        2390,
+        1158
+      ],
+      "mode": "RGBA",
+      "bytes": 1260230,
+      "sources": [
+        {
+          "notebook": "03_images_processing_3_zh.ipynb",
+          "cell": 28
+        }
+      ]
+    }
+  ],
+  "failures": []
+}

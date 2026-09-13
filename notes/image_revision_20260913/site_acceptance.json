@@ -1,0 +1,75 @@
+{
+  "pages": [
+    {
+      "chapter": "01_image_basics",
+      "width": 1440,
+      "broken_images": [],
+      "frames": [
+        "教學關係圖：geometry-family",
+        "影像處理互動：geometry"
+      ]
+    },
+    {
+      "chapter": "02_filter_segment",
+      "width": 1440,
+      "broken_images": [],
+      "frames": [
+        "影像處理互動：convolution1d",
+        "影像處理互動：convolution2d"
+      ]
+    },
+    {
+      "chapter": "03_fourier",
+      "width": 1440,
+      "broken_images": [],
+      "frames": [
+        "影像處理互動：fourier_basis",
+        "影像處理互動：filter_sweep"
+      ]
+    },
+    {
+      "chapter": "04_wavelet",
+      "width": 1440,
+      "broken_images": [],
+      "frames": [
+        "教學關係圖：wavelet-filterbank"
+      ]
+    },
+    {
+      "chapter": "01_image_basics",
+      "width": 390,
+      "broken_images": [],
+      "frames": [
+        "教學關係圖：geometry-family",
+        "影像處理互動：geometry"
+      ]
+    },
+    {
+      "chapter": "02_filter_segment",
+      "width": 390,
+      "broken_images": [],
+      "frames": [
+        "影像處理互動：convolution1d",
+        "影像處理互動：convolution2d"
+      ]
+    },
+    {
+      "chapter": "03_fourier",
+      "width": 390,
+      "broken_images": [],
+      "frames": [
+        "影像處理互動：fourier_basis",
+        "影像處理互動：filter_sweep"
+      ]
+    },
+    {
+      "chapter": "04_wavelet",
+      "width": 390,
+      "broken_images": [],
+      "frames": [
+        "教學關係圖：wavelet-filterbank"
+      ]
+    }
+  ],
+  "errors": []
+}

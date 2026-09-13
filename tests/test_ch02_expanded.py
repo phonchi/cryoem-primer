@@ -1,59 +1,25 @@
-"""Numerical checks for the expanded filtering and segmentation chapter."""
-
-from pathlib import Path
-import runpy
-
-import matplotlib
+"""Numerical checks for the recovered step/Snorlax/page/coins examples."""
 import numpy as np
-import pytest
+from scipy.signal import convolve2d
 
+def test_original_step_averages(restored_chapter):
+    c=restored_chapter('02_filter_segment.py')
+    assert len(c['noisy_signal'])==100
+    assert len(c['smooth_signal3'])==98 and len(c['smooth_signal11'])==90
+    np.testing.assert_allclose(c['smooth_signal3'],np.convolve(c['noisy_signal'],np.ones(3)/3,'valid'))
+    np.testing.assert_allclose(c['smooth_signal11'],np.convolve(c['noisy_signal'],np.ones(11)/11,'valid'))
 
-matplotlib.use("Agg")
-import matplotlib.pyplot as plt
+def test_original_bright_square_and_hog(restored_chapter):
+    c=restored_chapter('02_filter_segment.py')
+    a=c['bright_square'];assert a.shape==(7,7)
+    out=convolve2d(a,np.ones((3,3))/9,mode='same')
+    assert np.isclose(out[3,3],1) and np.isclose(out[2,2],4/9)
+    # Original 128x128 Snorlax: 16x16 single-cell blocks, eight bins.
+    assert c['fd'].size==16*16*8
 
-
-CHAPTER = Path(__file__).resolve().parents[1] / "book" / "02_filter_segment.py"
-
-
-@pytest.fixture(scope="module")
-def chapter():
-    namespace = runpy.run_path(str(CHAPTER))
-    plt.close("all")
-    return namespace
-
-
-def test_noise_model_changes_filter_ranking(chapter):
-    gaussian_errors = chapter["gaussian_errors"]
-    impulse_errors = chapter["impulse_errors"]
-
-    assert gaussian_errors["Gaussian"] < gaussian_errors["median"]
-    assert impulse_errors["median"] < impulse_errors["Gaussian"]
-    assert gaussian_errors["Gaussian"] < gaussian_errors["noisy"]
-    assert impulse_errors["median"] < impulse_errors["noisy"]
-
-
-def test_local_threshold_handles_the_example_illumination_ramp(chapter):
-    scores = chapter["threshold_scores"]
-
-    assert scores["local"] > scores["fixed"]
-    assert scores["local"] > scores["Otsu"]
-    assert chapter["binary_iou"](
-        np.zeros((3, 3), dtype=bool), np.zeros((3, 3), dtype=bool)
-    ) == 1.0
-
-
-def test_morphology_restores_three_known_components(chapter):
-    labels = chapter["component_labels"]
-    properties = chapter["component_properties"]
-
-    assert labels.max() == 3
-    assert len(properties) == 3
-    assert chapter["clean_mask"][62, 55]
-
-
-def test_gradient_pyramid_and_hog_geometry(chapter):
-    assert chapter["gradient_magnitude"].shape == chapter["edge_input"].shape
-    assert chapter["canny_smoothed"].sum() < chapter["canny_without_smoothing"].sum()
-    assert len(chapter["gaussian_pyramid"]) == 4
-    assert chapter["features"].size == chapter["calculated_hog_length"]
-    assert chapter["features"].size == 14_076
+def test_watershed_original_labels_are_not_coin_instances(restored_chapter):
+    c=restored_chapter('02_filter_segment.py')
+    np.testing.assert_array_equal(np.unique(c['segmentation_coins']),[1,2])
+    areas=[p.area for p in c['properties']]
+    assert areas==[77442,38910]
+    assert sum(areas)==c['coins'].size

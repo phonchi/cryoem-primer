@@ -1,0 +1,139 @@
+{
+  "checks": [
+    {
+      "kind": "geometry",
+      "preset": "rigid",
+      "alpha_error": 0.0,
+      "display_error": 1.2135722998285488,
+      "shape": [
+        80,
+        80
+      ]
+    },
+    {
+      "kind": "geometry",
+      "preset": "origin",
+      "alpha_error": 0.0,
+      "display_error": 1.325963445916841,
+      "shape": [
+        80,
+        80
+      ]
+    },
+    {
+      "kind": "geometry",
+      "preset": "center",
+      "alpha_error": 0.0,
+      "display_error": 0.499893178527806,
+      "shape": [
+        80,
+        80
+      ]
+    },
+    {
+      "kind": "geometry",
+      "preset": "center50",
+      "alpha_error": 0.0,
+      "display_error": 0.49999211368766794,
+      "shape": [
+        80,
+        80
+      ]
+    },
+    {
+      "kind": "geometry",
+      "preset": "similarity",
+      "alpha_error": 0.0,
+      "display_error": 1.181756557213049,
+      "shape": [
+        80,
+        80
+      ]
+    },
+    {
+      "kind": "geometry",
+      "preset": "shear",
+      "alpha_error": 0.0,
+      "display_error": 1.1677810769818393,
+      "shape": [
+        80,
+        80
+      ]
+    },
+    {
+      "kind": "geometry",
+      "preset": "projective",
+      "alpha_error": 0.0,
+      "display_error": 1.4029591911763077,
+      "shape": [
+        80,
+        80
+      ]
+    },
+    {
+      "kind": "geometry",
+      "preset": "text",
+      "alpha_error": 0.0,
+      "display_error": 0.4999722739827632,
+      "shape": [
+        50,
+        300
+      ]
+    },
+    {
+      "kind": "basis",
+      "parameters": [
+        5,
+        2,
+        1,
+        "cosine"
+      ],
+      "error": 6.090166890758419e-19
+    },
+    {
+      "kind": "basis",
+      "parameters": [
+        -32,
+        17,
+        0.4,
+        "sine"
+      ],
+      "error": 1.052672632328424e-18
+    },
+    {
+      "kind": "basis",
+      "parameters": [
+        0,
+        0,
+        0.5,
+        "cosine"
+      ],
+      "error": 0.0
+    },
+    {
+      "kind": "basis",
+      "parameters": [
+        0,
+        0,
+        0.8,
+        "sine"
+      ],
+      "error": 0.0
+    },
+    {
+      "kind": "convolution1d",
+      "kernel": "3-point",
+      "error": 2.220446049250313e-16
+    },
+    {
+      "kind": "convolution1d",
+      "kernel": "11-point",
+      "error": 4.440892098500626e-16
+    },
+    {
+      "kind": "convolution2d",
+      "error": 0.0
+    }
+  ],
+  "page_errors": []
+}

@@ -63,6 +63,21 @@ $$
 - STAR 儲存表格型中繼資料。影像位置常寫成 `index@stack.mrcs`；index 從 0 或 1 起算，請依格式規格確認。
 - 讀取後先核對資料用途，再查看 shape、dtype、pixel size、影像順序與 CTF 群組。顯示第一張、中間一張與最後一張影像，也能快速發現索引偏移或軸順序錯誤。
 
+````{dropdown} 從 MRC header 核對形狀、型別與 voxel size
+在教材 `book/` 目錄可唯讀查看合成資料使用的密度圖：
+
+```python
+import mrcfile
+with mrcfile.mmap("data/70S_Conform1.mrc", permissive=True, mode="r") as volume:
+    print(volume.data.shape, volume.data.dtype)
+    print("mode:", int(volume.header.mode))
+    print("voxel size:", volume.voxel_size)
+    print("axis mapping:", volume.header.mapc, volume.header.mapr, volume.header.maps)
+```
+
+陣列通常以 section、row、column 存取；header 的 `mapc/mapr/maps` 另行描述檔案軸與空間軸的對應。形狀、voxel size 與軸向應一起核對，不能從陣列尺寸推斷結構方向。
+````
+
 ## SPA 公式中的統一記號
 
 | 記號 | 本篇意義 |

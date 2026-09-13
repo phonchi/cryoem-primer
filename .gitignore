@@ -17,3 +17,8 @@ book/logs/aspire-*.log
 # Local SPA validation evidence; retained on disk, not part of the teaching site.
 logs/spa_revision_20260911/
 notes/spa_revision_20260911/browser/
+
+# Local execution logs and browser captures for original-notebook restoration.
+logs/image_revision_20260913/
+notes/image_revision_20260913/interactive_preview.html
+notes/image_revision_20260913/diagram-*.png

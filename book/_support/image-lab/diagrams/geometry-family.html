@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>幾何變換的包含關係</title><style>*{box-sizing:border-box}html,body{margin:0;background:#fff;color:#192c43;font-family:system-ui,"Noto Sans TC",sans-serif}main{max-width:672px;margin:auto;padding:16px}h1{font-size:28px;line-height:1.35;margin:0 0 12px;font-weight:700}h2{font-size:24px;margin:28px 0 12px}p{font-size:20px;line-height:1.65;margin:12px 0}.intro{color:#40566d}.diagram{width:100%;overflow-x:auto;margin:16px 0}.diagram svg{display:block;width:100%;min-width:384px;height:auto}svg text{font-family:system-ui,"Noto Sans TC",sans-serif;fill:#192c43;font-size:20px}svg .name{font-size:24px;font-weight:700}svg .note{fill:#40566d}svg .blue{fill:#1769aa}svg .green{fill:#237858}svg .accent{fill:#cc6517}svg .wire{fill:none;stroke:#40566d;stroke-width:2;stroke-linejoin:round;stroke-linecap:round}svg .node{fill:#fff;stroke:#192c43;stroke-width:1.2}svg .filter{fill:#fff4e9;stroke:#cc6517;stroke-width:1.2}svg .coefficient{fill:#edf7f2;stroke:#237858;stroke-width:1.2}.order{border-left:4px solid #237858;padding:8px 12px;background:#f3f8f5;font-variant-numeric:tabular-nums}.math{font-variant-numeric:tabular-nums;white-space:nowrap}.foot{border-top:1px solid #d6e0e9;padding-top:12px}@media(max-width:440px){main{padding:12px}h1{font-size:24px}.diagram{padding-bottom:4px}}@media print{main{max-width:none}.diagram{overflow:visible}.diagram svg{min-width:0}}</style></head><body><main><h1>幾何變換的四層包含關係</h1>
+<p class="intro">內層是外層的特例。往外增加自由度，也逐步放寬要保留的幾何性質。</p>
+<div class="diagram">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 592" role="img" aria-labelledby="geometry-family-title geometry-family-desc">
+<title id="geometry-family-title">歐氏、相似、仿射與投影變換的包含關係</title>
+<desc id="geometry-family-desc">旋轉和平移屬於歐氏變換，包含於相似、仿射與投影變換；四層分別保留距離、形狀與角度、平行關係及共線性。</desc>
+<defs>
+<marker id="geometry-family-arrow" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0,8 3,0 6" fill="#40566d"/></marker>
+<marker id="geometry-family-arrow-accent" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0,8 3,0 6" fill="#cc6517"/></marker>
+<marker id="geometry-family-arrow-link" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0,8 3,0 6" fill="#1769aa"/></marker>
+</defs>
+<rect x="16" y="16" width="608" height="560" rx="8" fill="#f5f8fb" stroke="#8ca2b8" stroke-width="1.2"/>
+<text class="name" x="36" y="52">Projective 投影</text>
+<text x="36" y="84">保留共線；平行線可能交會</text>
+<text class="note" x="36" y="116">3×3 齊次矩陣 H；最後除以 w</text>
+<polygon points="552,44 596,56 588,100 536,92" fill="#e3eef8" stroke="#1769aa" stroke-width="2"/>
+
+<rect x="40" y="144" width="560" height="408" rx="8" fill="#f0f5f9" stroke="#66829c" stroke-width="1.2"/>
+<text class="name" x="60" y="180">Affine 仿射</text>
+<text x="60" y="212">保留平行；角度與長度可變</text>
+<text class="note" x="60" y="244">一般式 A x + t；原例 shear 30°</text>
+<polygon points="504,176 548,176 568,224 524,224" fill="#e3eef8" stroke="#1769aa" stroke-width="2"/>
+
+<rect x="64" y="272" width="512" height="256" rx="8" fill="#edf4f9" stroke="#1769aa" stroke-width="1.2"/>
+<text class="name blue" x="84" y="308">Similarity 相似</text>
+<text x="84" y="340">保留形狀與角度；等向縮放</text>
+<text class="note" x="84" y="372">原例：scale 0.5</text>
+<rect x="504" y="304" width="36" height="36" fill="#e3eef8" stroke="#1769aa" stroke-width="2"/>
+
+<rect x="88" y="400" width="464" height="104" rx="8" fill="#fff4e9" stroke="#cc6517" stroke-width="2"/>
+<text class="name accent" x="108" y="432">Euclidean 歐氏</text>
+<text x="108" y="464">保留距離；此處只含旋轉、平移</text>
+<text x="108" y="492">原例：旋轉 15°，平移 (30, −20)</text>
+</svg></div>
+<p class="order">Euclidean ⊂ Similarity ⊂ Affine ⊂ Projective</p>
+<p>歐氏變換也保留角度、平行與共線；相似變換允許所有長度乘上同一比例。仿射變換可使用不同方向的縮放、剪切或其組合，不能只用「相似變換加一次單軸剪切」概括。</p>
+<p>以齊次座標寫投影變換：<span class="math">[u, v, w]ᵀ = H[x, y, 1]ᵀ</span>，再取 <span class="math">x′ = u/w，y′ = v/w</span>。仿射矩陣是最後一列為 <span class="math">[0, 0, 1]</span> 的特例。</p>
+<p class="foot">這裡比較可逆變換，且輸出點滿足 w ≠ 0。方形與四邊形只是保留性質的示意；原影像的操作結果另由章節實驗呈現。</p></main></body></html>

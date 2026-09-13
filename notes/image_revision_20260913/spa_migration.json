@@ -1,0 +1,18 @@
+{
+  "source": "migrated from pre-restoration 03_fourier; CTF demonstration now uses real 70S forward projection",
+  "seed": 7,
+  "volume_shape": [
+    130,
+    130,
+    130
+  ],
+  "pixel_size_A": 2.819999933242798,
+  "df_A": 15000,
+  "voltage_kv": 300,
+  "amplitude_contrast": 0.1,
+  "B_A2": 30,
+  "noise_sd_fraction": 0.03,
+  "K": 0.03,
+  "slice_max_error": 1.1368683772161603e-12,
+  "phase_flip_magnitude_error": 0.0
+}

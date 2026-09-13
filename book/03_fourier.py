@@ -14,714 +14,1012 @@
 # ---
 
 # %% [markdown]
-# # 頻域影像處理：從 DFT 到 CTF correction
+# <!-- source-cells: 2 -->
+# # 傅立葉轉換、影像金字塔與特徵偵測
 #
-# 傅立葉轉換把「影像裡哪裡亮」改寫成「各空間頻率有多少振幅與相位」。這是一般影像濾波、復原與取樣的共通語言，也讓 cryo-EM 的投影、對比傳遞函數（contrast transfer function, CTF）、平移與重建變得比較直接。本章先建立通用頻域工具，再把它們用於 cryo-EM。索引、正規化與邊界慣例必須全章一致。
+# 同一張影像可以用像素的位置與亮度描述，也可以用不同頻率的波描述。本章先從 10 Hz 的正弦波認識 DFT，再用 Gengar、Lucario、Pikachu 和 Dragonite 觀察影像頻譜，操作濾波、復原與去除週期干擾。最後回到影像空間，建立金字塔，找出角點與斑點。
 #
-# ```{admonition} 學習目標
-# :class: important
-#
-# - 寫出矩形影像的 2D DFT／inverse DFT，核對 DC、Parseval 與 Hermitian symmetry。
-# - 解釋頻率軸、振幅、相位、有限視窗與 zero-padding。
-# - 比較空間域與頻域卷積，並設計低通、高通、帶通與 notch filters。
-# - 分清 inverse filtering、regularized inversion、phase flipping 與 Wiener-style CTF correction。
-# - 用 Fourier slice theorem 連結 2D projections 與 3D reconstruction。
-# - 說出簡化 CTF 省略了哪些物理因素。
-# ```
-
-# %%
-import matplotlib.pyplot as plt
-import numpy as np
-import skimage as ski
-from scipy import ndimage as ndi
-from scipy import signal
-
-plt.rcParams["image.cmap"] = "gray"
-plt.rcParams["figure.figsize"] = (6, 5)
-
-
-def imshow_all(*images, titles=None, size=4, **kwargs):
-    if titles is None:
-        titles = [""] * len(images)
-    fig, axes = plt.subplots(1, len(images), figsize=(size * len(images), size))
-    axes = np.atleast_1d(axes)
-    for ax, image, title in zip(axes, images, titles):
-        ax.imshow(image, **kwargs)
-        ax.set_title(title)
-        ax.axis("off")
-    fig.tight_layout()
-    return fig, axes
+# ## 從一個 10 Hz 正弦波開始
 
 
 # %% [markdown]
-# ## 一維 DFT：複數係數保留振幅與相位
+# <!-- source-cells: 0-1 -->
+# 先執行下列設定，再依章節順序操作。互動圖可直接在網頁調整，Python 圖則列出完整的比較結果。
+
+# %% tags=["hide-input"]
+# source-cells: 0-1
+from pathlib import Path
+import sys
+import math
+import timeit
+
+import matplotlib.pyplot as plt
+import numpy as np
+import skimage as ski
+from scipy import fft as fp, signal
+from scipy.signal import convolve2d as conv2
+from IPython.display import Image, display
+
+BOOK = Path('book') if Path('book').is_dir() else Path('.')
+sys.path.insert(0, str(BOOK.resolve()))
+from _support import image_path, show_images, lab
+
+plt.rcParams['image.cmap'] = 'gray'
+
+
+def read_rgb(name):
+    image = ski.io.imread(image_path(name))
+    if image.ndim == 2:
+        return ski.color.gray2rgb(ski.util.img_as_float(image))
+    if image.shape[-1] == 4:
+        return ski.color.rgba2rgb(image)
+    return ski.util.img_as_float(image)
+
+
+def read_gray(name):
+    return ski.color.rgb2gray(read_rgb(name))
+
+
+def real_ifft2(coefficients):
+    """確認共軛對稱與虛部殘差，再取實部。"""
+    rows = (-np.arange(coefficients.shape[0])) % coefficients.shape[0]
+    cols = (-np.arange(coefficients.shape[1])) % coefficients.shape[1]
+    partner = np.conj(coefficients[np.ix_(rows, cols)])
+    scale = max(1.0, float(np.max(np.abs(coefficients))))
+    assert np.allclose(coefficients, partner, atol=1e-10 * scale, rtol=1e-10)
+    result = fp.ifft2(coefficients)
+    assert np.max(np.abs(result.imag)) < 1e-9 * max(1.0, np.max(np.abs(result.real)))
+    return result.real
+
+
+def frequency_indices(shape):
+    """FFT儲存順序下各軸的有號整數頻率索引。"""
+    return (np.rint(fp.fftfreq(shape[0]) * shape[0]).astype(int)[:, None],
+            np.rint(fp.fftfreq(shape[1]) * shape[1]).astype(int)[None, :])
+
+
+def square_lowpass(shape, cutoff):
+    ky, kx = frequency_indices(shape)
+    return (np.abs(ky) <= cutoff) & (np.abs(kx) <= cutoff)
+
+
+def gaussian_psf(shape, std):
+    psf = np.outer(signal.windows.gaussian(shape[0], std),
+                   signal.windows.gaussian(shape[1], std))
+    return psf / psf.sum()
+
+
+def coefficient_basis(n, kx, ky, amplitude=1.0, wave_type='cosine'):
+    """amplitude是單一FFT係數大小，非空間波振幅。"""
+    spectrum = np.zeros((n, n), dtype=complex)
+    pos, neg = (ky % n, kx % n), ((-ky) % n, (-kx) % n)
+    if pos == neg:
+        spectrum[pos] = amplitude if wave_type == 'cosine' else 0.0
+    else:
+        value = amplitude if wave_type == 'cosine' else -1j * amplitude
+        spectrum[pos], spectrum[neg] = value, np.conj(value)
+    return spectrum, real_ifft2(spectrum)
+
+
+def draw_spectrum_panels(image, title):
+    coefficients = np.fft.fft2(image)
+    reconstructed = np.fft.ifft2(coefficients).real
+    fig, axes = plt.subplots(2, 2, figsize=(10, 8))
+    panels = [image, reconstructed,
+              np.log1p(np.abs(np.fft.fftshift(coefficients))),
+              np.angle(np.fft.fftshift(coefficients))]
+    for ax, shown, name in zip(axes.flat, panels,
+                              ['Original', 'IFFT reconstruction', 'Log magnitude', 'Phase']):
+        ax.imshow(shown, cmap='twilight' if name == 'Phase' else 'gray')
+        ax.set_title(f'{title}: {name}')
+        ax.axis('off')
+    fig.tight_layout()
+    plt.show()
+    assert np.allclose(reconstructed, image, atol=1e-12)
+    return coefficients
+
+
+def montage(images, titles, signed=False, ncols=4, figsize=(12, 18)):
+    nrows = math.ceil(len(images) / ncols)
+    fig, axes = plt.subplots(nrows, ncols, figsize=figsize, squeeze=False)
+    for ax, image, title in zip(axes.flat, images, titles):
+        options = {}
+        if signed:
+            limit = max(1e-12, float(np.max(np.abs(image))))
+            options = dict(cmap='RdBu_r', vmin=-limit, vmax=limit)
+        ax.imshow(image, **options)
+        ax.set_title(title)
+        ax.axis('off')
+    for ax in list(axes.flat)[len(images):]:
+        ax.axis('off')
+    fig.tight_layout()
+    plt.show()
+
+
+# %% [markdown]
+# <!-- source-cells: 3 -->
+# 以每秒 100 次的頻率取樣兩秒，得到 200 個取樣點。訊號 $h(t)=\sin(10\times2\pi t)$ 每秒重複 10 次；先看它在時間軸上的樣子。
+
+# %%
+# source-cells: 4
+f = 10  # Frequency, in cycles per second, or Hertz
+f_s = 100  # Sampling rate, or number of measurements per second
+
+t = np.linspace(0, 2, 2*f_s, endpoint=False)
+x = np.sin(f*2*np.pi*t)
+
+fig, ax = plt.subplots()
+ax.plot(t, x)
+ax.set_xlabel('Time [s]')
+ax.set_ylabel('Signal amplitude');
+
+# %% [markdown]
+# <!-- source-cells: 5 -->
+# 這是一個頻率為 10 Hz 的正弦波，其在時間域（time domain）中呈現出規律的波動。
+
+# %% [markdown]
+# <!-- source-cells: 6 -->
+# DFT 將這 200 個數改寫成不同頻率的複數係數。某個係數的幅度大，表示對應的波在訊號中占有較大分量。對實數正弦波，正、負頻率需要成對出現。
+
+# %% [markdown]
+# <!-- source-cells: 7 -->
+# ### 用波表示訊號
 #
-# 對長度 $N$ 的訊號 $h[n]$，NumPy 採用未正規化 forward DFT：
+# 傅立葉級數以離散頻率描述週期函數；傅立葉轉換則以連續頻率描述適當的非週期訊號。對電腦裡長度為 $N$ 的陣列，DFT 是一個可逆的線性座標轉換：使用 $N$ 個複指數基底，就能表示這 $N$ 個取樣值。這不表示原本的連續訊號已被完整量到，取樣與觀測時間仍會限制可恢復的資訊。
+
+# %% [markdown]
+# <!-- source-cells: 8 -->
+# ```{dropdown} 從連續積分到 DFT 的取樣格點
+# 以 $e^{i\omega t}$ 為基底，連續傅立葉轉換採負指數：
+#
+# $$H(\omega)=\int_{-\infty}^{\infty}h(t)e^{-i\omega t}\,dt.$$
+#
+# 有限時間 $T=N\Delta t$ 的觀測，可在取樣夠密且適合數值積分時近似為
+#
+# $$H_T(\omega)\approx\Delta t\sum_{n=0}^{N-1}h[n]e^{-i\omega n\Delta t}.$$
+#
+# DFT 選用 $\omega_k=2\pi k/(N\Delta t)$ 這組正交格點，並省去共同的 $\Delta t$ 縮放，得到
 #
 # $$H[k]=\sum_{n=0}^{N-1}h[n]e^{-i2\pi kn/N},\qquad
 # h[n]=\frac1N\sum_{k=0}^{N-1}H[k]e^{i2\pi kn/N}.$$
 #
-# 實數訊號的頻譜具有 Hermitian symmetry：$H[-k]=H[k]^*$。因此 `rfft` 只需儲存非負頻率半邊。
+# 有限序列也可在其他頻率計算其 DTFT；DFT 的 $N$ 個格點已足以表示這個陣列。格點間距為 $1/T$；能否分辨鄰近真實頻率，還受觀測長度、窗函數與雜訊影響。
+#
+# 對實數 $h[n]$，實部是與 cosine 的內積，虛部是與 sine 內積的**負值**。係數幅度與相位分別是 $|H[k]|$、$\arg H[k]$；正負頻率滿足 $H[-k]=H[k]^*$，索引按 $N$ 取模。
+# ```
 
 # %%
-sample_rate = 100.0
-t = np.arange(200) / sample_rate
-x = np.sin(2 * np.pi * 10 * t + 0.3)
-X = np.fft.fft(x)
-frequencies = np.fft.fftfreq(x.size, d=1 / sample_rate)
+# source-cells: 9
+X = fp.fft(x)
+freqs = fp.fftfreq(len(x), d=1/f_s) # d: Sample spacing (inverse of the sampling rate)
+print(freqs, len(x), len(X))
+# The first component is np.mean(x) * N
+fig, ax = plt.subplots()
 
-assert np.allclose(np.fft.ifft(X).real, x)
-assert np.allclose(X[1:], np.conj(X[:0:-1]))
-
-fig, axes = plt.subplots(1, 2, figsize=(11, 3.5))
-axes[0].plot(t[:60], x[:60])
-axes[0].set_xlabel("time [s]")
-axes[0].set_title("10 Hz signal")
-axes[1].stem(frequencies, np.abs(X))
-axes[1].set_xlim(-50, 50)
-axes[1].set_xlabel("frequency [Hz]")
-axes[1].set_title("magnitude spectrum")
-fig.tight_layout()
-
+ax.stem(freqs, np.abs(X))
+ax.set_xlabel('Frequency in Hertz [Hz]')
+ax.set_ylabel('Frequency Domain (Spectrum) Magnitude')
+ax.set_xlim(-f_s / 2, f_s / 2)
+ax.set_ylim(-5, 110);
 
 # %% [markdown]
-# ## 矩形影像的二維 DFT
+# <!-- source-cells: 10 -->
+# 頻譜在 +10 Hz 與 −10 Hz 各有一個峰。理想的數學結果只有這兩個非零係數；數值 FFT 還會留下浮點誤差尺度的小值。因為 forward DFT 沒有除以 $N$，振幅為 1 的 sine 在兩個峰上的係數幅度各是 $N/2=100$。
+
+# %% [markdown]
+# <!-- source-cells: 11 -->
+# > 有關一維討論，請參考以下資源：
 #
-# 令影像 $h[y,x]$ 有 $N$ 列、$M$ 欄。兩個軸必須各用自己的長度：
+# > [https://github.com/elegant-scipy/notebooks/blob/master/notebooks/ch4.ipynb](https://github.com/elegant-scipy/notebooks/blob/master/notebooks/ch4.ipynb)
 #
-# $$H[k_y,k_x]=\sum_{y=0}^{N-1}\sum_{x=0}^{M-1}
-# h[y,x]e^{-i2\pi(k_yy/N+k_xx/M)},$$
+# > [https://scipy-lectures.org/intro/scipy.html?highlight=fft#fast-fourier-transforms-scipy-fftpack](https://scipy-lectures.org/intro/scipy.html?highlight=fft#fast-fourier-transforms-scipy-fftpack)
 #
-# $$h[y,x]=\frac1{NM}\sum_{k_y=0}^{N-1}\sum_{k_x=0}^{M-1}
-# H[k_y,k_x]e^{i2\pi(k_yy/N+k_xx/M)}.$$
+# > [https://dsp.stackexchange.com/questions/23994/meaning-of-real-and-imaginary-part-of-fourier-transform-of-a-signal](https://dsp.stackexchange.com/questions/23994/meaning-of-real-and-imaginary-part-of-fourier-transform-of-a-signal)
+
+# %% [markdown]
+# <!-- source-cells: 12 -->
+# 本章使用 [`scipy.fft`](https://docs.scipy.org/doc/scipy/reference/fft.html)：`fft`／`ifft` 處理一維，`fft2`／`ifft2` 處理二維，`fftn`／`ifftn` 處理多維。`fftfreq` 建立頻率軸，`fftshift` 與 `ifftshift` 在顯示順序和 FFT 儲存順序之間轉換。NumPy 的同名 FFT 函式採用相同的預設正規化。
+
+# %% [markdown]
+# ```{dropdown} 補充：實數 FFT、餘弦轉換與窗函數
+# 實數訊號的頻譜具有共軛對稱性，`rfft` 只儲存非負頻率部分；反轉換使用 `irfft`，並指定原訊號長度。DCT／DST 分別以餘弦／正弦基底表示資料，反轉換是 `idct`／`idst`。JPEG 的轉換編碼使用 DCT，可把平滑區塊的主要變化集中在少數係數中。
 #
-# 這和陣列 `[row, column]` 對應：`k_y` 走列方向，`k_x` 走欄方向。
+# 有限長度的截取可能讓訊號兩端接合時產生跳躍，使能量散到其他頻率，稱為頻譜洩漏（spectral leakage）。`np.hanning`、`np.hamming`、`np.bartlett`、`np.blackman`、`np.kaiser` 等窗函數讓邊界逐漸衰減；代價是主瓣變寬，鄰近頻率較難分開。
+#
+# 原稿提到的 [FFTPACK](https://www.netlib.org/fftpack/) 是歷史實作背景；[FFTW](https://www.fftw.org/) 是另一套 FFT 函式庫。使用本章的 `scipy.fft` 時，請以其文件為準，勿把舊 `fftpack.rfft` 的儲存格式直接套用到新 API。
+# ```
+
+# %% [markdown]
+# <!-- source-cells: 13 -->
+# #### 頻率與其排序方式（Frequencies and their ordering）
+
+# %% [markdown]
+# <!-- source-cells: 14 -->
+# FFT 的輸出先放零頻率，再放正頻率與負頻率。例如十個 1 組成的陣列沒有起伏，只有零頻率係數不為零。
+
+# %% [markdown]
+# <!-- source-cells: 15 -->
+# (dft)=
+#
+# **DC 係數**是零頻率係數。依本章的正規化，
+#
+# $$H[0]=\sum_{n=0}^{N-1}h[n]=N\bar h.$$
+#
+# 它除以 $N$ 才是訊號平均值。
 
 # %%
-def direct_dft2(image):
-    """教學用矩陣式 2D DFT；只適合小陣列。"""
-    image = np.asarray(image, dtype=complex)
-    n_rows, n_cols = image.shape
-    y = np.arange(n_rows)
-    x = np.arange(n_cols)
-    basis_y = np.exp(-2j * np.pi * np.outer(y, y) / n_rows)
-    basis_x = np.exp(-2j * np.pi * np.outer(x, x) / n_cols)
-    return basis_y @ image @ basis_x
-
-
-rectangular = np.arange(15, dtype=float).reshape(3, 5)
-H_direct = direct_dft2(rectangular)
-H_fft = np.fft.fft2(rectangular)
-round_trip = np.fft.ifft2(H_fft).real
-
-assert np.allclose(H_direct, H_fft)
-assert np.allclose(round_trip, rectangular)
-assert np.isclose(H_fft[0, 0], rectangular.sum())
-assert np.isclose(H_fft[0, 0] / rectangular.size, rectangular.mean())
-
+# source-cells: 16
+N = 10
+print(fp.fft(np.ones(N)))
 
 # %% [markdown]
-# ### DC、Parseval 與 Hermitian symmetry
-#
-# 在這個慣例下，`H[0,0]` 是所有像素的**總和**；除以 $NM$ 才是平均值。Parseval identity 則把兩域的能量連起來：
-#
-# $$\sum_{y,x}|h[y,x]|^2=\frac1{NM}\sum_{k_y,k_x}|H[k_y,k_x]|^2.$$
-#
-# 對實數 2D 影像，頻率座標的對稱關係是 $H[-k_y,-k_x]=H[k_y,k_x]^*$，索引要以各軸長度取模。
+# <!-- source-cells: 17 -->
+# 接著用九個數觀察共軛對稱。對實數序列，正負頻率的實部相同、虛部符號相反；這裡的「對稱」指頻率 $k$ 與 $-k$，不是直接把未排序陣列左右對折。
 
 # %%
-energy_space = np.sum(np.abs(rectangular) ** 2)
-energy_frequency = np.sum(np.abs(H_fft) ** 2) / rectangular.size
-assert np.isclose(energy_space, energy_frequency)
+# source-cells: 18
+x = np.array([1, 5, 12, 7, 3, 0, 4, 3, 2])
+X = fp.fft(x)
 
-n_rows, n_cols = rectangular.shape
-for ky in range(n_rows):
-    for kx in range(n_cols):
-        assert np.allclose(H_fft[-ky % n_rows, -kx % n_cols], np.conj(H_fft[ky, kx]))
-print("rectangular DFT checks passed")
-
+with np.printoptions(precision=2):
+    print("Real part:     ", X.real)
+    print("Imaginary part:", X.imag)
 
 # %% [markdown]
-# ## `fftshift` 只改顯示順序
-#
-# FFT 輸出的 DC 位於 `[0,0]`。`fftshift()` 只重新排列頻率係數，把 DC 移到畫面中央，方便觀察低頻到高頻的空間排列。
+# <!-- source-cells: 19 -->
+# `fftfreq` 函數可以告訴我們所對應的頻率為何，也就是每個頻譜成分實際代表的頻率:
 
 # %%
-camera = ski.util.img_as_float(ski.data.camera())
-camera_fft = np.fft.fft2(camera)
-log_magnitude = np.log1p(np.abs(np.fft.fftshift(camera_fft)))
-phase = np.angle(np.fft.fftshift(camera_fft))
-imshow_all(camera, log_magnitude, phase,
-           titles=["image", "log magnitude", "phase"])
-
-
-# %% [markdown]
-# ## 二維 Fourier basis、頻率軸與方向
-#
-# 二維 DFT 的每個 basis image 是
-#
-# $$b_{k_y,k_x}[y,x]=e^{i2\pi(k_y y/N+k_x x/M)}.$$
-#
-# 實數的 cosine 需要一對共軛頻率來表示。`fftfreq` 會依取樣間隔產生正確頻率軸；對 pixel size 為 $p$ 的影像，單位為 cycles per physical length，Nyquist frequency 為 $1/(2p)$。條紋的空間方向與頻率向量 $(f_y,f_x)$ 垂直；頻譜亮點指出頻率向量的方向，與條紋延伸方向相差 $90^\circ$。
+# source-cells: 20
+print(fp.fftfreq(len(x), d=1))
 
 # %%
-n_rows, n_cols = 96, 144
-pixel_size = 1.5
-fy0, fx0 = 8 / (n_rows * pixel_size), 15 / (n_cols * pixel_size)
-y_A = np.arange(n_rows)[:, None] * pixel_size
-x_A = np.arange(n_cols)[None, :] * pixel_size
-oriented_grating = np.cos(2 * np.pi * (fy0 * y_A + fx0 * x_A) + 0.4)
-grating_fft = np.fft.fftshift(np.fft.fft2(oriented_grating))
-fy_axis = np.fft.fftshift(np.fft.fftfreq(n_rows, d=pixel_size))
-fx_axis = np.fft.fftshift(np.fft.fftfreq(n_cols, d=pixel_size))
+# source-cells: 21
+# Sort the Fourier coefficients by frequency
+freqs = fp.fftfreq(len(x), d=1)
+sorted_indices = np.argsort(freqs)
+sorted_X = X[sorted_indices]
 
-peak_indices = np.argpartition(np.abs(grating_fft).ravel(), -2)[-2:]
-peak_coordinates = np.array(np.unravel_index(peak_indices, grating_fft.shape)).T
-measured_peaks = {(round(fy_axis[i], 8), round(fx_axis[j], 8))
-                  for i, j in peak_coordinates}
-expected_peaks = {(round(fy0, 8), round(fx0, 8)),
-                  (round(-fy0, 8), round(-fx0, 8))}
-assert measured_peaks == expected_peaks
-
-fig, axes = plt.subplots(1, 2, figsize=(10, 3.5))
-axes[0].imshow(oriented_grating)
-axes[0].set_title("oriented cosine basis")
-axes[0].axis("off")
-axes[1].imshow(np.log1p(np.abs(grating_fft)), extent=[fx_axis[0], fx_axis[-1],
-                                                     fy_axis[-1], fy_axis[0]])
-axes[1].set_xlabel("$f_x$ [cycles/Å]")
-axes[1].set_ylabel("$f_y$ [cycles/Å]")
-axes[1].set_title("conjugate frequency pair")
-fig.tight_layout()
-
-
-# %% [markdown]
-# ## Magnitude、phase 與 translation theorem
-#
-# 頻譜的 magnitude $|H|$ 表示每個 basis 的強度，phase $\arg H$ 決定這些 basis 在空間中如何對齊。將影像平移 $(\Delta y,\Delta x)$ 時，magnitude 不變，但頻譜會乘上線性 phase ramp：
-#
-# $$h[y-\Delta y,x-\Delta x]\ \longleftrightarrow\
-# H[k_y,k_x]e^{-i2\pi(k_y\Delta y/N+k_x\Delta x/M)}.$$
-#
-# 所以「magnitude 比 phase 重要」或「phase 比 magnitude 重要」都過度簡化：它們承載不同資訊，完整影像需要兩者。在 cryo-EM 中，particle translation 正是以這個 phase ramp 來處理。
+# Display the sorted real and imaginary parts
+with np.printoptions(precision=2):
+    print("Real part sorted:     ", sorted_X.real)
+    print("Imaginary part sorted:", sorted_X.imag)
 
 # %%
-translation = (13, -9)
-shifted_camera = np.roll(camera, translation, axis=(0, 1))
-fy = np.fft.fftfreq(camera.shape[0])[:, None]
-fx = np.fft.fftfreq(camera.shape[1])[None, :]
-phase_ramp = np.exp(-2j * np.pi * (fy * translation[0] + fx * translation[1]))
-predicted_shift_fft = camera_fft * phase_ramp
+# source-cells: 22
+# Use fftshift to Sort the Fourier coefficients by frequency
+sorted_X = fp.fftshift(X)
 
-assert np.allclose(np.abs(np.fft.fft2(shifted_camera)), np.abs(camera_fft))
-assert np.allclose(np.fft.fft2(shifted_camera), predicted_shift_fft, atol=1e-9)
-imshow_all(camera, shifted_camera,
-           titles=["original", f"circular shift {translation}"])
-
+# Display the sorted real and imaginary parts
+with np.printoptions(precision=2):
+    print("Real part sorted:     ", sorted_X.real)
+    print("Imaginary part sorted:", sorted_X.imag)
 
 # %% [markdown]
-# ## 有限觀測與 spectral leakage
+# <!-- source-cells: 23 -->
+# 請參考這個連結了解更多細節：
+# [https://numpy.org/doc/stable/reference/generated/numpy.fft.fftfreq.html](https://numpy.org/doc/stable/reference/generated/numpy.fft.fftfreq.html)
+
+# %% [markdown]
+# <!-- source-cells: 24 -->
+# ### 為什麼我們需要離散傅立葉轉換（DFT）？
+
+# %% [markdown]
+# <!-- source-cells: 25 -->
+# 頻域表示有兩個直接用途。它能顯示影像有哪些尺度與方向的變化，也能把卷積改寫成頻譜的逐元素相乘。許多自然影像的低頻能量較強，但重要邊緣、紋理或小物件也可能出現在高頻；係數較小的成分仍可能對辨認特徵有用。
+
+# %% [markdown]
+# <!-- source-cells: 26 -->
+# ## 二維 DFT：影像也是波的組合
 #
-# DFT 把有限長度訊號視為週期重複。若觀測窗內含有非整數個週期，首尾接合會產生不連續，能量便散到鄰近 frequency bins，稱為 spectral leakage。加窗能降低遠端 leakage，但會拓寬主峰；zero-padding 會增加頻譜的取樣點，真正的頻率解析力仍由觀測長度決定。
+# 影像的每一個像素值，可由不同方向、不同頻率的二維波加總而成。二維係數仍是複數，保留了幅度與相位。以下先操作單一基底，再看真實圖像的頻譜。
+
+# %% [markdown]
+# <!-- source-cells: 27 -->
+# 對灰階影像使用 `fft2()` 與 `ifft2()`。它們等價於沿每一軸各做一次一維轉換；兩個軸的長度不必相同。
+
+# %% [markdown]
+# <!-- source-cells: 28 -->
+# 二維的連續與離散轉換可對照下列三張原始示意圖。對 $M$ 列、$N$ 欄的影像，各軸長度分別寫成
+#
+# $$H[k_y,k_x]=\sum_{y=0}^{M-1}\sum_{x=0}^{N-1}
+# h[y,x]e^{-2\pi i(k_y y/M+k_x x/N)}.$$
+#
+# 反轉換使用正指數，並除以 $MN$。影像的 DC 係數為像素總和。
+#
+# ```{dropdown} 將各個二維基底加回像素值
+# 逆轉換為
+#
+# $$h[y,x]=\frac1{MN}\sum_{k_y=0}^{M-1}\sum_{k_x=0}^{N-1}
+# H[k_y,k_x]e^{2\pi i(k_y y/M+k_x x/N)}.$$
+#
+# 每個 $H[k_y,k_x]$ 指定一個基底的係數。改變 $k_x,k_y$ 會改變波的頻率向量，條紋延伸方向與這個向量垂直。真實影像的頻譜滿足 $H[-k_y,-k_x]=H[k_y,k_x]^*$，所以一對共軛基底加總後的虛部抵消。
+# ```
+#
+# 下面操作 128×128 的基底。控制項的 amplitude 表示**頻譜係數大小**：非自共軛頻率放入一對大小為 $a$ 的係數時，空間波的振幅是 $2a/128^2$。DC 只有一個獨立係數，cosine 產生常數 $a/128^2$，sine 在 DC 為零。
 
 # %%
-n = 128
-sample_index = np.arange(n)
-non_bin_tone = np.sin(2 * np.pi * 10.35 * sample_index / n)
-rect_spectrum = np.abs(np.fft.rfft(non_bin_tone))
-hann_spectrum = np.abs(np.fft.rfft(non_bin_tone * np.hanning(n)))
-zero_padded_spectrum = np.abs(np.fft.rfft(non_bin_tone, n=8 * n))
+# source-cells: 28 (diagram 1)
+# source-image-url: https://drive.google.com/uc?id=1ArBNhQHt4OHQX6fGRsQP80J9I8e8GpyI
+display(Image(filename=str(image_path('ch03-cell28-1.png'))))
 
-fig, ax = plt.subplots(figsize=(8, 3.5))
-ax.semilogy(rect_spectrum / rect_spectrum.max(), label="rectangular window")
-ax.semilogy(hann_spectrum / hann_spectrum.max(), label="Hann window")
-ax.set_xlabel("frequency bin")
-ax.set_ylabel("normalized magnitude")
-ax.legend()
-fig.tight_layout()
+# %%
+# source-cells: 28 (diagram 2)
+# source-image-url: https://drive.google.com/uc?id=1AyaTNoPLbMAmpS3eruaZiA9JsiuQtQYk
+display(Image(filename=str(image_path('ch03-cell28-2.png'))))
 
-assert zero_padded_spectrum.size == 4 * n + 1
-assert np.isclose(np.fft.rfftfreq(n)[1], 1 / n)
-assert np.isclose(np.fft.rfftfreq(8 * n)[1], 1 / (8 * n))
+# %%
+# source-cells: 28 (diagram 3)
+# source-image-url: https://upload.wikimedia.org/wikipedia/commons/f/fa/2D_Fourier_Transform_and_Base_Images.png
+display(Image(filename=str(image_path('ch03-cell28-3.png'))))
+
+# %%
+# source-cells: 29
+basis_spectrum, basis_image = coefficient_basis(128, 5, 2, 1.0, 'cosine')
+show_images(fp.fftshift(np.abs(basis_spectrum)), basis_image,
+            titles=['Two conjugate FFT coefficients', '128 x 128 cosine basis'])
+for kind in ('cosine', 'sine'):
+    _, dc_image = coefficient_basis(128, 0, 0, 1.0, kind)
+    assert np.allclose(dc_image, 1 / 128**2 if kind == 'cosine' else 0)
+lab('fourier_basis', n=128, kx=5, ky=2, amplitude=1.0)
 
 # %% [markdown]
-# Hann window 以較寬的 main lobe 換取較低的 side lobes，因此適合減少遠離主峰的 leakage；頻率解析度則受變寬的主瓣限制。將 128 點補零成 1024 點，只是在同一個有限視窗的 discrete-time Fourier transform 上取得更密的樣本；真正分開相近頻率的能力仍由原始觀測長度與 window 決定 {cite}`szeliski2022`。
+# <!-- source-cells: 30 -->
+# ### Gengar：轉換後還能回到原圖嗎？
+#
+# 將 RGBA 圖片疊在白底上，轉成灰階，再計算 FFT 與 IFFT。比較重建誤差，確認改變表示方式並沒有刪掉資訊。
 
+# %%
+# source-cells: 31
+gengar = read_gray('gengar.png')
+freq = fp.fft2(gengar)
+gengar_reconstructed = real_ifft2(freq)
+print('maximum reconstruction error:', np.max(np.abs(gengar_reconstructed - gengar)))
+assert np.allclose(gengar, gengar_reconstructed, atol=1e-12)
+show_images(gengar, gengar_reconstructed, titles=['Gengar', 'FFT then IFFT'])
 
 # %% [markdown]
+# <!-- source-cells: 32 -->
+# #### 繪製頻率頻譜（Plotting the frequency spectrum）
+
+# %% [markdown]
+# <!-- source-cells: 33 -->
+# 幅度圖顯示每個頻率係數的大小。DC 經常比其他係數大很多，直接用線性色階顯示時，較小的係數會看不清楚。
+
+# %% [markdown]
+# <!-- source-cells: 34 -->
+# 使用 `log1p(abs(H))` 壓縮顯示範圍，再用 `fftshift` 把 DC 移到中心。取對數與位移只用於顯示；反轉換仍使用原本的複數係數。
+
+# %%
+# source-cells: 35
+show_images(np.log1p(np.abs(fp.fftshift(freq))), titles=['Gengar: centered log spectrum'])
+
+# %% [markdown]
+# <!-- source-cells: 36 -->
+# ### Lucario 與 Pikachu：幅度、相位、重建
+#
+# 對另外兩張圖做相同操作，並排觀察原圖、重建、對數幅度與相位。這一段改用 `numpy.fft`，也可與 SciPy 的結果互相比對。
+
+# %%
+# source-cells: 37
+lucario = read_gray('lucario.png')
+freq1 = draw_spectrum_panels(lucario, 'Lucario')
+
+# %% [markdown]
+# <!-- source-cells: 38 -->
+# Lucario 的頻譜中，低頻通常較強；不同方向的紋理也會留下對應的頻率分布。相位圖雖然看起來雜亂，重建時仍需要它決定各頻率如何疊合。
+
+# %% [markdown]
+# <!-- source-cells: 39 -->
+# 用同樣的色彩轉換與 FFT 流程處理 Pikachu，準備比較兩張圖的頻譜。
+
+# %%
+# source-cells: 40
+pikachu = read_gray('pikachu.png')
+freq2 = draw_spectrum_panels(pikachu, 'Pikachu')
+
+# %% [markdown]
+# <!-- source-cells: 41 -->
+# ### 交換幅度與相位
+#
+# 保留 Lucario 的幅度，換入 Pikachu 的相位，再反向交換一次。操作的是 $|H|$ 與 $\arg H$，不是實部與虛部。兩張圖必須有相同尺寸，才能逐係數組合。
+
+# %%
+# source-cells: 42
+assert lucario.shape == pikachu.shape, 'Phase exchange requires matching original image dimensions.'
+combined = np.abs(freq1) * np.exp(1j * np.angle(freq2))
+lucario_magnitude_pikachu_phase = real_ifft2(combined)
+show_images(lucario_magnitude_pikachu_phase,
+            titles=['Lucario magnitude + Pikachu phase'])
+
+# %%
+# source-cells: 43
+combined = np.abs(freq2) * np.exp(1j * np.angle(freq1))
+pikachu_magnitude_lucario_phase = real_ifft2(combined)
+show_images(pikachu_magnitude_lucario_phase,
+            titles=['Pikachu magnitude + Lucario phase'])
+
+# %% [markdown]
+# <!-- source-cells: 44 -->
+# 在這兩張圖上，交換後的輪廓明顯受到相位來源影響。相位控制各個波如何在空間中對齊；幅度仍保留尺度、方向與能量分布，也會改變重建結果。完整重建需要兩者。
+#
+# ```{dropdown} 為什麼整張圖平移後，幅度不變？
+# 若將影像平移，頻譜只多出隨頻率變化的相位因子，其絕對值為 1。因此幅度對整體平移不敏感。這不表示幅度沒有空間資訊：例如水平與垂直條紋的幅度峰會落在不同方向。
+# ```
+
+# %% [markdown]
+# <!-- source-cells: 45 -->
 # (convolution)=
-# ## Linear convolution 與 circular convolution
 #
-# 直接把同尺寸 FFT 相乘再 inverse FFT，得到的是 circular convolution：超出右端的訊號會繞回左端。要取得長度 $N+K-1$ 的 linear convolution，兩個輸入都要 zero-pad 到至少這個長度。
-
-# %%
-def fft_linear_convolve_1d(x, h):
-    """以足夠 zero-padding 計算 full linear convolution。"""
-    output_length = len(x) + len(h) - 1
-    return np.fft.ifft(np.fft.fft(x, output_length) * np.fft.fft(h, output_length)).real
-
-
-x_small = np.array([1.0, 0.0, 0.0, 2.0])
-h_small = np.array([1.0, 1.0, 1.0])
-linear = fft_linear_convolve_1d(x_small, h_small)
-circular = np.fft.ifft(np.fft.fft(x_small) * np.fft.fft(h_small, len(x_small))).real
-assert np.allclose(linear, np.convolve(x_small, h_small, mode="full"))
-assert not np.allclose(circular, linear[: len(circular)])
-print("linear:", linear, "circular:", circular)
-
+# ## 卷積定理：在頻域做 Gaussian 平滑
 
 # %% [markdown]
-# ### 二維空間卷積與 FFT 卷積
-#
-# 卷積定理在二維一樣成立：$g=h*f$ 對應 $G=HF$。空間域直接卷積和 FFT 卷積可以得到相同的 linear-convolution 結果，但必須具有相同的 padding、裁切與 boundary 定義。小 kernel 的直接法常常較快；大 kernel 或重複使用同一 transfer function 時，FFT 法才逐漸有利。切換點受影像大小、kernel 大小、硬體與實作影響，不存在「FFT 永遠較快」的通則。
+# <!-- source-cells: 46 -->
+# 讓我們從 **卷積定理（convolution theorem）** 開始，看看在頻率域中，卷積運算是如何變得更簡單的。
 
 # %%
-small_image = ski.util.img_as_float(ski.data.camera())[::8, ::8]
-kernel_2d = np.outer(signal.windows.gaussian(9, 1.5),
-                     signal.windows.gaussian(9, 1.5))
-kernel_2d /= kernel_2d.sum()
-spatial_full = signal.convolve2d(small_image, kernel_2d, mode="full")
-fft_full = signal.fftconvolve(small_image, kernel_2d, mode="full")
-assert np.allclose(spatial_full, fft_full, atol=1e-12)
-
+# source-cells: 46 (diagram 1)
+# source-image-url: https://drive.google.com/uc?id=1B5QZeuQ3NiujL7GZjN69DMWR7NoBwuXq
+display(Image(filename=str(image_path('ch03-cell46-1.png'))))
 
 # %% [markdown]
-# ## 頻域濾波：從 transfer function 讀出空間效應
-#
-# 頻域濾波器直接乘在影像頻譜上。Low-pass 保留緩慢變化，high-pass 保留快速變化，band-pass 只保留一段尺度，notch filter 則壓低特定方向與頻率。這些名稱描述 transfer function，可用不同方法實作。例如 ideal low-pass 的截止邊界不連續，其 impulse response 具有長距離振盪，因而在強邊緣附近產生 ringing；Gaussian 轉換平滑，空間域的 impulse response 保持正值。Butterworth 的 order 則提供兩者之間的過渡 {cite}`szeliski2022,forsyth2012`。
+# <!-- source-cells: 47 -->
+# 下圖說明了在頻率域中進行濾波的基本步驟：
 
 # %%
-def frequency_radius(shape):
-    """Return an unshifted radial-frequency grid in cycles/pixel."""
-    fy = np.fft.fftfreq(shape[0])[:, None]
-    fx = np.fft.fftfreq(shape[1])[None, :]
-    return np.sqrt(fy**2 + fx**2)
+# source-cells: 47 (diagram 1)
+# source-image-url: https://drive.google.com/uc?id=1BAhUknFnpeQeRdqO8LaviZksTv7l_nQ-
+display(Image(filename=str(image_path('ch03-cell47-1.png'))))
 
+# %% [markdown]
+# <!-- source-cells: 48 -->
+# ### Dragonite：直接相乘兩個頻譜
+#
+# 建立與影像同尺寸、標準差為 1 的 Gaussian 核，先讓權重總和為 1，再把核中心移到 FFT 原點。影像頻譜與核頻譜逐元素相乘，IFFT 後得到平滑影像。這裡沒有擴大 FFT 陣列，對應週期邊界的 circular convolution。
 
-def lowpass_transfer(shape, cutoff, kind="gaussian", order=3):
-    """Construct ideal, Gaussian, or Butterworth radial low-pass transfer."""
-    if not 0 < cutoff <= 0.5:
-        raise ValueError("cutoff must be in (0, 0.5]")
-    radius = frequency_radius(shape)
-    if kind == "ideal":
-        return (radius <= cutoff).astype(float)
-    if kind == "gaussian":
-        return np.exp(-0.5 * (radius / cutoff) ** 2)
-    if kind == "butterworth":
-        return 1.0 / (1.0 + (radius / cutoff) ** (2 * order))
-    raise ValueError("kind must be ideal, gaussian, or butterworth")
-
-
-def apply_transfer(image, transfer_function):
-    """Apply a same-shape transfer function under circular boundary conditions."""
-    if image.shape != transfer_function.shape:
-        raise ValueError("image and transfer_function must have the same shape")
-    return np.fft.ifft2(np.fft.fft2(image) * transfer_function).real
-
-
-filter_image = ski.transform.resize(camera, (192, 192), anti_aliasing=True)
-lowpasses = {kind: lowpass_transfer(filter_image.shape, 0.08, kind, order=4)
-             for kind in ("ideal", "gaussian", "butterworth")}
-filtered = {kind: apply_transfer(filter_image, transfer_function)
-            for kind, transfer_function in lowpasses.items()}
-
-fig, axes = plt.subplots(3, 3, figsize=(10, 9))
-for row, kind in enumerate(("ideal", "gaussian", "butterworth")):
-    transfer_function = lowpasses[kind]
-    impulse_response = np.fft.fftshift(np.fft.ifft2(transfer_function).real)
-    axes[row, 0].imshow(np.fft.fftshift(transfer_function), vmin=0, vmax=1)
-    axes[row, 0].set_title(f"{kind}: transfer")
-    center = tuple(size // 2 for size in impulse_response.shape)
-    crop = impulse_response[center[0]-16:center[0]+17,
-                            center[1]-16:center[1]+17]
-    axes[row, 1].imshow(crop)
-    axes[row, 1].set_title("impulse response")
-    axes[row, 2].imshow(filtered[kind])
-    axes[row, 2].set_title("filtered image")
-for ax in axes.ravel():
-    ax.axis("off")
+# %%
+# source-cells: 49
+dragonite = read_gray('dragonite.png')
+gauss_kernel = gaussian_psf(dragonite.shape, std=1)
+freq = fp.fft2(dragonite)
+freq_kernel = fp.fft2(fp.ifftshift(gauss_kernel))
+convolved = freq * freq_kernel
+im1 = real_ifft2(convolved)
+assert np.isclose(im1.mean(), dragonite.mean())
+fig, axes = plt.subplots(2, 3, figsize=(13, 8))
+for ax, image, title in zip(axes.flat,
+        [dragonite, gauss_kernel, im1,
+         np.log1p(np.abs(fp.fftshift(freq))),
+         np.log1p(np.abs(fp.fftshift(freq_kernel))),
+         np.log1p(np.abs(fp.fftshift(convolved)))],
+        ['Dragonite', 'Normalized Gaussian: std=1', 'Circular convolution',
+         'Image spectrum', 'Kernel spectrum', 'Output spectrum']):
+    ax.imshow(image)
+    ax.set_title(title)
+    ax.axis('off')
 fig.tight_layout()
-
-ideal_impulse = np.fft.fftshift(np.fft.ifft2(lowpasses["ideal"]).real)
-gaussian_impulse = np.fft.fftshift(np.fft.ifft2(lowpasses["gaussian"]).real)
-assert ideal_impulse.min() < 0
-assert gaussian_impulse.min() > -1e-10
-
+plt.show()
 
 # %% [markdown]
-# ### Low-pass、high-pass、band-pass 與 notch 是可組合的工具
+# <!-- source-cells: 50 -->
+# ### Lucario：用 `fftconvolve` 計算線性卷積
 #
-# High-pass 可以用 $1-L$ 從 low-pass $L$ 建立；band-pass 可由兩個不同截止頻率的 low-pass 相減。Notch filter 必須成對放在 $(f_y,f_x)$ 與 $(-f_y,-f_x)$，才會對應實數輸出。頻率濾波會一起壓低同頻率的物件細節與干擾；notch 移除的資訊也會留在結果中。
+# 改用 11×11、標準差為 1 的 Gaussian 核。`fftconvolve` 會處理足夠的 padding，計算線性卷積，再依 `mode="same"` 裁成輸入尺寸。它包含 FFT、頻譜逐元素相乘與 IFFT，並非只做一次乘法。
 
 # %%
-radius = frequency_radius(filter_image.shape)
-butter_low = lowpass_transfer(filter_image.shape, 0.08, "butterworth", order=4)
-butter_high = 1.0 - butter_low
-butter_band = (
-    lowpass_transfer(filter_image.shape, 0.16, "butterworth", order=4)
-    - lowpass_transfer(filter_image.shape, 0.04, "butterworth", order=4)
-)
+# source-cells: 51
+im = lucario
+gauss_kernel = gaussian_psf((11, 11), std=1)
+im_blurred = signal.fftconvolve(im, gauss_kernel, mode='same')
+show_images(im, gauss_kernel, im_blurred,
+            titles=['Lucario', '11 x 11 Gaussian: std=1', 'Linear FFT convolution'])
 
-fy_grid = np.fft.fftfreq(filter_image.shape[0])[:, None]
-fx_grid = np.fft.fftfreq(filter_image.shape[1])[None, :]
-notch_center = (0.12, 0.18)
-notch_width = 0.015
-notch = np.ones(filter_image.shape)
-for sign_value in (-1, 1):
-    distance_squared = ((fy_grid - sign_value * notch_center[0]) ** 2
-                        + (fx_grid - sign_value * notch_center[1]) ** 2)
-    notch *= 1.0 - np.exp(-distance_squared / (2 * notch_width**2))
+# %% [markdown]
+# <!-- source-cells: 52 -->
+# 下列程式碼區塊示範了如何在卷積後繪製原始影像與模糊影像的頻譜（spectrum）：
 
-transfer_examples = [butter_low, butter_high, butter_band, notch]
-transfer_titles = ["low-pass", "high-pass", "band-pass", "paired notch"]
-fig, axes = plt.subplots(2, 4, figsize=(13, 6))
-for column, (transfer_function, title) in enumerate(zip(transfer_examples, transfer_titles)):
-    axes[0, column].imshow(np.fft.fftshift(transfer_function), vmin=0, vmax=1)
-    axes[0, column].set_title(title)
-    axes[1, column].imshow(apply_transfer(filter_image, transfer_function))
-    axes[1, column].set_title("output")
-for ax in axes.ravel():
-    ax.axis("off")
+# %%
+# source-cells: 53
+show_images(np.log1p(np.abs(fp.fftshift(fp.fft2(im)))),
+            np.log1p(np.abs(fp.fftshift(fp.fft2(im_blurred)))),
+            titles=['Original spectrum', 'Blurred spectrum'])
+
+# %% [markdown]
+# <!-- source-cells: 54 -->
+# ### 空間卷積與 FFT 卷積的時間比較
+#
+# 使用 Python 的 [`timeit`](https://docs.python.org/zh-tw/3/library/timeit.html) 量測執行時間。使用 3×3、標準差為 3 的核，每種方法量測 100 次。空間法明確指定 `method="direct"`，避免 `signal.convolve` 自動改選 FFT。先確認兩者輸出一致，再比較時間分布。小核的直接法未必比 FFT 慢；可在完成本例後自行改變核大小。
+
+# %%
+# source-cells: 55
+im = lucario
+gauss_kernel = gaussian_psf((3, 3), std=3)
+def direct_convolution():
+    return signal.convolve(im, gauss_kernel, mode='same', method='direct')
+def fft_convolution():
+    return signal.fftconvolve(im, gauss_kernel, mode='same')
+im_blurred1 = direct_convolution()
+im_blurred2 = fft_convolution()
+assert np.allclose(im_blurred1, im_blurred2, atol=1e-12)
+times1 = timeit.repeat(direct_convolution, number=1, repeat=100)
+times2 = timeit.repeat(fft_convolution, number=1, repeat=100)
+show_images(im, im_blurred1, im_blurred2,
+            titles=['Lucario', 'Direct convolution', 'FFT convolution'])
+
+# %%
+# source-cells: 56
+fig, ax = plt.subplots(figsize=(8, 5))
+boxes = ax.boxplot([times1, times2], patch_artist=True,
+                  tick_labels=['direct', 'FFT'])
+for patch, color in zip(boxes['boxes'], ['#5aa9df', '#f2a65a']):
+    patch.set_facecolor(color)
+ax.set_ylabel('Time per call [s]')
+ax.set_title('Same image, same normalized 3 x 3 kernel')
 fig.tight_layout()
-
-notch_complex_output = np.fft.ifft2(np.fft.fft2(filter_image) * notch)
-notch_output = notch_complex_output.real
-assert np.max(np.abs(notch_complex_output.imag)) < 1e-12
-
+plt.show()
 
 # %% [markdown]
-# ## Inverse filtering 是病態問題
-#
-# 若 $G=HF+N$，在 $N=0$ 且 $H\ne0$ 時可寫成 $F=G/H$。當 $H$ 接近零，微小的 $N$ 也會被大幅放大。程式裡的 `G / (H + eps)` 屬於帶偏差的近似；`eps` 改變了 transfer function，也可能造成相位偏移。
-#
-# Truncated inverse 提供一個容易觀察的做法：只在 $|H|\ge\tau$ 的頻率做除法，其餘設為零。調高 $\tau$ 會保留較少頻率，雜訊放大也較弱；調低 $\tau$ 可留下更多細節，同時更容易放大雜訊。由下方輸出的 `retained frequency fraction`，可以直接看到這項取捨。
+# <!-- source-cells: 57 -->
+# ## 頻率域濾波：高通與低通
+
+# %% [markdown]
+# <!-- source-cells: 58 -->
+# ### 高通濾波器（High-Pass Filter, HPF）
+
+# %% [markdown]
+# <!-- source-cells: 59 -->
+# 高通濾波器移除低頻，保留較快速的空間變化，因此常顯示邊緣與細節，也會保留同頻帶的雜訊。以下使用 Gengar，將中心的一塊方形低頻區設為零。
+
+# %% [markdown]
+# <!-- source-cells: 60 -->
+# 計算 `fft2`，以 `fftshift` 找到中央低頻區，套上遮罩，再用 `ifftshift` 和 `ifft2` 回到影像。遮罩必須讓正負共軛頻率成對處理，才能得到實數輸出。
 
 # %%
-def psf_to_otf(psf, shape):
-    """將以中心表示的 PSF padding 並移到 FFT origin。"""
-    padded = np.zeros(shape, dtype=float)
-    slices = tuple(slice(0, size) for size in psf.shape)
-    padded[slices] = psf
-    for axis, size in enumerate(psf.shape):
-        padded = np.roll(padded, -(size // 2), axis=axis)
-    return np.fft.fft2(padded)
-
-
-def truncated_inverse(observed, transfer, threshold):
-    """只反轉 transfer magnitude 不低於 threshold 的頻率。"""
-    observed_fft = np.fft.fft2(observed)
-    inverse = np.zeros_like(transfer, dtype=complex)
-    stable = np.abs(transfer) >= threshold
-    inverse[stable] = 1.0 / transfer[stable]
-    return np.fft.ifft2(observed_fft * inverse).real, stable
-
-
-original = ski.util.img_as_float(ski.data.camera())[::2, ::2]
-g1 = signal.windows.gaussian(11, std=2)
-psf = np.outer(g1, g1)
-psf /= psf.sum()
-transfer = psf_to_otf(psf, original.shape)
-blurred = np.fft.ifft2(np.fft.fft2(original) * transfer).real
-rng = np.random.default_rng(0)
-noisy_blurred = blurred + rng.normal(scale=0.01 * blurred.std(), size=blurred.shape)
-restored_truncated, retained = truncated_inverse(noisy_blurred, transfer, threshold=0.08)
-
-assert 0 < retained.mean() < 1
-print("retained frequency fraction:", retained.mean())
-imshow_all(original, noisy_blurred, restored_truncated,
-           titles=["original", "blurred + noise", "truncated inverse"])
-
-# %% [markdown]
-# Point-spread function（PSF）描述系統對單一點的空間域響應；它的 Fourier transform 是 optical transfer function（OTF）。程式中 PSF 的中心通常畫在陣列中央，但 FFT 的 origin 在 `[0,0]`，因此 `psf_to_otf` 必須先 padding，再把 PSF 中心移到 origin。少了這步會多出一個 phase ramp，造成復原影像平移。影像復原的前向模型、邊界與正則化必須配套解讀 {cite}`penczek2010restoration`。
-
-
-# %% [markdown]
-# ## Wiener regularization
-#
-# 在簡化的白雜訊／平穩訊號模型下，常見的 Wiener-style estimator 可寫成
-#
-# $$\widehat F=\frac{H^*}{|H|^2+K}G.$$
-#
-# $K$ 代表 noise-to-signal power 的近似；$K$ 越大，在 transfer 弱的頻率給予的增益越小。這是 bias–variance trade-off，零點處未被量到的資訊仍然缺失。
+# source-cells: 61
+show_images(gengar, titles=['Gengar'])
 
 # %%
-def wiener_frequency(observed, transfer, regularization):
-    if regularization <= 0:
-        raise ValueError("regularization must be positive")
-    observed_fft = np.fft.fft2(observed)
-    estimator = np.conj(transfer) / (np.abs(transfer) ** 2 + regularization)
-    return np.fft.ifft2(estimator * observed_fft).real
-
-
-restored_wiener = wiener_frequency(noisy_blurred, transfer, regularization=2e-3)
-assert np.isfinite(restored_wiener).all()
-imshow_all(noisy_blurred, restored_truncated, restored_wiener,
-           titles=["observed", "truncated inverse", "Wiener-style"])
-
-
-# %% [markdown]
-# ### Regularization 強度決定 bias–variance trade-off
-#
-# $K$ 太小時，弱 transfer 處的雜訊會被大幅放大；$K$ 太大時，復原影像會過度平滑。下例保留了原始影像，因此可以計算均方誤差（mean squared error, MSE）與峰值訊雜比（peak signal-to-noise ratio, PSNR）。先找出 MSE 最低、PSNR 最高的候選，再回頭看影像：高分結果是否仍保留邊緣，或已經被平滑成看似乾淨的影像。處理實驗影像時沒有這張原始參考圖，$K$ 便要配合雜訊估計和後續分析來選。
+# source-cells: 62
+gengar_fft = fp.fft2(gengar)
+show_images(np.log1p(np.abs(fp.fftshift(gengar_fft))), titles=['Original spectrum'])
 
 # %%
-regularization_values = np.array([1e-6, 1e-4, 2e-3, 5e-2])
-restoration_candidates = [
-    wiener_frequency(noisy_blurred, transfer, value)
-    for value in regularization_values
-]
-mse_values = np.array([
-    np.mean((candidate - original) ** 2)
-    for candidate in restoration_candidates
-])
-psnr_values = np.array([
-    ski.metrics.peak_signal_noise_ratio(original, candidate, data_range=1.0)
-    for candidate in restoration_candidates
-])
-observed_mse = np.mean((noisy_blurred - original) ** 2)
+# source-cells: 63
+low_mask20 = square_lowpass(gengar.shape, 20)
+high_mask20 = ~low_mask20
+high_fft20 = gengar_fft * high_mask20
+assert low_mask20.sum() == 41**2
+show_images(fp.fftshift(high_mask20), np.log1p(np.abs(fp.fftshift(high_fft20))),
+            titles=['High-pass mask: 41 x 41 center removed', 'Filtered spectrum'])
 
-assert np.isfinite(mse_values).all()
-assert np.allclose(psnr_values, 10 * np.log10(1.0 / mse_values))
-assert mse_values.min() < observed_mse
+# %% [markdown]
+# <!-- source-cells: 64 -->
+# 高通結果含有正、負響應。使用以零為中心的對称色階，就能同時看見邊緣兩側；把負值截成零會改變結果。
 
-fig, axes = plt.subplots(1, 2, figsize=(10, 3.5))
-axes[0].semilogx(regularization_values, mse_values, "o-")
-axes[0].set_xlabel("regularization $K$")
-axes[0].set_ylabel("MSE")
-axes[0].set_title("lower is better")
-axes[1].semilogx(regularization_values, psnr_values, "o-")
-axes[1].set_xlabel("regularization $K$")
-axes[1].set_ylabel("PSNR [dB]")
-axes[1].set_title("higher is better")
+# %%
+# source-cells: 65
+high20 = real_ifft2(high_fft20)
+limit = np.max(np.abs(high20))
+fig, ax = plt.subplots(figsize=(5, 5))
+ax.imshow(high20, cmap='RdBu_r', vmin=-limit, vmax=limit)
+ax.set_title('Signed high-pass output: F=20')
+ax.axis('off')
+plt.show()
+
+# %% [markdown]
+# <!-- source-cells: 66 -->
+# ### 從截止索引 1 看到 24
+#
+# 用同一張圖逐步加大被移除的中央方形。$F$ 是各軸保留／排除的最大頻率索引，方形邊長為 $2F+1$，不是一個徑向截止頻率。下方完整列出 24 個高通結果。
+
+# %%
+# source-cells: 67
+cutoffs = list(range(1, 25))
+lowpass_results = [real_ifft2(gengar_fft * square_lowpass(gengar.shape, f)) for f in cutoffs]
+highpass_results = [real_ifft2(gengar_fft * ~square_lowpass(gengar.shape, f)) for f in cutoffs]
+for low, high in zip(lowpass_results, highpass_results):
+    assert np.allclose(low + high, gengar, atol=1e-12)
+montage(highpass_results, [f'High-pass F={f}' for f in cutoffs], signed=True)
+
+# %% [markdown]
+# <!-- source-cells: 68 -->
+# ### 低通濾波器（Low-Pass Filter, LPF）
+
+# %% [markdown]
+# <!-- source-cells: 69 -->
+# 低通保留中央的低頻區，移除外圍高頻。它能保留較大尺度的輪廓，但細節與銳利邊緣會一起減少。
+
+# %% [markdown]
+# <!-- source-cells: 70 -->
+# 對同一組 FFT 係數套上互補遮罩：高通排除的中央方形，就是低通保留的區域。
+
+# %% [markdown]
+# <!-- source-cells: 71 -->
+# 先看 $F=20$ 的結果。中央區塊包含每一軸索引 −20 到 20，因此是 **41×41**。
+
+# %%
+# source-cells: 72
+low_fft20 = gengar_fft * low_mask20
+low20 = real_ifft2(low_fft20)
+show_images(low20, titles=['Low-pass F=20'])
+
+# %% [markdown]
+# <!-- source-cells: 73 -->
+# 查看套過低通遮罩的頻譜，確認中心保留、外圍變成零。
+
+# %%
+# source-cells: 74
+show_images(np.log1p(np.abs(fp.fftshift(low_fft20))), titles=['Low-pass spectrum: F=20'])
+
+# %% [markdown]
+# <!-- source-cells: 75 -->
+# 用相同的 24 個截止索引計算低通結果；與前面的高通形成一組互補比較。
+
+# %%
+# source-cells: 76
+montage(lowpass_results, [f'Low-pass F={f}' for f in cutoffs])
+
+# %% [markdown]
+# <!-- source-cells: 77 -->
+# $F$ 愈大，低通保留的頻帶愈寬，圖像細節逐漸增加。互動圖可以逐一切換截止索引，同時比較遮罩、低通和保留正負值的高通結果。
+
+# %%
+# source-cells: 77 (browser counterpart)
+lab('filter_sweep', original=gengar, cutoffs=cutoffs,
+    lowpass=lowpass_results, highpass=highpass_results,
+    spectrum=np.log1p(np.abs(fp.fftshift(gengar_fft))))
+
+# %% [markdown]
+# <!-- source-cells: 78 -->
+# ## 去卷積：已知模糊核時如何復原影像？
+
+# %% [markdown]
+# <!-- source-cells: 79 -->
+# 先用標準差為 3 的 Gaussian 核模糊 Gengar，再使用同一個核的 Fourier transform 嘗試反演。這一次仍採同尺寸 FFT，模糊與復原使用一致的週期邊界。
+
+# %%
+# source-cells: 80
+im = gengar
+gauss_kernel = gaussian_psf(im.shape, std=3)
+freq_kernel = fp.fft2(fp.ifftshift(gauss_kernel))
+im_blur = real_ifft2(fp.fft2(im) * freq_kernel)
+show_images(im, gauss_kernel, im_blur,
+            titles=['Gengar', 'Normalized Gaussian: std=3', 'Blurred image'])
+
+# %% [markdown]
+# <!-- source-cells: 81 -->
+# ### 反濾波與差值圖
+# 理想的無雜訊模型為 $G=HF$，在 $H\ne0$ 時可以除以 $H$。實際數值中，接近零的 $H$ 會放大捨入誤差。設定 $\epsilon=10^{-12}$，計算 $G/(H+\epsilon)$，並把重建與原圖的差值畫出來。
+
+# %%
+# source-cells: 82
+inverse_epsilon = 1e-12
+inverse_transfer = 1 / (freq_kernel + inverse_epsilon)
+im_restored = real_ifft2(fp.fft2(im_blur) * inverse_transfer)
+inverse_difference = im_restored - im
+print('inverse epsilon:', inverse_epsilon)
+print('maximum absolute restoration error:', np.max(np.abs(inverse_difference)))
+print('restoration MSE:', np.mean(inverse_difference**2))
+fig, axes = plt.subplots(2, 2, figsize=(10, 8))
+for ax, image, title in zip(axes.flat,
+        [im, im_blur, im_restored, inverse_difference],
+        ['Gengar', 'Blurred', 'Approximate inverse', 'Restored minus original']):
+    if title == 'Restored minus original':
+        limit = max(1e-12, np.max(np.abs(image)))
+        ax.imshow(image, cmap='RdBu_r', vmin=-limit, vmax=limit)
+    else:
+        ax.imshow(image)
+    ax.set_title(title)
+    ax.axis('off')
 fig.tight_layout()
-
-
-# %% [markdown]
-# ## Fourier slice theorem
-#
-# 對 2D 物件沿 $y$ 積分得到 1D projection $p[x]=\sum_y f[y,x]$，$p$ 的 1D Fourier transform 等於 $f$ 的 2D Fourier transform 中 $k_y=0$ 的 central line。3D 情況同理：每張 2D projection 的 Fourier transform 對應 3D Fourier volume 中一個通過原點的平面；粒子取向決定平面的方向。
+plt.show()
 
 # %%
-phantom = ski.data.shepp_logan_phantom()
-phantom = ski.transform.resize(phantom, (96, 128), anti_aliasing=True)
-projection = phantom.sum(axis=0)
-projection_fft = np.fft.fft(projection)
-central_slice = np.fft.fft2(phantom)[0, :]
-assert np.allclose(projection_fft, central_slice, atol=1e-10)
-
-fig, axes = plt.subplots(1, 2, figsize=(10, 3.5))
-axes[0].imshow(phantom)
-axes[0].set_title("2D object")
-axes[0].axis("off")
-axes[1].plot(np.abs(np.fft.fftshift(projection_fft)), label="FFT of projection")
-axes[1].plot(np.abs(np.fft.fftshift(central_slice)), "--", label="central slice")
-axes[1].legend()
-fig.tight_layout()
+# source-cells: 83
+print('difference array shape:', inverse_difference.shape)
+print(inverse_difference)
 
 # %% [markdown]
-# ```{dropdown} 套用到 SPA 影像時還要處理什麼？
-#
-# 每張粒子影像還帶有 CTF、平移、雜訊與有限 box，取向和構形通常也未知。Fourier slice theorem 給出投影與中央切面的幾何關係；實際重建還要估計取向、在三維頻率網格內插、抑制雜訊，並分開不同構形。
+# <!-- source-cells: 84 -->
+# 差值可能來自浮點誤差，以及分母加入 $\epsilon$ 後的偏差。當某些頻率的核響應很弱，近似反演就不會完全還原原係數；不能從這張差值圖推論每次無雜訊去卷積都必然丟失資訊。
+
+# %% [markdown]
+# <!-- source-cells: 85 -->
+# ```{dropdown} 為什麼含雜訊時除以 $H$ 特別危險？
+# 若 $G=HF+N$，直接反演得到 $G/H=F+N/H$。當 $|H|$ 很小，雜訊會被大幅放大。加入 $\epsilon$ 後，訊號項也改成 $H/(H+\epsilon)F$，所以這是帶偏差的近似；它不是適用於所有模糊核的最佳正則化。一般反濾波器也不能直接等同於高通濾波器。
 # ```
 
+# %% [markdown]
+# <!-- source-cells: 86 -->
+# ### 帶雜訊的影像：`unsupervised_wiener`
 
 # %% [markdown]
-# ## 從簡化 CTF 到較完整的參數
+# <!-- source-cells: 87 -->
+# 改用 2×2 box PSF，以線性卷積產生模糊圖，再加入標準差為模糊圖標準差一半的 Gaussian 雜訊。`unsupervised_wiener` 會從模型與資料估計相關的精度參數。固定亂數種子方便比較，並觀察它恢復的輪廓與殘留誤差。
 #
-# 教學上常先用無散光、無振幅對比、無 envelope 的純相位模型
-#
-# $$\mathrm{CTF}(s)=-\sin\chi(s),\qquad
-# \chi(s)=\pi\lambda\Delta f\,s^2-\frac{\pi}{2}C_s\lambda^3s^4+\phi.$$
-#
-# 符號會隨 defocus 與 Fourier convention 改寫；真正重要的是全章採同一慣例。較完整的模型會混合 amplitude contrast，並以 envelope 描述 temporal／spatial coherence、motion 與偵測器造成的高頻衰減。Astigmatism 讓 defocus 隨方位角改變；phase plate 會加入額外 phase shift。
+# [`scikit-image restoration 文件`](https://scikit-image.org/docs/stable/api/skimage.restoration.html#skimage.restoration.unsupervised_wiener)說明此函式的模型、回傳值與參數。產生影像的 `same` 線性卷積與復原器的頻域模型在邊界處可能不同，判讀邊界時要把這個差別算進去。
 
 # %%
-def electron_wavelength_A(voltage_kv):
-    """Relativistic electron wavelength in Å for accelerating voltage in kV。"""
-    if voltage_kv <= 0:
-        raise ValueError("voltage_kv must be positive")
-    voltage = voltage_kv * 1_000.0
-    return 12.2639 / np.sqrt(voltage * (1.0 + 0.97845e-6 * voltage))
-
-
-def ctf_1d(spatial_frequency, defocus_A, voltage_kv=300.0, cs_mm=2.7,
-           amplitude_contrast=0.0, phase_shift_rad=0.0, b_factor_A2=0.0):
-    """Isotropic CTF；envelope 以可選 B factor 近似，astigmatism 留待二維模型。"""
-    s = np.asarray(spatial_frequency, dtype=float)
-    if not 0 <= amplitude_contrast < 1:
-        raise ValueError("amplitude_contrast must be in [0, 1)")
-    wavelength = electron_wavelength_A(voltage_kv)
-    cs_A = cs_mm * 1e7
-    chi = (
-        np.pi * wavelength * defocus_A * s**2
-        - 0.5 * np.pi * cs_A * wavelength**3 * s**4
-        + phase_shift_rad
-    )
-    phase_weight = np.sqrt(1.0 - amplitude_contrast**2)
-    envelope = np.exp(-0.25 * b_factor_A2 * s**2)
-    return -envelope * (phase_weight * np.sin(chi) + amplitude_contrast * np.cos(chi))
-
-
-assert np.isclose(electron_wavelength_A(300), 0.01969, rtol=2e-3)
-s = np.linspace(0, 0.5, 4000)
-ctf_simple = ctf_1d(s, defocus_A=15_000, voltage_kv=300, cs_mm=2.7)
-ctf_with_terms = ctf_1d(
-    s, defocus_A=15_000, voltage_kv=300, cs_mm=2.7,
-    amplitude_contrast=0.1, phase_shift_rad=0.15, b_factor_A2=40,
-)
-
-fig, ax = plt.subplots(figsize=(9, 3.5))
-ax.plot(s, ctf_simple, label="pure phase, no envelope")
-ax.plot(s, ctf_with_terms, label="amplitude contrast + phase shift + envelope")
-ax.axhline(0, color="black", linewidth=0.6)
-ax.set_xlabel("spatial frequency [1/Å]")
-ax.set_ylabel("CTF")
-ax.legend()
-fig.tight_layout()
-
+# source-cells: 88
+im = gengar
+n = 2
+psf = np.ones((n, n)) / n**2
+im1 = conv2(im, psf, 'same')
+rng = np.random.default_rng(42)
+im1 = im1 + 0.5 * im1.std() * rng.standard_normal(im1.shape)
+im2, chains = ski.restoration.unsupervised_wiener(im1, psf, rng=42)
+show_images(im, im1, im2,
+            titles=['Gengar', 'Noisy blurred image', 'Self-tuned restoration'])
 
 # %% [markdown]
-# 若固定電壓、$C_s$、振幅對比、phase shift 與散光設定，改變離焦（defocus）會移動 CTF 零點。但零點不由離焦單獨決定；電子波長、球差、振幅對比與額外 phase 都可能改變它。散光則使零點依方位角而異。
-
+# <!-- source-cells: 89 -->
+# ## Moon landing：去除週期性干擾
 
 # %% [markdown]
-# ## Phase flipping 與 Wiener-style CTF correction 是兩件事
-#
-# 若觀測頻譜 $G=C F+N$：
-#
-# - phase flipping 使用 $\operatorname{sign}(C)G$，只修正 sign／phase reversal，不補償 $|C|$ 的衰減。
-# - Wiener-style correction 使用 $C^*/(|C|^2+K)G$，同時做帶正則化的振幅校正；$K$ 決定零點附近抑制程度。
-#
-# 以下以 2D isotropic CTF 示範。先比較兩個輸出：phase flipping 只翻回對比方向，Wiener-style correction 還會依 $|C|$ 調整振幅。CTF 零點附近在這張影像中幾乎沒有訊號；收集不同離焦量的影像，可以讓其他影像補上部分頻率。
+# <!-- source-cells: 90 -->
+# 登月影像有規律條紋。先看原圖與頻譜，再比較「直接縮窄頻帶」及「針對強峰抑制」兩種做法。這張 `moonlanding.png` 本身已有干擾，直接分析它的頻譜。
 
 # %%
-def radial_frequency_grid(shape, pixel_size_A):
-    fy = np.fft.fftfreq(shape[0], d=pixel_size_A)
-    fx = np.fft.fftfreq(shape[1], d=pixel_size_A)
-    yy, xx = np.meshgrid(fy, fx, indexing="ij")
-    return np.sqrt(xx**2 + yy**2)
-
-
-def phase_flip_spectrum(observed_fft, ctf_values):
-    signs = np.sign(ctf_values)
-    return signs * observed_fft
-
-
-def wiener_ctf_spectrum(observed_fft, ctf_values, regularization):
-    if regularization <= 0:
-        raise ValueError("regularization must be positive")
-    return np.conj(ctf_values) * observed_fft / (np.abs(ctf_values) ** 2 + regularization)
-
-
-true_projection = ski.transform.resize(ski.data.camera(), (192, 192), anti_aliasing=True)
-true_projection = ski.util.img_as_float(true_projection)
-frequency_radius = radial_frequency_grid(true_projection.shape, pixel_size_A=1.5)
-ctf_grid = ctf_1d(
-    frequency_radius, defocus_A=15_000, voltage_kv=300,
-    cs_mm=2.7, amplitude_contrast=0.1, b_factor_A2=30,
-)
-true_fft = np.fft.fft2(true_projection)
-rng = np.random.default_rng(7)
-noise = rng.normal(scale=0.03 * true_projection.std(), size=true_projection.shape)
-observed = np.fft.ifft2(ctf_grid * true_fft).real + noise
-observed_fft = np.fft.fft2(observed)
-
-phase_flipped = np.fft.ifft2(phase_flip_spectrum(observed_fft, ctf_grid)).real
-wiener_corrected = np.fft.ifft2(
-    wiener_ctf_spectrum(observed_fft, ctf_grid, regularization=0.03)
-).real
-
-nonzero = np.abs(ctf_grid) > 1e-8
-assert np.allclose(
-    np.abs(phase_flip_spectrum(observed_fft, ctf_grid)[nonzero]),
-    np.abs(observed_fft[nonzero]),
-)
-assert np.isfinite(wiener_corrected).all()
-
-imshow_all(true_projection, observed, phase_flipped, wiener_corrected,
-           titles=["true projection", "CTF + noise", "phase flipping", "Wiener-style"])
-
+# source-cells: 91
+image = ski.io.imread(image_path('moonlanding.png'))
+assert image.ndim == 2
+M, N = image.shape
+show_images(image, titles=['Moon landing: original image'])
+print(image.shape, image.dtype)
 
 # %% [markdown]
-# ```{admonition} 從這個例子讀圖
-# :class: note
-#
-# 此處的 CTF rings 呈同心圓，因為離焦量不隨方向改變；單一 B factor 則讓高頻振幅逐漸下降。真實影像若出現橢圓形 Thon rings，就要把散光加入二維 CTF。更高階像差、DQE 與 colored noise 也會改變觀測頻譜，但不影響本例要比較的兩種校正運算。
-# ```
-#
-# ## 理解檢查
-#
-# 1. 對 shape `(N, M)` 的影像，二維 DFT 的正規化因子如何決定？`H[0,0]` 又和影像平均值差多少？
-#
-#    ```{dropdown} 參考答案
-#    令影像為 $h[n,m]$，其中 $0\le n<N$、$0\le m<M$。正向 DFT 的指數項是
-#
-#    $$
-#    e^{-i2\pi(kn/N+\ell m/M)},
-#    $$
-#
-#    因此垂直頻率索引 $k$ 要除以列數 $N$，水平頻率索引 $\ell$ 要除以欄數 $M$。若交換兩個分母，矩形影像的基底頻率便會算錯。採用 NumPy 預設慣例時，正向轉換不乘正規化常數，反向轉換乘 $1/(NM)$。零頻係數為
-#
-#    $$
-#    H[0,0]=\sum_{n=0}^{N-1}\sum_{m=0}^{M-1}h[n,m]=NM\,\bar h.
-#    $$
-#
-#    例如 $2\times3$ 影像的平均值是 4，則 `H[0,0]` 是 $6\times4=24$。使用 `norm="ortho"` 或自行正規化時，DC coefficient 與平均值的比例會跟著改變，因此計算前要先確認 DFT 慣例。
-#    ```
-#
-# 2. 影像平移後，Fourier magnitude 與 phase 會如何改變？
-#
-#    ```{dropdown} 參考答案
-#    若 $g(y,x)=f(y-\Delta y,x-\Delta x)$，translation theorem 給出
-#
-#    $$
-#    G(f_y,f_x)=F(f_y,f_x)e^{-i2\pi(f_y\Delta y+f_x\Delta x)}.
-#    $$
-#
-#    右側新增的因子絕對值為 1，所以 $|G|=|F|$；phase 則多出一個隨頻率線性變化的斜坡。以向右平移 3 pixels 為例，水平頻率 $f_x$ 的相位改變 $-2\pi(3f_x)$。這項性質說明 magnitude spectrum 無法單獨決定影像位置。離散影像若採 circular shift，公式可直接套用；實際裁切、補零或邊界截斷會改變影像內容，此時 magnitude 也可能跟著改變。
-#    ```
-#
-# 3. Hann window 與 zero-padding 各自改變了什麼？
-#
-#    ```{dropdown} 參考答案
-#    Hann window 先讓訊號兩端平順降到接近零，可減輕週期接合處的不連續，因此遠離主峰的 spectral leakage 會下降；代價是主瓣變寬，鄰近頻率更難分開。Zero-padding 只在既有 DFT 取樣點之間加入更密的頻率取樣，畫出的頻譜較平滑，觀測時間與真正的頻率解析力都沒有增加。
-#    ```
-#
-# 4. 已知 $G=HF+N$ 時，為何 `G/(H+eps)` 仍會產生偏差？正則化如何在雜訊與細節之間取捨？
-#
-#    ```{dropdown} 參考答案
-#    理想反濾波 $F=G/H$ 需要 $N=0$ 且每個頻率的 $H\ne0$。加入 `eps` 後，對無雜訊資料得到
-#
-#    $$
-#    \widehat F=\frac{HF}{H+\varepsilon}
-#    =F\frac{H}{H+\varepsilon},
-#    $$
-#
-#    乘上的比例通常偏離 1，所以估計帶有偏差；若 $H$ 為複數，直接加實數 `eps` 還可能改變相位。Wiener-style filter 常寫成
-#
-#    $$
-#    \widehat F=\frac{H^*}{|H|^2+K}G.
-#    $$
-#
-#    在 $|H|$ 很小的頻率，分母中的 $K$ 可抑制雜訊放大；$K$ 太大會抹去可恢復的細節，太小則接近不穩定的 inverse filter。例如 $H=0.01$、$K=0.01$ 時，Wiener gain 約為 $0.01/(0.0001+0.01)\approx0.99$，遠低於 inverse gain 100。`eps` 或 $K$ 都需要配合雜訊水準與任務評估，沒有一個值能通用於所有影像。
-#    ```
-#
-# 5. Phase flipping 與 Wiener-style CTF correction 分別改變哪些 Fourier 資訊？
-#
-#    ```{dropdown} 參考答案
-#    Phase flipping 把觀測頻譜乘上 $\operatorname{sign}(\mathrm{CTF})$。在 $\mathrm{CTF}\ne0$ 的頻率，乘數的絕對值是 1，所以觀測振幅保持不變；CTF 為負時，相位會翻回來。依本章實作，零點的乘數設為 0。CTF 已壓低的振幅與零點處遺失的資訊仍維持原狀。
-#
-#    Wiener-style correction 使用
-#
-#    $$
-#    \frac{\mathrm{CTF}^*}{|\mathrm{CTF}|^2+K},
-#    $$
-#
-#    同時調整相位與振幅。$K$ 防止 CTF 接近零時增益暴增，也會讓估計產生平滑偏差。舉例來說，CTF 為 $-0.5$、$K=0.05$ 時，gain 為 $-0.5/(0.25+0.05)\approx-1.67$；phase flipping 的 gain 則是 $-1$。兩者都無法憑單張影像補回 CTF 零點，實務上會利用不同離焦影像互補頻率資訊，並配合更完整的 CTF 與雜訊模型。
-#    ```
+# <!-- source-cells: 92 -->
+# 二維傅立葉轉換（2-D FFT）等價於先對影像的每一列進行一維傅立葉轉換，再對每一欄進行一維傅立葉轉換（或反過來亦可）。
 
+# %%
+# source-cells: 93
+F = fp.fft2(image)
+F_magnitude = fp.fftshift(np.abs(F))
 
 # %% [markdown]
-# ## 延伸閱讀
+# <!-- source-cells: 94 -->
+# 同樣地，在顯示之前，我們先對頻譜取對數，以壓縮數值範圍：
+
+# %%
+# source-cells: 95
+show_images(np.log1p(F_magnitude), titles=['Moon landing: log spectrum'], cmap='viridis')
+
+# %%
+# source-cells: 96
+keep_fraction = 0.1
+ky_moon, kx_moon = frequency_indices(image.shape)
+# Retain signed frequencies within 10% of each axis length; paired at both ends.
+moon_low_mask = ((np.abs(ky_moon) < M * keep_fraction)
+                 & (np.abs(kx_moon) < N * keep_fraction))
+im_fft2 = F * moon_low_mask
+show_images(fp.fftshift(moon_low_mask),
+            np.log1p(np.abs(fp.fftshift(im_fft2))),
+            titles=['Symmetric low-pass mask', 'Filtered spectrum'])
+
+# %%
+# source-cells: 97
+im_new = real_ifft2(im_fft2)
+show_images(im_new, titles=['Moon landing: low-pass reconstruction'])
+
+# %% [markdown]
+# <!-- source-cells: 98 -->
+# 低通會一起移除干擾與高頻細節。接著改用頻譜峰值找候選干擾：先保護中心低頻區，再將其餘幅度超過第 98 百分位的係數成對壓掉。強峰也可能來自真實紋理，因此要比較輸出影像，不能把所有高頻峰都當成雜訊。
+
+# %%
+# source-cells: 99
+F = fp.fft2(image)
+K = 40
+# A symmetric 81 x 81 protected center replaces the asymmetric [-40, 39] slice.
+protected_center = square_lowpass(image.shape, K)
+peak_scores = np.abs(F).copy()
+peak_scores[protected_center] = 0
+threshold98 = np.percentile(peak_scores, 98)
+remove_peaks = (peak_scores >= threshold98) & ~protected_center
+neg_rows = (-np.arange(M)) % M
+neg_cols = (-np.arange(N)) % N
+remove_peaks |= remove_peaks[np.ix_(neg_rows, neg_cols)]
+F_dim = F * ~remove_peaks
+image_filtered = real_ifft2(F_dim)
+print('98th-percentile amplitude:', threshold98)
+print('removed Fourier coefficients:', np.count_nonzero(remove_peaks))
+show_images(np.log1p(np.abs(fp.fftshift(F_dim))),
+            titles=['Spectrum after paired peak suppression'], cmap='viridis')
+show_images(image, im_new, image_filtered,
+            titles=['Original moon landing', 'Low-pass', 'Peak suppression'])
+
+# %% [markdown]
+# <!-- source-cells: 100 -->
+# ## 影像金字塔：在多個尺度看同一張圖
+
+# %% [markdown]
+# <!-- source-cells: 101 -->
+# 影像中的物件可能有不同大小。尋找人臉時，可以先建立一組由大到小的影像，在各尺度中搜尋；編輯影像時，也可以分開處理大尺度明暗與局部細節。這就是影像金字塔的用途。
 #
-# 想進一步了解影像頻域濾波、取樣與復原，可接著閱讀電腦視覺教科書的相關章節 {cite}`szeliski2022,forsyth2012`。Cryo-EM 的影像復原與 CTF 校正則可參考專門綜述 {cite}`penczek2010restoration`。
+# Gaussian pyramid 從原圖開始，每次先平滑，再取較少的像素，逐層得到較小的影像。下方兩張原始示意圖展示金字塔的層級與尺度關係。
+#
+# 可重建的 residual Laplacian pyramid 儲存「某一層 Gaussian image 減去下一個粗層放大後的影像」，再保留最粗層；重建時按同一個放大操作逐層加回差值。稍後呼叫的 scikit-image `pyramid_laplacian` 採用另一種每層高通定義，兩者的輸出不能直接混用。
+
+# %%
+# source-cells: 101 (diagram 1)
+# source-image-url: https://drive.google.com/uc?id=1BLZ-Chch9k3r9EHNsnkbi75maq_a7n-y
+display(Image(filename=str(image_path('ch03-cell101-1.png'))))
+
+# %%
+# source-cells: 101 (diagram 2)
+# source-image-url: https://drive.google.com/uc?id=1BOq0GkhwEvPCRG6YGpZCClzvcVryP1RQ
+display(Image(filename=str(image_path('ch03-cell101-2.png'))))
+
+# %% [markdown]
+# <!-- source-cells: 102 -->
+# ### Pikachu 的 Gaussian pyramid
+#
+# `pyramid_gaussian(image, downscale=2, channel_axis=-1)` 每次先平滑，再縮小。保留各層尺寸與完整 montage，觀察細節如何隨尺度消失。
+
+# %%
+# source-cells: 103
+pikachu_rgb = read_rgb('pikachu.png')
+image = pikachu_rgb
+pyramid = tuple(ski.transform.pyramid_gaussian(image, downscale=2, channel_axis=-1))
+show_images(*pyramid, titles=[f'{p.shape[0]} x {p.shape[1]}' for p in pyramid],
+            figsize=(20, 4))
+nrows, ncols = image.shape[:2]
+right_height = sum(p.shape[0] for p in pyramid[1:])
+right_width = max((p.shape[1] for p in pyramid[1:]), default=0)
+composite_gaussian = np.zeros((max(nrows, right_height), ncols + right_width, 3))
+composite_gaussian[:nrows, :ncols] = pyramid[0]
+i_row = 0
+for p in pyramid[1:]:
+    nr, nc = p.shape[:2]
+    composite_gaussian[i_row:i_row + nr, ncols:ncols + nc] = p
+    i_row += nr
+show_images(composite_gaussian, titles=['Pikachu: complete Gaussian pyramid'], figsize=(9, 8))
+
+# %% [markdown]
+# <!-- source-cells: 104 -->
+# ### `pyramid_laplacian` 的各尺度細節
+#
+# 這個 API 的每層是「當層影像減去其平滑版本」，接著從平滑、縮小後的影像繼續計算。因此它會凸顯各尺度的細節，但不是上一段提到的「相鄰 Gaussian 層－expand 粗層」residual 定義。本例顯示各層及 montage，不宣稱用這些回傳值即可按另一套公式精確重建。
+
+# %%
+# source-cells: 105
+laplacian_pyramid = tuple(ski.transform.pyramid_laplacian(
+    pikachu_rgb, downscale=2, channel_axis=-1))
+laplacian_gray = [ski.color.rgb2gray(p) for p in laplacian_pyramid]
+montage(laplacian_gray, [f'{p.shape[0]} x {p.shape[1]}' for p in laplacian_gray],
+        signed=True, figsize=(12, 8))
+nrows, ncols = laplacian_gray[0].shape
+right_height = sum(p.shape[0] for p in laplacian_gray[1:])
+right_width = max((p.shape[1] for p in laplacian_gray[1:]), default=0)
+composite_laplacian = np.zeros((max(nrows, right_height), ncols + right_width))
+composite_laplacian[:nrows, :ncols] = laplacian_gray[0]
+i_row = 0
+for p in laplacian_gray[1:]:
+    nr, nc = p.shape
+    composite_laplacian[i_row:i_row + nr, ncols:ncols + nc] = p
+    i_row += nr
+limit = max(1e-12, np.max(np.abs(composite_laplacian)))
+fig, ax = plt.subplots(figsize=(9, 8))
+ax.imshow(composite_laplacian, cmap='RdBu_r', vmin=-limit, vmax=limit)
+ax.set_title('Pikachu: complete pyramid_laplacian output')
+ax.axis('off')
+plt.show()
+
+# %% [markdown]
+# <!-- source-cells: 106 -->
+# Laplacian 層含正、負值，以零為中心顯示才能看清楚局部亮暗差異；Gaussian 層則保留平滑後的影像。兩者都保留空間位置，只是呈現的尺度與內容不同。
+
+# %% [markdown]
+# <!-- source-cells: 107 -->
+# ### 金字塔也能用來融合影像
+#
+# 若直接把兩張圖各切一半接起來，接縫通常很明顯。多尺度融合讓低頻的過渡較寬，高頻的細節較局部；可沿著下列範例查看如何建立兩張圖與遮罩的金字塔。
+#
+# - [Image blending using Laplacian pyramids](https://becominghuman.ai/image-blending-using-laplacian-pyramids-2f8e9982077f)：查看不同層的融合與合成順序。
+# - [OpenCV Image Pyramids](https://docs.opencv.org/4.x/dc/dff/tutorial_py_pyramids.html)：由 Gaussian pyramid 讀到 Laplacian pyramid 的融合範例。
+
+# %% [markdown]
+# <!-- source-cells: 108 -->
+# ## 特徵偵測：角點與斑點
+
+# %% [markdown]
+# <!-- source-cells: 109 -->
+# 前面用頻率與尺度描述整張影像；特徵偵測則選出值得注意的位置，例如角點或特定大小的斑點。這些位置可以供後續比對、辨識或量測使用。
+
+# %% [markdown]
+# <!-- source-cells: 110 -->
+# ### Harris 角點：棋盤與足球
+
+# %% [markdown]
+# <!-- source-cells: 111 -->
+# 邊緣主要沿一個方向有強烈變化；在角點附近，視窗往不同方向移動都會遇到明顯的強度變化。Harris response 就用這個差別找候選角點。設定 `k=0.001`，將大於最大response 1%的區域塗紅。這是response閾值圖，尚未使用局部極大值抑制把每一區縮成一個點。
+#
+# [CS131範例notebook](https://github.com/mikucy/CS131/blob/master/hw3_release/hw3.ipynb)提供角點與特徵比對的延伸練習。
+
+# %%
+# source-cells: 112
+image = read_rgb('chess_football.png')
+image_gray = ski.color.rgb2gray(image)
+harris_response = ski.feature.corner_harris(image_gray, k=0.001)
+harris_regions = harris_response > 0.01 * harris_response.max()
+harris_overlay = image.copy()
+harris_overlay[harris_regions] = [1.0, 0.0, 0.0]
+show_images(image, harris_response, harris_overlay,
+            titles=['Chess and football', 'Harris response', 'Response above 1% of maximum'])
+
+# %% [markdown]
+# <!-- source-cells: 113 -->
+# ### Hubble 影像：LoG、DoG 與 DoH 斑點偵測
+
+# %% [markdown]
+# <!-- source-cells: 114 -->
+# 高斯模糊會將影像「平滑化」。在對比度變化非常小的區域，即使一張影像的模糊程度比另一張強，這些區域看起來仍然相似。當某區域變化很小時，兩張影像相減的結果接近零（黑色）。而在高對比度的區域（例如邊緣或斑點），模糊強度的影響較大。
+
+# %%
+# source-cells: 114 (diagram 1)
+# source-image-url: https://drive.google.com/uc?id=1C-bXNQH9ad1HNGMHvqh4XUJjHAoZ8FcZ
+display(Image(filename=str(image_path('ch03-cell114-1.png'))))
+
+# %%
+# source-cells: 114 (diagram 2)
+# source-image-url: https://drive.google.com/uc?id=1BPel1EjTj2gqHeHNlT2uz80CaXhd2vlr
+display(Image(filename=str(image_path('ch03-cell114-2.png'))))
+
+# %% [markdown]
+# <!-- source-cells: 115 -->
+# https://medium.com/@vad710/cv-for-busy-devs-improving-features-df20c3aa5887
+
+# %%
+# source-cells: 116
+image = ski.data.hubble_deep_field()[0:500, 0:500]
+image_gray = ski.color.rgb2gray(image)
+
+# Note there is a parameter sigma_ratio
+blobs_log = ski.feature.blob_log(image_gray, max_sigma=30, num_sigma=10, threshold=.1)
+# Compute radii in the 3rd column.
+blobs_log[:, 2] = blobs_log[:, 2] * math.sqrt(2)
+
+blobs_dog = ski.feature.blob_dog(image_gray, max_sigma=30, threshold=.1)
+blobs_dog[:, 2] = blobs_dog[:, 2] * math.sqrt(2)
+
+blobs_doh = ski.feature.blob_doh(image_gray, max_sigma=30, threshold=.01)
+
+blobs_list = [blobs_log, blobs_dog, blobs_doh]
+colors = ['yellow', 'lime', 'red']
+titles = ['Laplacian of Gaussian', 'Difference of Gaussian',
+          'Determinant of Hessian']
+sequence = zip(blobs_list, colors, titles)
+
+fig, axes = plt.subplots(1, 3, figsize=(9, 3), sharex=True, sharey=True)
+ax = axes.ravel()
+
+for idx, (blobs, color, title) in enumerate(sequence):
+    ax[idx].set_title(title)
+    ax[idx].imshow(image)
+    for blob in blobs:
+        y, x, r = blob
+        c = plt.Circle((x, y), r, color=color, linewidth=2, fill=False)
+        ax[idx].add_patch(c)
+    ax[idx].set_axis_off()
+
+plt.tight_layout()
+plt.show();
+
+# %% [markdown]
+# <!-- source-cells: 117 -->
+# 比較三種方法畫出的圓：中心與尺度是否相近？某些模糊小點是否只被一種方法找出？LoG／DoG 的二維半徑以 $\sqrt2\sigma$ 近似，DoH 的輸出尺度則直接當作半徑。三者閾值的意義不同，要將中心位置、尺度與實際物件一起比較，才能判斷結果。
+#
+# - [scikit-image feature API](https://scikit-image.org/docs/stable/api/skimage.feature.html)：查看三種blob函式的尺度與閾值定義。
+# - [CS131特徵實作](https://github.com/mikucy/CS131/blob/master/hw3_release/hw3.ipynb)：延伸到特徵描述與比對。
+
+# %% [markdown]
+# <!-- source-cells: 118 -->
+# ## 延伸閱讀與參考資料
+
+# %% [markdown]
+# <!-- source-cells: 119 -->
+# - [OpenCV Image Processing](https://docs.opencv.org/4.x/d2/d96/tutorial_py_table_of_contents_imgproc.html)：從濾波、頻域操作到影像金字塔，依本章單元對照實作。
+# - [OpenCV Feature Detection and Description](https://docs.opencv.org/4.x/db/d27/tutorial_py_table_of_contents_feature2d.html)：從角點偵測接到描述子與影像匹配。
+# - 課程指定教科書第 3.4、3.5 與 7.1 節：依課堂使用的版本查閱，對照濾波、金字塔與特徵偵測。
+# - [Hands-On Image Processing with Python 原始碼](https://github.com/PacktPublishing/Hands-On-Image-Processing-with-Python)：本章moonlanding、chess_football影像與頻域實驗的來源之一。
+# - [SciPy FFT文件](https://docs.scipy.org/doc/scipy/reference/fft.html)：核對頻率排序、正規化與多維轉換。
+# - [scikit-image金字塔API](https://scikit-image.org/docs/stable/api/skimage.transform.html#skimage.transform.pyramid_laplacian)：特別比較本章兩種Laplacian定義。

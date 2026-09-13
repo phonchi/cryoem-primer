@@ -13,574 +13,516 @@
 #     name: cryoem-book
 # ---
 
+# %%
+
+# %% tags=["hide-input"]
+# source-cells: 0
+# 套件由教學環境統一安裝；本章不執行舊 imread plugin 安裝。
+
+# %%
+# source-cells: 1
+from pathlib import Path
+import sys
+import numpy as np
+import matplotlib.pyplot as plt
+import skimage as ski
+import pywt
+from skimage.restoration import denoise_wavelet, estimate_sigma
+from skimage.metrics import peak_signal_noise_ratio
+from skimage.util import random_noise
+
+BOOK = Path('book') if Path('book').is_dir() else Path('.')
+sys.path.insert(0, str(BOOK.resolve()))
+from _support import image_path, show_images, diagram
+
+plt.rcParams['image.cmap'] = 'gray'
+
+
+# %% tags=["remove-cell"]
+# source-cells: 2
+
 # %% [markdown]
-# # 小波與多尺度分析
+# # 小波分析：從時間與尺度到影像去雜訊
 #
-# 全域 Fourier spectrum 告訴我們整段訊號的頻率組成，但不保留事件發生的位置。小波把分析函數限制在局部，再以不同尺度掃描訊號。本章從一般影像的 Gaussian／Laplacian pyramids 出發，分清 short-time Fourier transform（STFT）、continuous wavelet transform（CWT）與 decimated discrete wavelet transform（DWT）；它們都能描述局部尺度，輸出與用途卻不同。
+# 上一章用 Fourier 表示頻率，並用金字塔分開影像尺度。本章把分析函數放到訊號的不同位置，再調整它的尺度，觀察局部變化。先比較時間與頻率的取捨，再從小波家族、ECG 分解走到 Lucario 影像的四子帶與去雜訊。
+
+# %% tags=["remove-cell"]
+# source-cells: 3
+
+# %% [markdown]
+# ## 為什麼還需要局部的頻率描述？
 #
-# ```{admonition} 學習目標
-# :class: important
+# 全域 Fourier transform 描述整段訊號的頻率組成；完整的複數係數仍可還原訊號，時間資訊保存在相位關係中。不過，全域振幅頻譜沒有直接標出每種頻率出現的時間。
 #
-# - 說明有限觀測下 Fourier spectrum 的解析度與 spectral leakage。
-# - 比較 STFT 固定視窗與 CWT 可變尺度的解析度。
-# - 寫出 CWT 與 dyadic wavelet family，說明位移網格如何隨尺度改變。
-# - 將 DWT 解釋成 analysis filter bank 加 downsampling。
-# - 驗證 pyramid 與 DWT perfect reconstruction，並比較 boundary modes。
-# - 比較 hard、soft、universal 與 BayesShrink 去雜訊，說明它們依賴的假設。
+# 下面比較四個頻率（4、30、60、90 Hz）全程同時存在，與依序各出現四分之一段的情形。兩張頻譜都在這些頻率附近有能量，但峰高與頻譜洩漏會不同，完整 Fourier transform 可以區分兩個訊號。有限觀測長度也限制頻率解析能力。
+#
+# **短時傅立葉轉換（STFT）**先用移動視窗截取訊號，再逐窗計算 Fourier transform。這讓頻譜帶有時間位置，但定位精度受視窗寬度限制。例如將訊號分成 10 個不重疊區間，第二個區間對應總時長的 1/10 到 2/10；頻率在該窗出現，仍無法由單一窗確定更精細的起止時間。
+
+# %%
+# source-cells: 3
+# 原教學示意圖：https://drive.google.com/uc?id=1C8ITJkJtXxewppV0I-7AGm2qHRYCkk_J
+show_images(ski.io.imread(image_path('ch04-cell3-1.png')))
+
+# %% tags=["remove-cell"]
+# source-cells: 4
+
+# %% [markdown]
+# ## STFT 與小波的解析度取捨
+#
+# STFT 使用固定寬度的視窗。短窗能較精細地定位時間，卻較難分開相近頻率；長窗則相反。小波使用可伸縮的分析函數：大尺度涵蓋較長時間、適合分析低頻；小尺度涵蓋較短時間、適合定位高頻的短暫變化。
+#
+# 下圖以格子示意各種表示的分析範圍。小波沒有同時取得任意高的時間與頻率解析度，而是讓取捨隨尺度改變：低頻處通常有較細頻率解析、較粗時間定位，高頻處則有較細時間定位、較粗頻率解析。原始時間序列和完整 Fourier 表示都保有訊號資訊，差別在於哪些特徵容易直接讀出。
+
+# %%
+# source-cells: 4
+# 原教學示意圖：https://drive.google.com/uc?id=1C8ZHTWEzMP2ccNgVxkuE6ShcRu4ut9JT
+show_images(ski.io.imread(image_path('ch04-cell4-1.png')))
+
+# %% tags=["remove-cell"]
+# source-cells: 5
+
+# %% [markdown]
+# ## 小波如何分析訊號？
+
+# %% tags=["remove-cell"]
+# source-cells: 6
+
+# %% [markdown]
+# Fourier 基底的正弦波延伸到整個時間軸；小波則是集中在有限區間或快速衰減的局部振盪。把小波移到不同位置，和訊號計算內積，便能量出該位置含有多少相似的局部形狀。
+#
+# 固定尺度後沿時間移動，這個內積可寫成和反轉共軛核的卷積；再改變尺度，便得到時間與尺度兩個軸。這種圖稱為 **scalogram（尺度圖）**。尺度越大通常對應越低頻率，但確切的 pseudo-frequency 需要母小波與取樣週期共同換算；例如 PyWavelets 可用 `scale2frequency(wavelet, scale) / sampling_period` 取得 Hz。
+
+# %%
+# source-cells: 6
+# 原教學示意圖：https://drive.google.com/uc?id=1C8pVteFtFA2ElDVq-tTAuSEc4hqIToOX
+show_images(ski.io.imread(image_path('ch04-cell6-1.png')))
+
+# %% tags=["remove-cell"]
+# source-cells: 7
+
+# %% [markdown]
+# ### 連續小波轉換的式子
+#
+# 對訊號 $h(t)$，連續小波轉換（CWT）寫成
+#
+# $$W(a,b)=\frac{1}{\sqrt{|a|}}\int h(t)\overline{\psi\!\left(\frac{t-b}{a}\right)}\,dt.$$
+#
+# $\psi$ 是母小波，$a$ 決定伸縮尺度，$b$ 決定平移位置，前面的因子補償伸縮造成的能量變化。連續模型允許尺度和平移連續改變，電腦則在選定網格上計算。
+#
+# 常見的 dyadic family 選 $a=2^j$、$b=k2^j$，得到 $\psi_{j,k}(t)=2^{-j/2}\psi(2^{-j}t-k)$。尺度變大時，平移網格也跟著變粗。可逆的離散小波轉換（DWT）還需要合適的分析與合成濾波器，並非任意離散取幾個 CWT 係數即可。
+
+# %%
+# source-cells: 7
+# 原教學示意圖：https://drive.google.com/uc?id=1UBQ-rJAtcM8GxzzkOvKcS47Z2ZGM2K9S
+show_images(ski.io.imread(image_path('ch04-cell7-1.png')))
+
+# %% tags=["remove-cell"]
+# source-cells: 8
+
+# %% [markdown]
+# ## 小波家族
+
+# %% tags=["remove-cell"]
+# source-cells: 9
+
+# %% [markdown]
+# 小波的支撐長度、平滑性、對稱性與消失動差會影響它對局部形狀的反應。[PyWavelets 文件](https://pywavelets.readthedocs.io/en/latest/)整理了各家族與參數；[Wavelet Browser](http://wavelets.pybytes.com/)提供家族圖形，可與下面的程式結果對照。先列出目前安裝版本提供的連續與離散小波，再看每個家族的成員。
+
+# %%
+# source-cells: 10
+wavelet_families = pywt.families(short=False)
+discrete_mother_wavelets = pywt.wavelist(kind='discrete')
+continuous_mother_wavelets = pywt.wavelist(kind='continuous')
+
+print("PyWavelets contains the following Continuous families: ")
+print(continuous_mother_wavelets)
+print()
+print("PyWavelets contains the following Discrete families: ")
+print(discrete_mother_wavelets)
+print()
+for family in pywt.families():
+    print("    * The {} family contains: {}".format(family, pywt.wavelist(family)))
+
+# %% tags=["remove-cell"]
+# source-cells: 11
+
+# %% [markdown]
+# 有限能量 $\int|\psi(t)|^2dt<\infty$ 讓小波可與平方可積訊號取內積；零平均 $\int\psi(t)dt=0$ 則讓它不回應常數背景。有限能量本身不保證緊支撐，也不等同於絕對可積。常把母小波正規化成單位能量，以便比較尺度。
+#
+# ```{dropdown} 零平均與 CWT 可逆性還差什麼？
+# CWT 的可容許條件通常寫成
+#
+# $$0<C_\psi=\int_{-\infty}^{\infty}\frac{|\widehat\psi(\omega)|^2}{|\omega|}\,d\omega<\infty.$$
+#
+# 在常用的正則條件下，它要求零頻率處的響應為零。零平均與有限能量並不足以單獨保證這個積分有限；還要考慮頻譜在零頻率附近與遠端的行為。局部性、平滑性與可逆性因此需要分開檢查。
 # ```
 
-# %%
-import matplotlib.pyplot as plt
-import numpy as np
-import pywt
-import skimage as ski
-from scipy import ndimage as ndi
-from scipy import signal
-from skimage.metrics import peak_signal_noise_ratio, structural_similarity
-from skimage.restoration import denoise_wavelet, estimate_sigma
-
-plt.rcParams["image.cmap"] = "gray"
-plt.rcParams["figure.figsize"] = (6, 5)
-
-
-def imshow_all(*images, titles=None, size=4, **kwargs):
-    if titles is None:
-        titles = [""] * len(images)
-    fig, axes = plt.subplots(1, len(images), figsize=(size * len(images), size))
-    axes = np.atleast_1d(axes)
-    for ax, image, title in zip(axes, images, titles):
-        ax.imshow(image, **kwargs)
-        ax.set_title(title)
-        ax.axis("off")
-    fig.tight_layout()
-    return fig, axes
-
+# %% tags=["remove-cell"]
+# source-cells: 12
 
 # %% [markdown]
-# ## 全域頻譜看得到頻率，看不到位置
-#
-# 有限長度 DFT 的 frequency-bin spacing 由觀測時間決定；非整數週期還會產生 spectral leakage。因此 Fourier spectrum 描述整段訊號在各個頻率 bins 的能量，解析精度仍受觀測長度與 window 影響。
-#
-# 下例中訊號 A 讓四個頻率全程同時存在，訊號 B 則讓它們依序出現。兩者都在相同頻率附近有能量，但 B 的每個成分只持續四分之一秒，峰值較低，分段邊界也造成明顯 leakage；兩張 magnitude spectra 的形狀與幅度因此有清楚差異。
+# 下面第一列是 `db5`、`sym5`、`coif5`、`bior2.4`，第二列是 `mexh`、`morl`、`cgau5`、`gaus5`。離散小波的 `wavefun()` 同時回傳 scaling function 與 wavelet；圖中取小波 $\psi$。雙正交家族另有分析與合成小波，複數小波則分開畫實部與虛部。
 
 # %%
-sample_rate = 200
-t = np.arange(sample_rate) / sample_rate
-component_frequencies = [4, 30, 60, 90]
-
-signal_constant = sum(np.sin(2 * np.pi * frequency * t)
-                      for frequency in component_frequencies)
-signal_sequential = np.zeros_like(t)
-segment_length = len(t) // len(component_frequencies)
-for index, frequency in enumerate(component_frequencies):
-    segment = slice(index * segment_length, (index + 1) * segment_length)
-    signal_sequential[segment] = np.sin(2 * np.pi * frequency * t[segment])
-
-magnitude_constant = np.abs(np.fft.rfft(signal_constant))
-magnitude_sequential = np.abs(np.fft.rfft(signal_sequential))
-frequency_axis = np.fft.rfftfreq(t.size, d=1 / sample_rate)
-
-assert magnitude_constant.max() > 3 * magnitude_sequential.max()
-
-fig, axes = plt.subplots(2, 2, figsize=(11, 6))
-axes[0, 0].plot(t, signal_constant)
-axes[0, 0].set_title("A: four frequencies throughout")
-axes[1, 0].plot(t, signal_sequential)
-axes[1, 0].set_title("B: one frequency per interval")
-axes[0, 1].plot(frequency_axis, magnitude_constant)
-axes[0, 1].set_title("global spectrum of A")
-axes[1, 1].plot(frequency_axis, magnitude_sequential)
-axes[1, 1].set_title("global spectrum of B: lower peaks + leakage")
-for ax in axes[:, 0]:
-    ax.set_xlabel("time [s]")
-for ax in axes[:, 1]:
-    ax.set_xlabel("frequency [Hz]")
-fig.tight_layout()
-
-
-# %% [markdown]
-# ## STFT 與 CWT 採用不同的解析度策略
-#
-# Short-time Fourier transform（STFT）用固定長度 window 切出局部頻譜，因此時間／頻率解析度由同一個 window 決定。短 window 能較精準定位變化時間，但 frequency bins 較粗；長 window 能分開較接近的頻率，卻會把短暫事件拉寬。下例使用 SciPy `ShortTimeFFT`。比較兩張圖時，先看事件在時間軸上被拉多寬，再看相鄰頻率能否分開；window、overlap、padding 與 scaling 都會影響這兩項觀察。參數定義可查閱 [SciPy `ShortTimeFFT` 文件](https://docs.scipy.org/doc/scipy/reference/generated/scipy.signal.ShortTimeFFT.html)。
-
-# %%
-stft_short = signal.ShortTimeFFT.from_window(
-    "hann", fs=sample_rate, nperseg=24, noverlap=18, scale_to="magnitude"
-)
-stft_long = signal.ShortTimeFFT.from_window(
-    "hann", fs=sample_rate, nperseg=80, noverlap=60, scale_to="magnitude"
-)
-short_coefficients = stft_short.stft(signal_sequential)
-long_coefficients = stft_long.stft(signal_sequential)
-short_times = stft_short.t(signal_sequential.size)
-long_times = stft_long.t(signal_sequential.size)
-
-assert short_coefficients.shape == (stft_short.f.size, short_times.size)
-assert long_coefficients.shape == (stft_long.f.size, long_times.size)
-assert stft_long.delta_f < stft_short.delta_f
-
-fig, axes = plt.subplots(1, 2, figsize=(11, 4))
-for ax, transform, coefficients, times, title in (
-    (axes[0], stft_short, short_coefficients, short_times, "short window"),
-    (axes[1], stft_long, long_coefficients, long_times, "long window"),
-):
-    ax.pcolormesh(times, transform.f, np.abs(coefficients), shading="auto")
-    ax.set_xlim(t[0], t[-1])
-    ax.set_ylim(0, sample_rate / 2)
-    ax.set_xlabel("time [s]")
-    ax.set_ylabel("frequency [Hz]")
-    ax.set_title(title)
-fig.tight_layout()
-
-# %% [markdown]
-# CWT 改用可縮放的母小波 $\psi$：
-#
-# $$W(a,b)=\frac{1}{\sqrt{|a|}}\int h(t)\psi^*\!\left(\frac{t-b}{a}\right)dt.$$
-#
-# 大尺度通常對應較低 pseudo-frequency 與較寬的時間支撐；小尺度對應較高 pseudo-frequency 與較窄的時間支撐。CWT 對每個尺度保留密集的位移取樣，結果可畫成尺度圖（scalogram）。母小波與取樣週期共同決定尺度和 Hz 的換算，尺度的倒數只提供粗略直覺。PyWavelets 的 `cwt` 會依 `sampling_period` 和母小波的 central frequency 回傳 pseudo-frequency，參數意義可查閱 [CWT 官方文件](https://pywavelets.readthedocs.io/en/stable/ref/cwt.html)。
-
-# %%
-scales = np.arange(1, 65)
-cwt_coefficients, cwt_frequencies = pywt.cwt(
-    signal_sequential, scales, "morl", sampling_period=1 / sample_rate
-)
-assert cwt_coefficients.shape == (len(scales), len(signal_sequential))
-assert np.all(np.diff(cwt_frequencies) < 0)
-
-fig, ax = plt.subplots(figsize=(10, 4))
-extent = [t[0], t[-1], cwt_frequencies[-1], cwt_frequencies[0]]
-ax.imshow(np.abs(cwt_coefficients), aspect="auto", extent=extent, origin="upper")
-ax.set_xlabel("time [s]")
-ax.set_ylabel("pseudo-frequency [Hz]")
-ax.set_title("CWT scalogram")
-fig.tight_layout()
-
-# %% [markdown]
-# 訊號邊界附近放不下完整小波，程式會藉由 padding 或 extension 補足資料。尺度越大，受補值影響的範圍越寬，這段範圍稱為 cone of influence。尺度圖上的亮帶若只貼著左右邊緣，先更換 extension 設定或延長觀測；亮帶仍出現在相同時間與尺度時，再把它解讀為訊號中的事件。
-
-
-# %% [markdown]
-# ## Dyadic family 與 DWT
-#
-# 一個常見的 dyadic wavelet family 可寫成
-#
-# $$\psi_{j,k}(t)=2^{-j/2}\psi(2^{-j}t-k).$$
-#
-# 以 CWT 參數理解，就是 $a=2^j$、$b=k2^j$：尺度變大時，位移網格也跟著變粗。正交／雙正交 DWT 再利用特定 scaling function 與 wavelet，形成可逆、非冗餘或低冗餘的離散表示。
-#
-# 實作上，一階 DWT 將訊號分別通過 analysis low-pass 與 high-pass filters，再 downsample by 2，得到 approximation coefficients $cA_1$ 與 detail coefficients $cD_1$。下一階只繼續分解 $cA_1$。Inverse DWT 則 upsample、通過 synthesis filters 並相加。
-
-# %%
-wavelet = pywt.Wavelet("db4")
-print("analysis low-pass:", np.round(wavelet.dec_lo, 4))
-print("analysis high-pass:", np.round(wavelet.dec_hi, 4))
-print("synthesis low-pass:", np.round(wavelet.rec_lo, 4))
-print("synthesis high-pass:", np.round(wavelet.rec_hi, 4))
-assert len(wavelet.dec_lo) == len(wavelet.dec_hi)
-
-
-# %% [markdown]
-# ## `wavefun(level=...)` 與 decomposition level
-#
-# `Wavelet.wavefun(level=r)` 的 `level` 是 cascade／refinement 的取樣精細度：增加它會用更多點近似同一個 scaling function 與 mother wavelet。`wavedec(..., level=L)` 的 `L` 才是資料的 decomposition level；兩個參數同名，控制的運算不同。
-
-# %%
-fig, axes = plt.subplots(1, 2, figsize=(10, 3.5))
-for level in (4, 7):
-    _, psi, x_axis = wavelet.wavefun(level=level)
-    axes[0].plot(x_axis, psi, label=f"refinement={level}")
-axes[0].set_title("same db4 mother wavelet")
-axes[0].legend()
-
-ecg = pywt.data.ecg().astype(float)
-for level in (1, 3, 5):
-    coeffs = pywt.wavedec(ecg, wavelet, level=level, mode="symmetric")
-    axes[1].plot([len(coefficient) for coefficient in coeffs], "o-", label=f"decomposition={level}")
-axes[1].set_title("coefficient lengths by decomposition")
-axes[1].legend()
-fig.tight_layout()
-
-
-# %% [markdown]
-# ## 小波家族：support、symmetry 與 vanishing moments 的取捨
-#
-# 離散小波的 order、vanishing moments、symmetry、filter length 與支撐區間（support）會一起影響係數的局部性與邊緣表現。Haar（`haar`，也是 `db1`）最局部且完全對稱，卻只有一個 vanishing moment。高 order Daubechies（`db`）可消去較高階多項式，但 filter 變長且不對稱。Symlets（`sym`）追求近似對稱；Coiflets（`coif`）同時要求 scaling function 與 wavelet 的 moments；biorthogonal（`bior`）使用不同 analysis／synthesis bases 換取線性相位與對稱性。
-#
-# CWT 另使用連續小波：Mexican hat（`mexh`）是 real-valued second derivative of Gaussian；Morlet（`morl`）用正弦調變 Gaussian，適合呈現局部振盪。選擇小波家族時，除了係數圖，也要檢查 noise model、boundary effect，以及後續分析結果。
-
-# %%
-discrete_families = ["haar", "db4", "sym4", "coif2", "bior2.2"]
-continuous_families = ["mexh", "morl"]
-fig, axes = plt.subplots(2, 4, figsize=(13, 6))
-for ax, name in zip(axes.ravel(), discrete_families + continuous_families):
-    if name in continuous_families:
-        psi, x_family = pywt.ContinuousWavelet(name).wavefun(level=8)
+# source-cells: 13
+discrete_wavelets = ['db5', 'sym5', 'coif5', 'bior2.4']
+continuous_wavelets = ['mexh', 'morl', 'cgau5', 'gaus5']
+fig, axarr = plt.subplots(nrows=2, ncols=4, figsize=(16, 8))
+for column, name in enumerate(discrete_wavelets):
+    wavelet = pywt.Wavelet(name)
+    functions = wavelet.wavefun()
+    if wavelet.orthogonal:
+        phi, psi, x_values = functions
+        axarr[0, column].plot(x_values, psi, label='wavelet psi')
     else:
-        functions = pywt.Wavelet(name).wavefun(level=7)
-        psi, x_family = functions[1], functions[-1]
-    ax.plot(x_family, psi)
-    ax.set_title(name)
-    ax.axhline(0, color="black", linewidth=0.5)
-axes.ravel()[-1].axis("off")
+        phi_d, psi_d, phi_r, psi_r, x_values = functions
+        axarr[0, column].plot(x_values, psi_d, label='analysis psi')
+        axarr[0, column].plot(x_values, psi_r, '--', label='synthesis psi')
+        axarr[0, column].legend()
+    axarr[0, column].set_title(f'{name}: {wavelet.family_name}')
+for column, name in enumerate(continuous_wavelets):
+    wavelet = pywt.ContinuousWavelet(name)
+    psi, x_values = wavelet.wavefun()
+    axarr[1, column].plot(x_values, psi.real, label='real')
+    if np.iscomplexobj(psi):
+        axarr[1, column].plot(x_values, psi.imag, '--', label='imaginary')
+        axarr[1, column].legend()
+    axarr[1, column].set_title(f'{name}: {wavelet.family_name}')
+axarr[0, 0].set_ylabel('Discrete wavelets')
+axarr[1, 0].set_ylabel('Continuous wavelets')
+for ax in axarr.flat:
+    ax.set_yticks([])
 fig.tight_layout()
+plt.show()
 
-assert pywt.Wavelet("db4").vanishing_moments_psi == 4
-assert pywt.Wavelet("bior2.2").biorthogonal
-
+# %% tags=["remove-cell"]
+# source-cells: 14
 
 # %% [markdown]
-# ## 一維 multilevel DWT：每層對應不同尺度
+# ### 同一家族的階數與取樣精細度
 #
-# `wavedec(x, level=L)` 回傳 `[cA_L, cD_L, ..., cD_1]`。$cD_1$ 來自第一次 high-pass，對應最細尺度；$cD_L$ 是對 low-pass branch 重複分解後的較粗細節。這是 dyadic filter bank 的尺度分工，不表示每層都是固定頻寬的「理想頻帶」；真實頻率響應由 wavelet filters 決定。PyWavelets 的 [multilevel DWT 文件](https://pywavelets.readthedocs.io/en/stable/ref/dwt-discrete-wavelet-transform.html) 列出係數順序與長度規則。
+# 濾波器係數數目、消失動差數目與分解層數是不同量。以 Daubechies 的 `dbN` 為例，N 表示消失動差數，濾波器長度為 2N。下面用 `db1` 到 `db5`，分別在 `wavefun(level=1)` 到 `level=5` 畫出母小波，共 25 張圖。
 
 # %%
-ecg_segment = ecg[:512]
-multilevel_coefficients = pywt.wavedec(ecg_segment, "db4", level=4, mode="symmetric")
-multilevel_reconstruction = pywt.waverec(
-    multilevel_coefficients, "db4", mode="symmetric"
-)[:ecg_segment.size]
-assert np.allclose(multilevel_reconstruction, ecg_segment, atol=1e-10)
+# source-cells: 15
+fig, axarr = plt.subplots(ncols=5, nrows=5, figsize=(20,16))
+fig.suptitle('Daubechies family of wavelets', fontsize=16)
 
-coefficient_names = ["cA4", "cD4", "cD3", "cD2", "cD1"]
-fig, axes = plt.subplots(len(multilevel_coefficients), 1, figsize=(10, 8))
-for ax, coefficient, name in zip(axes, multilevel_coefficients, coefficient_names):
-    ax.plot(coefficient)
-    ax.set_ylabel(name, rotation=0, labelpad=18)
-    ax.set_xlim(0, len(coefficient) - 1)
-axes[-1].set_xlabel("coefficient index")
-fig.tight_layout()
+db_wavelets = [f'db{k}' for k in range(1, 6)]
+for col_no, waveletname in enumerate(db_wavelets):
+    wavelet = pywt.Wavelet(waveletname)
+    no_moments = wavelet.vanishing_moments_psi
+    family_name = wavelet.family_name
+    for row_no, level in enumerate(range(1,6)):
+        scaling_function, wavelet_function, x_values = wavelet.wavefun(level=level)
+        axarr[row_no, col_no].set_title("{} - wavefun level {}\n{} vanishing moments\n{} samples".format(
+            waveletname, level, no_moments, len(x_values)), loc='left')
+        axarr[row_no, col_no].plot(x_values, wavelet_function, 'bD--')
+        axarr[row_no, col_no].set_yticks([])
+        axarr[row_no, col_no].set_yticklabels([])
+plt.tight_layout()
+plt.subplots_adjust(top=0.9);
 
+# %% tags=["remove-cell"]
+# source-cells: 16
+
+# %% [markdown]
+# `db3` 有三個消失動差，`db5` 有五個。較高階能消去較高次多項式的影響，但通常需要更長的濾波器，邊界影響也會擴大。
+#
+# 上圖的 `wavefun(level=...)` 控制近似同一個母小波的取樣精細度，level 越高，畫圖的樣本越多。後面 `wavedec(..., level=...)` 才控制**資料分解層數**：每層繼續分解低通分支，係數通常越來越少。省略 `wavedec` 的 level 時，PyWavelets 依資料長度與濾波器長度選取 `dwt_max_level`；它是避免所有係數都受邊界延拓影響的實用上限，仍可要求更深分解，但邊界效應會更明顯。
+
+# %% tags=["remove-cell"]
+# source-cells: 17
+
+# %% [markdown]
+# ## CWT：閱讀時間與尺度
+
+# %% tags=["remove-cell"]
+# source-cells: 18
+
+# %% [markdown]
+# CWT 適合觀察頻率隨時間改變的訊號。讀尺度圖時，先確認橫軸時間、縱軸尺度或換算後的 pseudo-frequency，再看亮帶的位置、寬度與持續時間。大尺度小波覆蓋較長區間，靠近訊號兩端時更依賴補值；邊界附近的亮帶要配合支撐範圍判讀。
+#
+# [A gentle introduction to wavelet for data analysis](https://www.kaggle.com/code/asauve/a-gentle-introduction-to-wavelet-for-data-analysis/notebook)提供 CWT 範例。可沿著母小波、取樣週期與尺度網格讀程式，再用前面的時間–頻率示意理解結果。本章接著使用 DWT 示範可重建的分解與去雜訊。
+
+# %% tags=["remove-cell"]
+# source-cells: 19
+
+# %% [markdown]
+# ## DWT：用濾波器分解訊號
+
+# %% tags=["remove-cell"]
+# source-cells: 20
+
+# %% [markdown]
+# DWT 以分析濾波器組把訊號分成近似與細節，並搭配降採樣。保留全部係數時可以重建；若量化、捨棄或縮小部分係數，就能用於壓縮或去雜訊。[這則 DWT 說明](https://dsp.stackexchange.com/a/48141)可對照下面的濾波樹閱讀。
+
+# %% tags=["remove-cell"]
+# source-cells: 21
+
+# %% [markdown]
+# 一階分解先做低通與高通濾波，再將兩個分支各降採樣，得到近似 $cA_1$ 與細節 $cD_1$。下一階只繼續分解 $cA_1$，所以較深層描述較粗的尺度。每階係數長度大致減半，精確長度還受濾波器與邊界模式影響。
+#
+# 以最高可表示頻率為 1000 Hz 的理想化濾波樹說明：第一階分成 0–500 與 500–1000 Hz，第二階把低頻分成 0–250 與 250–500 Hz，第三階再分成 0–125 與 125–250 Hz。這些區間只提供尺度直覺；真實小波濾波器的頻率響應有過渡區，並非理想磚牆頻帶。
+#
+# 降採樣可以減少儲存與計算，但單一分支可能含混疊項；可逆濾波器組會在合成時讓這些項相消。分解越深，越多係數受到邊界延拓影響，因此需要配合訊號長度選層數。
+
+# %% tags=["remove-cell"]
+# source-cells: 22
 
 # %% [markdown]
 # (dwt-perfect-reconstruction)=
-# ## Perfect reconstruction 與 boundary modes
 #
-# 在 analysis／synthesis filters 與 extension mode 相容的情況下，不修改係數就能在浮點誤差內重建原訊號。有限訊號仍需延拓邊界；`zero`、`symmetric`、`periodization` 等 mode 會改變係數長度與邊緣係數。分解與重建必須使用相容設定。
+# `pywt.dwt()` 回傳單階的 `(cA, cD)`，可再對 `cA` 繼續分解。`pywt.wavedec()` 則一次取得 `[cA_L, cD_L, ..., cD_1]`：最粗近似放第一項，細節由粗到細排列。
+#
+# 下面先用完整 ECG 與 `db1`、`smooth` 延拓做一次 DWT／IDWT，再以 `wavedec(level=8)` 分解，確認未修改係數時能還原訊號。`smooth` 用邊界趨勢外推，和多階例子採用的預設 `symmetric` 模式不同；各自重建時維持相同模式。
 
 # %%
-def dwt_round_trip(signal_in, wavelet_name="db4", level=4, mode="symmetric"):
-    """分解後不改係數，重建並裁回原長度。"""
-    signal_in = np.asarray(signal_in, dtype=float)
-    coefficients = pywt.wavedec(signal_in, wavelet_name, level=level, mode=mode)
-    reconstructed = pywt.waverec(coefficients, wavelet_name, mode=mode)
-    return reconstructed[: signal_in.size], coefficients
-
-
-rng = np.random.default_rng(3)
-test_signal = rng.normal(size=257)
-for boundary_mode in ("zero", "symmetric", "periodization"):
-    reconstructed, coefficients = dwt_round_trip(test_signal, mode=boundary_mode)
-    error = np.max(np.abs(reconstructed - test_signal))
-    print(boundary_mode, "coefficient lengths:", [len(c) for c in coefficients], "error:", error)
-    assert error < 1e-10
-
-# %% [markdown]
-# ```{admonition} Perfect reconstruction 與去雜訊是兩項不同檢查
-# :class: note
-#
-# Perfect reconstruction 檢查的是：係數完全不動時，analysis 與 synthesis 能否還原輸入。Threshold、truncate 或量化會改變係數，重建結果也會跟著改變；下一節會用已知參考影像量出這些改動造成的誤差。
-# ```
-
-
-# %% [markdown]
-# ## Gaussian 與 Laplacian pyramids
-#
-# Gaussian pyramid 在每次 downsampling 前先 low-pass，避免高頻 alias 到低頻。它適合快速瀏覽多種尺度，但單獨保留縮小影像無法完整重建原圖。Laplacian pyramid 改存每層 Gaussian image 與下一層 upsampled image 之差，再加上最粗層；在使用同一個 resize operator 的情況下可完整重建。
+# source-cells: 22
+# 原教學示意圖：https://drive.google.com/uc?id=1CBbSFKCbAd1aeHM0Iwr0cqMlPhV2USl8
+show_images(ski.io.imread(image_path('ch04-cell22-1.png')))
 
 # %%
-def gaussian_laplacian_pyramid(image_in, levels=4):
-    """Build matching Gaussian and Laplacian pyramids."""
-    gaussian_levels = [np.asarray(image_in, dtype=float)]
-    for _ in range(levels):
-        blurred = ndi.gaussian_filter(gaussian_levels[-1], sigma=1.0, mode="reflect")
-        gaussian_levels.append(blurred[::2, ::2])
-    laplacian_levels = []
-    for fine, coarse in zip(gaussian_levels[:-1], gaussian_levels[1:]):
-        expanded = ski.transform.resize(
-            coarse, fine.shape, order=1, mode="reflect", anti_aliasing=False,
-            preserve_range=True,
-        )
-        laplacian_levels.append(fine - expanded)
-    laplacian_levels.append(gaussian_levels[-1])
-    return gaussian_levels, laplacian_levels
-
-
-def reconstruct_laplacian_pyramid(laplacian_levels):
-    """Reconstruct using the same interpolation used to build the pyramid."""
-    reconstructed = laplacian_levels[-1]
-    for detail in reversed(laplacian_levels[:-1]):
-        reconstructed = ski.transform.resize(
-            reconstructed, detail.shape, order=1, mode="reflect",
-            anti_aliasing=False, preserve_range=True,
-        ) + detail
-    return reconstructed
-
-
-pyramid_image = ski.transform.resize(
-    ski.util.img_as_float(ski.data.camera()), (256, 256), anti_aliasing=True
-)
-gaussian_levels, laplacian_levels = gaussian_laplacian_pyramid(pyramid_image, levels=3)
-pyramid_reconstruction = reconstruct_laplacian_pyramid(laplacian_levels)
-assert np.allclose(pyramid_reconstruction, pyramid_image, atol=1e-12)
-
-fig, axes = plt.subplots(2, 4, figsize=(12, 6))
-for column, level_image in enumerate(gaussian_levels):
-    axes[0, column].imshow(level_image)
-    axes[0, column].set_title(f"Gaussian {column}")
-for column, level_image in enumerate(laplacian_levels):
-    limit = np.max(np.abs(level_image)) if column < 3 else None
-    axes[1, column].imshow(level_image, vmin=-limit if limit else None,
-                           vmax=limit if limit else None)
-    axes[1, column].set_title(f"Laplacian {column}")
-for ax in axes.ravel():
-    ax.axis("off")
-fig.tight_layout()
-
-
-# %% [markdown]
-# ### Multiband blending：低頻平滑過渡，高頻保留局部邊緣
-#
-# 直接用 binary mask 拼接兩張影像會產生一條高頻接縫。Multiband blending 在每個 Laplacian level 使用對應尺度的 Gaussian mask：粗尺度採寬廣過渡，細尺度則保留局部細節。這項經典應用把「尺度」落實為不同空間頻帶的分工，內容比單純縮放顯示圖更完整。
+# source-cells: 22
+# 原教學示意圖：https://drive.google.com/uc?id=1CSQ4p28-P0LAV94d_cJ-qLHKTw29_S2A
+show_images(ski.io.imread(image_path('ch04-cell22-2.png')))
 
 # %%
-left_image = pyramid_image
-right_image = ski.transform.resize(
-    ski.util.img_as_float(ski.data.coins()), pyramid_image.shape, anti_aliasing=True
-)
-mask = np.zeros_like(pyramid_image)
-mask[:, :mask.shape[1] // 2] = 1.0
-_, left_laplacian = gaussian_laplacian_pyramid(left_image, levels=3)
-_, right_laplacian = gaussian_laplacian_pyramid(right_image, levels=3)
-mask_gaussian, _ = gaussian_laplacian_pyramid(mask, levels=3)
-blended_levels = [
-    weight * left_level + (1 - weight) * right_level
-    for weight, left_level, right_level
-    in zip(mask_gaussian, left_laplacian, right_laplacian)
-]
-multiband_blend = reconstruct_laplacian_pyramid(blended_levels)
-direct_blend = mask * left_image + (1 - mask) * right_image
-assert multiband_blend.shape == pyramid_image.shape
-assert np.isfinite(multiband_blend).all()
-imshow_all(direct_blend, multiband_blend,
-           titles=["hard seam", "multiband blend"])
-
-
-# %% [markdown]
-# ## 二維 DWT：四個子帶
-#
-# Separable 2D DWT 先沿一軸、再沿另一軸套 filter bank，一階得到 approximation `cA` 與 horizontal、vertical、diagonal details。不同套件對 `LH/HL` 命名方向可能不同；使用 PyWavelets 時應依 `(cH, cV, cD)` API 語意與測試影像確認方向。
+diagram('wavelet-filterbank')
 
 # %%
-image = ski.util.img_as_float(ski.data.camera())
-cA, (cH, cV, cD) = pywt.dwt2(image, "db4", mode="symmetric")
-reconstructed_image = pywt.idwt2((cA, (cH, cV, cD)), "db4", mode="symmetric")
-reconstructed_image = reconstructed_image[: image.shape[0], : image.shape[1]]
-assert np.allclose(reconstructed_image, image, atol=1e-12)
+# source-cells: 23
+signals = pywt.data.ecg()
+(cA1, cD1) = pywt.dwt(signals, 'db1', 'smooth')
+reconstructed_signals = pywt.idwt(cA1, cD1, 'db1', 'smooth')
 
-imshow_all(cA, cH, cV, cD,
-           titles=["approximation", "horizontal detail", "vertical detail", "diagonal detail"])
-
-
-# %% [markdown]
-# ### 二維 multilevel DWT
-#
-# `wavedec2` 回傳 `[cA_L, (cH_L,cV_L,cD_L), ..., (cH_1,cV_1,cD_1)]`。最粗的 approximation 和三個 detail subbands 都受所選 filters、downsampling 與 extension mode 影響，無法只當成原圖縮圖與三張一般「邊緣圖」。未修改係數時，`waverec2` 應在數值誤差內還原影像。
+plt.plot(cA1)
+plt.plot(cD1);
+assert np.allclose(reconstructed_signals[:signals.size], signals)
+plt.legend(['approximation cA1', 'detail cD1'])
 
 # %%
-coefficients_2d = pywt.wavedec2(image, "db4", level=3, mode="symmetric")
-reconstruction_2d = pywt.waverec2(coefficients_2d, "db4", mode="symmetric")
-reconstruction_2d = reconstruction_2d[:image.shape[0], :image.shape[1]]
-assert np.allclose(reconstruction_2d, image, atol=1e-12)
-print("2D coefficient shapes:", [
-    coefficient.shape if isinstance(coefficient, np.ndarray)
-    else tuple(detail.shape for detail in coefficient)
-    for coefficient in coefficients_2d
-])
-
-
-# %% [markdown]
-# ## Thresholding 需要 sparse-signal 與 noise assumptions
-#
-# Wavelet shrinkage 假設目標在選定 wavelet domain 中相對 sparse，且許多小 detail coefficients 主要來自可建模雜訊。Hard threshold 將小係數設為零、保留大係數，在 threshold 處不連續；soft threshold 再將保留的大係數往零收縮，較平滑但會產生 bias。
-#
-# 對長度 $N$ 的白 Gaussian noise，universal threshold 常寫成 $\tau=\hat\sigma\sqrt{2\log N}$；$\hat\sigma$ 可用最細層 diagonal coefficients 的 median absolute deviation（MAD）估計：$\hat\sigma=\operatorname{median}(|cD_1|)/0.6745$。BayesShrink 改為每個子帶估計 threshold。這些公式仍需配合資料調整；遇到空間相關雜訊、CTF-shaped spectrum 或非平穩變異時，簡單白雜訊假設可能失準，弱小但真實的高解析訊號也可能被刪掉。
+# source-cells: 24
+fig, ax = plt.subplots(figsize=(8,4))
+ax.plot(signals, label='signal')
+ax.plot(reconstructed_signals, label='reconstructed signal', linestyle='--')
+ax.legend(loc='upper left');
 
 # %%
-original = ski.util.img_as_float(ski.data.camera())
-rng = np.random.default_rng(8)
-sigma_true = 0.12
-noisy = np.clip(original + rng.normal(scale=sigma_true, size=original.shape), 0, 1)
-sigma_estimate = float(estimate_sigma(noisy, channel_axis=None))
-noisy_coefficients = pywt.wavedec2(noisy, "db4", level=3, mode="symmetric")
-finest_diagonal = noisy_coefficients[-1][2]
-sigma_mad = np.median(np.abs(finest_diagonal)) / 0.6745
-universal_threshold = sigma_mad * np.sqrt(2 * np.log(noisy.size))
+# source-cells: 25
+coeffs = pywt.wavedec(signals, 'db1', level=8)
+reconstructed_signals = pywt.waverec(coeffs, 'db1')
 
+fig, ax = plt.subplots(figsize=(8,4))
+ax.plot(signals[:1000], label='signal')
+ax.plot(reconstructed_signals[:1000], label='reconstructed signal', linestyle='--')
+ax.legend(loc='upper left')
+ax.set_title('de- and reconstruction using wavedec()');
+assert np.allclose(reconstructed_signals[:signals.size], signals)
 
-def threshold_detail_coefficients(coefficients, threshold, mode):
-    """Threshold every detail subband, leaving the approximation unchanged."""
-    return [coefficients[0]] + [
-        tuple(pywt.threshold(detail, threshold, mode=mode) for detail in level)
-        for level in coefficients[1:]
+# %% tags=["remove-cell"]
+# source-cells: 26
+
+# %% [markdown]
+# ## 修改細節係數：從重建到去雜訊
+#
+# 原封不動的係數能重建輸入；修改係數後，輸出也會改變。若某些細節主要由雜訊構成，降低它們可能改善結果，但微弱訊號也可能一起被縮小。
+#
+# Soft threshold 的規則是
+#
+# $$T_\tau(c)=\operatorname{sign}(c)\max(|c|-\tau,0).$$
+#
+# 絕對值不大於閾值的係數變成零，大係數則向零收縮；它沒有移除大係數。Hard threshold 只把小係數設為零，保留大係數原值。下方函式只處理細節，保留最粗近似。函式名 `lowpassfilter` 沿用範例，它實際執行的是小波細節收縮，和固定線性低通濾波不同。
+#
+# 本例閾值設為 `0.1 * max(noisy_signal)`，是依訊號振幅選定的啟發式，沒有把雜訊標準差直接代入風險公式。再用 `db4`、四層分解的 BayesShrink 作比較。
+
+# %%
+# source-cells: 26
+# 原教學示意圖：https://drive.google.com/uc?id=1CKm-W2KyjcBTtq8HJ5BtihIkX8_qFjfw
+show_images(ski.io.imread(image_path('ch04-cell26-1.png')))
+
+# %%
+# source-cells: 27
+def lowpassfilter(signal, thresh=0.63, wavelet='db4'):
+    """依輸入最大值設定 soft threshold，只縮減細節係數。"""
+    signal = np.asarray(signal, dtype=float)
+    threshold = thresh * np.nanmax(signal)
+    coefficients = pywt.wavedec(signal, wavelet, mode='periodization')
+    coefficients[1:] = [
+        pywt.threshold(detail, value=threshold, mode='soft')
+        for detail in coefficients[1:]
     ]
-
-
-denoised_hard = pywt.waverec2(
-    threshold_detail_coefficients(noisy_coefficients, universal_threshold, "hard"),
-    "db4", mode="symmetric",
-)[:original.shape[0], :original.shape[1]]
-denoised_soft = pywt.waverec2(
-    threshold_detail_coefficients(noisy_coefficients, universal_threshold, "soft"),
-    "db4", mode="symmetric",
-)[:original.shape[0], :original.shape[1]]
-denoised_bayes = denoise_wavelet(
-    noisy,
-    method="BayesShrink",
-    mode="soft",
-    wavelet="db4",
-    rescale_sigma=True,
-    channel_axis=None,
-)
-
-denoising_results = {
-    "noisy": noisy,
-    "universal hard": np.clip(denoised_hard, 0, 1),
-    "universal soft": np.clip(denoised_soft, 0, 1),
-    "BayesShrink": np.clip(denoised_bayes, 0, 1),
-}
-quality = {
-    name: (
-        peak_signal_noise_ratio(original, result, data_range=1),
-        structural_similarity(original, result, data_range=1),
-    )
-    for name, result in denoising_results.items()
-}
-
-print(f"sigma: estimate_sigma={sigma_estimate:.3f}, MAD={sigma_mad:.3f}")
-for name, (psnr_value, ssim_value) in quality.items():
-    print(f"{name:>14s}: PSNR={psnr_value:.2f} dB, SSIM={ssim_value:.3f}")
-assert abs(sigma_mad - sigma_true) < 0.03
-assert quality["BayesShrink"][0] > quality["noisy"][0]
-assert quality["BayesShrink"][1] > quality["noisy"][1]
-
-fig, axes = plt.subplots(2, 3, figsize=(12, 8))
-display_names = ["noisy", "universal hard", "universal soft", "BayesShrink"]
-axes[0, 0].imshow(original)
-axes[0, 0].set_title("reference")
-for ax, name in zip(axes.ravel()[1:5], display_names):
-    psnr_value, ssim_value = quality[name]
-    ax.imshow(denoising_results[name])
-    ax.set_title(f"{name}\n{psnr_value:.1f} dB, SSIM {ssim_value:.3f}")
-residual = denoising_results["BayesShrink"] - original
-residual_limit = np.max(np.abs(residual))
-axes[1, 2].imshow(residual, cmap="coolwarm", vmin=-residual_limit, vmax=residual_limit)
-axes[1, 2].set_title("BayesShrink residual")
-for ax in axes.ravel():
-    ax.axis("off")
-fig.tight_layout()
-
-
-# %% [markdown]
-# 峰值訊雜比（PSNR）是 MSE 的對數量尺，SSIM 比較局部亮度、對比與結構；殘差圖（residual）則顯示去雜訊方法從參考影像刪掉或加入了哪些內容。讀圖時可以依序問：PSNR 是否上升、SSIM 是否改善、殘差中是否還看得到物體邊緣。若方法要用於粒子對位，還要比較對位結果；若要用於重建，就比較兩個獨立 half-maps 是否重現相同結構。`estimate_sigma` 與 `denoise_wavelet` 的參數定義見 [scikit-image restoration 文件](https://scikit-image.org/docs/stable/api/skimage.restoration.html)。
-
-
-# %% [markdown]
-# ## Decimated DWT 的 shift variance 與 SWT
-#
-# DWT 每層都 downsample，因此輸入只平移一點，也可能大幅改變哪些係數被保留。Stationary wavelet transform（SWT）不做 downsampling，改為逐層在 filters 中插零；它保留每層與輸入同長的係數，在 periodized 情況下對整數平移具 equivariance，代價是冗餘儲存與計算量。
+    return pywt.waverec(coefficients, wavelet, mode='periodization')[:signal.size]
 
 # %%
-shift_signal = signal_sequential[:128]
-shifted_signal = np.roll(shift_signal, 1)
-dwt_original = pywt.wavedec(shift_signal, "db2", level=3, mode="periodization")
-dwt_shifted = pywt.wavedec(shifted_signal, "db2", level=3, mode="periodization")
-swt_original = pywt.swt(shift_signal, "db2", level=3)
-swt_shifted = pywt.swt(shifted_signal, "db2", level=3)
+# source-cells: 28
+x = pywt.data.ecg().astype(float) / 256
+sigma = 0.05  # 雜訊標準差；變異數為 sigma**2
+rng = np.random.default_rng(42)
+x_noisy = x + sigma * rng.standard_normal(x.size)
 
-assert not np.allclose(dwt_shifted[-1], np.roll(dwt_original[-1], 1))
-for (approximation, detail), (shifted_approximation, shifted_detail) in zip(
-    swt_original, swt_shifted
-):
-    assert np.allclose(shifted_approximation, np.roll(approximation, 1), atol=1e-10)
-    assert np.allclose(shifted_detail, np.roll(detail, 1), atol=1e-10)
+# %%
+# source-cells: 29
+rec = lowpassfilter(x_noisy, 0.1)
+x_denoise = denoise_wavelet(
+    x_noisy, method='BayesShrink', mode='soft', wavelet_levels=4,
+    wavelet='db4', channel_axis=None,
+)
 
-fig, axes = plt.subplots(2, 2, figsize=(11, 5))
-axes[0, 0].plot(dwt_original[-1], label="original")
-axes[0, 0].plot(dwt_shifted[-1], "--", label="shifted input")
-axes[0, 0].set_title("DWT finest detail")
-axes[0, 0].legend()
-axes[0, 1].plot(np.roll(dwt_original[-1], 1) - dwt_shifted[-1])
-axes[0, 1].set_title("DWT: not a one-index roll")
-axes[1, 0].plot(swt_original[-1][1], label="original")
-axes[1, 0].plot(swt_shifted[-1][1], "--", label="shifted input")
-axes[1, 0].set_title("SWT finest detail")
-axes[1, 0].legend()
-axes[1, 1].plot(np.roll(swt_original[-1][1], 1) - swt_shifted[-1][1])
-axes[1, 1].set_title("SWT: aligned difference")
-fig.tight_layout()
+# %%
+# source-cells: 30
+plt.figure(figsize=(10, 5), dpi=100)
+plt.plot(x_noisy, label='noisy ECG, sigma=0.05')
+plt.plot(rec, label='db4: threshold = 0.1 * max(noisy)')
+plt.plot(x_denoise, label='db4: BayesShrink, level=4')
+plt.legend()
+plt.xlabel('sample index')
+plt.ylabel('ECG / 256')
+plt.show()
 
+# %% tags=["remove-cell"]
+# source-cells: 31
 
 # %% [markdown]
-# ```{admonition} 與 cryo-EM 的連結
-# :class: caution
-#
-# Gaussian／Laplacian pyramids 可幫助分開粒子的整體輪廓與較局部細節；小波可作多尺度視覺化、特定稀疏先驗下的正則化，或經驗證的去雜訊元件。實際資料中的結構未必集中在少數大係數，雜訊係數也可能彼此相關。CTF、運動、冰層與偵測器響應都會造成相關且頻率相依的訊號／雜訊。
-#
-# 影像增強很適合幫助人眼找粒子或檢查瑕疵。若要把結果送進定量重建，兩個 half-sets 應各自處理，並在兩個 half-maps 中確認相同結構都能重現。「看起來更銳利」描述顯示效果；解析度則要由重建後的獨立比較判斷。
-# ```
-#
-# ## 理解檢查
-#
-# 1. STFT 與 CWT 如何在時間定位和頻率解析度之間取捨？
-#
-#    ```{dropdown} 參考答案
-#    STFT 在每個時間位置使用同一長度的 window。若 window 含 64 個 samples，時間定位約受這 64 點寬度限制；改成 256 點後，frequency-bin spacing 約縮小為原來的四分之一，但短暫事件會在較寬的時間範圍內出現。所有頻率都共用這組取捨。
-#
-#    CWT 會縮放 mother wavelet。小尺度支撐範圍窄，適合定位快速變化；大尺度支撐範圍寬，可分辨較慢的振盪。Pseudo-frequency 還要由母小波的 central frequency 與 `sampling_period` 換算，$1/a$ 只提供尺度 $a$ 與頻率的反比趨勢。Scalogram 上亮點的寬度和位置也會受到 wavelet、取樣率與邊界效應影響，所以單一亮點只指出一段時間–尺度範圍。
-#    ```
-#
-# 2. Gaussian 與 Laplacian pyramid 各自保留什麼資訊？為什麼後者可以重建原圖？
-#
-#    ```{dropdown} 參考答案
-#    Gaussian pyramid 反覆做 low-pass filtering 與 downsampling：
-#
-#    $$
-#    G_{j+1}=\downarrow_2\,(g*G_j).
-#    $$
-#
-#    每層保留影像平面上的位置，但解析度與取樣密度逐層降低。Laplacian pyramid 用相鄰 Gaussian levels 的差異保留頻帶細節，配合最粗層可重建原圖。以一張同時含小亮點與寬廣亮斑的影像為例，小亮點主要出現在細層 Laplacian bands，寬廣亮斑會延續到較粗層。
-#
-#    Gaussian pyramid 只保留每次平滑、縮小後的影像。若只留下粗層，downsampling 前被濾掉的高頻細節已經不在其中，因此無法由粗層單獨還原原圖。Laplacian pyramid 改存每一層 Gaussian image 與下一個粗層放大結果的差：
-#
-#    $$
-#    L_j=G_j-\operatorname{expand}(G_{j+1}).
-#    $$
-#
-#    重建時從最粗層開始，逐層放大並加回 $L_j$，就能取回各頻帶的細節。這個等式要求建構與重建使用相同的 `expand` 運算；改變插值或邊界設定會留下重建誤差。Gaussian pyramid 適合快速瀏覽不同縮放尺度，Laplacian pyramid 則把可重建的頻帶差異明確保留下來。
-#    ```
-#
-# 3. DWT 可以 perfect reconstruction，為何 thresholding 仍可能刪掉訊號？
-#
-#    ```{dropdown} 參考答案
-#    Perfect reconstruction 指 analysis 與 synthesis filters 滿足重建條件。係數未修改時，`waverec(wavedec(x))` 可在浮點誤差內還原 $x$。Thresholding 主動把部分 detail coefficients 設成零或縮小，重建輸入已經改變；若弱邊緣與雜訊都落在小係數區，兩者會一起被刪除。重建誤差此時來自係數修改，與 filter bank 是否可逆是兩回事。
-#    ```
-#
-# 4. 為什麼去雜訊後的粒子看起來更銳利，仍不足以判斷方法較好？
-#
-#    ```{dropdown} 參考答案
-#    有已知真值的模擬資料可先量 MSE、PSNR、SSIM，並查看殘差圖是否含有粒子結構。假設 clean image 的資料範圍是 $[0,1]$，MSE 從 0.010 降到 0.0025，則
-#
-#    $$
-#    \Delta\mathrm{PSNR}=10\log_{10}(0.010/0.0025)\approx6.02\ \mathrm{dB}.
-#    $$
-#
-#    PSNR 增加約 $6.02\ \mathrm{dB}$，表示像素誤差下降；接著要從殘差圖檢查邊緣或高頻紋理是否也被平滑掉。
-#    若去雜訊是為了粒子對位，可再比較取向與位移誤差。真實資料沒有乾淨原圖時，兩個 half-sets 應分開
-#    處理，並在重建章用 half-map FSC 檢查相同結構能否重現。銳利外觀只是一項視覺現象，無法代替這些數值。
-#    ```
+# ## 二維 DWT：影像的四個子帶
 
+# %% tags=["remove-cell"]
+# source-cells: 32
+
+# %% [markdown]
+# 二維 DWT 沿兩軸各做低通與高通，得到近似及三種細節。PyWavelets 回傳 `(cA, (cH, cV, cD))`。下方沿用變數 `LL, LH, HL, HH`，其順序對應這個 API；不同教材對 LH／HL 的命名可能相反，要以套件的軸向定義與圖形確認。
+#
+# [2D discrete wavelet transformation](https://medium.com/@koushikc2000/2d-discrete-wavelet-transformation-and-its-applications-in-digital-image-processing-using-matlab-1f5c68672de3)用濾波器組介紹二維分解，可對照本節的四子帶。先將 Lucario 與白背景混合並轉成灰階，再使用 `bior1.3`。
+
+# %%
+# source-cells: 32
+# 原教學示意圖：https://drive.google.com/uc?id=1CCfQ-3lE1A3aHwnuI5rXipH6kF6SRnAr
+show_images(ski.io.imread(image_path('ch04-cell32-1.png')))
+
+# %%
+# source-cells: 33
+# Load image
+original = ski.color.rgb2gray(ski.color.rgba2rgb(ski.io.imread(image_path('lucario.png'))))
+
+# Wavelet transform of image, and plot approximation and details
+titles = ['Approximation', ' Horizontal detail',
+          'Vertical detail', 'Diagonal detail']
+coeffs2 = pywt.dwt2(original, 'bior1.3')
+LL, (LH, HL, HH) = coeffs2
+fig = plt.figure(figsize=(12, 3))
+for i, a in enumerate([LL, LH, HL, HH]):
+    ax = fig.add_subplot(1, 4, i + 1)
+    ax.imshow(a, interpolation="nearest", cmap=plt.cm.gray)
+    ax.set_title(titles[i], fontsize=10)
+    ax.set_xticks([])
+    ax.set_yticks([])
+
+fig.tight_layout();
+restored = pywt.idwt2(coeffs2, 'bior1.3')[:original.shape[0], :original.shape[1]]
+assert np.allclose(restored, original)
+
+# %% [markdown]
+# ### 彩色 crop 的 BayesShrink 與 VisuShrink
+#
+# 這次保留 RGB，裁切 `[40:150,80:160]`，加入標準差 0.15 的 Gaussian 雜訊。`random_noise` 預設會把結果截在合法範圍，因此實際殘差分布與未截斷 Gaussian 不完全相同，估計標準差通常較小。固定 seed 42，讓比較可重現。
+#
+# 六格依序顯示含雜訊、BayesShrink、VisuShrink、原圖，以及將 VisuShrink 的 sigma 參數除以 2、4 的結果。各方法在 YCbCr 中處理後換回 RGB；`rescale_sigma=True` 配合內部量尺轉換調整 sigma，無需把它當成雜訊變異數再次平方。PSNR 使用固定 `data_range=1`。
+
+# %%
+# source-cells: 34
+original = ski.util.img_as_float(
+    ski.color.rgba2rgb(ski.io.imread(image_path('lucario.png')))
+)[40:150, 80:160]
+
+sigma = 0.15
+noisy = random_noise(original, var=sigma**2, rng=42)
+
+fig, ax = plt.subplots(nrows=2, ncols=3, figsize=(8, 5),
+                       sharex=True, sharey=True)
+
+plt.gray()
+
+# Estimate the average noise standard deviation across color channels.
+sigma_est = estimate_sigma(noisy, channel_axis=-1, average_sigmas=True)
+# Due to clipping in random_noise, the estimate will be a bit smaller than the
+# specified sigma.
+print(f'Estimated Gaussian noise standard deviation = {sigma_est}')
+
+im_bayes = denoise_wavelet(noisy, channel_axis=-1, convert2ycbcr=True,
+                           method='BayesShrink', mode='soft',
+                           rescale_sigma=True)
+im_visushrink = denoise_wavelet(noisy, channel_axis=-1, convert2ycbcr=True,
+                                method='VisuShrink', mode='soft',
+                                sigma=sigma_est, rescale_sigma=True)
+
+# VisuShrink is designed to eliminate noise with high probability, but this
+# results in a visually over-smooth appearance.  Repeat, specifying a reduction
+# in the threshold by factors of 2 and 4.
+im_visushrink2 = denoise_wavelet(noisy, channel_axis=-1, convert2ycbcr=True,
+                                 method='VisuShrink', mode='soft',
+                                 sigma=sigma_est/2, rescale_sigma=True)
+im_visushrink4 = denoise_wavelet(noisy, channel_axis=-1, convert2ycbcr=True,
+                                 method='VisuShrink', mode='soft',
+                                 sigma=sigma_est/4, rescale_sigma=True)
+
+# Compute PSNR as an indication of image quality
+psnr_noisy = peak_signal_noise_ratio(original, noisy, data_range=1.0)
+psnr_bayes = peak_signal_noise_ratio(original, im_bayes, data_range=1.0)
+psnr_visushrink = peak_signal_noise_ratio(original, im_visushrink, data_range=1.0)
+psnr_visushrink2 = peak_signal_noise_ratio(original, im_visushrink2, data_range=1.0)
+psnr_visushrink4 = peak_signal_noise_ratio(original, im_visushrink4, data_range=1.0)
+
+ax[0, 0].imshow(noisy)
+ax[0, 0].axis('off')
+ax[0, 0].set_title(f'Noisy\nPSNR={psnr_noisy:0.4g}')
+ax[0, 1].imshow(im_bayes)
+ax[0, 1].axis('off')
+ax[0, 1].set_title(
+    f'Wavelet denoising\n(BayesShrink)\nPSNR={psnr_bayes:0.4g}')
+ax[0, 2].imshow(im_visushrink)
+ax[0, 2].axis('off')
+ax[0, 2].set_title(
+    'Wavelet denoising\n(VisuShrink, $\\sigma=\\sigma_{est}$)\n'
+     'PSNR=%0.4g' % psnr_visushrink)
+ax[1, 0].imshow(original)
+ax[1, 0].axis('off')
+ax[1, 0].set_title('Original')
+ax[1, 1].imshow(im_visushrink2)
+ax[1, 1].axis('off')
+ax[1, 1].set_title(
+    'Wavelet denoising\n(VisuShrink, $\\sigma=\\sigma_{est}/2$)\n'
+     'PSNR=%0.4g' % psnr_visushrink2)
+ax[1, 2].imshow(im_visushrink4)
+ax[1, 2].axis('off')
+ax[1, 2].set_title(
+    'Wavelet denoising\n(VisuShrink, $\\sigma=\\sigma_{est}/4$)\n'
+     'PSNR=%0.4g' % psnr_visushrink4)
+fig.tight_layout();
+
+# %% tags=["remove-cell"]
+# source-cells: 35
+
+# %% [markdown]
+# ## 如何比較閾值與重建結果？
+#
+# BayesShrink 依各子帶的訊號與雜訊估計調整閾值。VisuShrink 使用 universal threshold 的想法，典型形式為 $\tau=\widehat\sigma\sqrt{2\log N}$，N 是使用的樣本數。在白高斯雜訊假設下，它傾向較強地壓低小係數，有時也會抹平細節。
+#
+# Lucario 的比較依序使用估計標準差、其一半與四分之一。改小輸入標準差會降低收縮強度，可能保留更多細節，也會留下更多雜訊；這是參數敏感度比較，沒有改變實際加入的雜訊。PSNR 以原乾淨 crop 為參考，數值越高表示此範圍下的均方誤差越低，仍要看眼睛、輪廓等局部細節。
+#
+# [A guide for using the Wavelet Transform in Machine Learning](https://ataspinar.com/2018/12/21/a-guide-for-using-the-wavelet-transform-in-machine-learning/)把小波家族、CWT 與 DWT 連在一起；[小波介紹影片](https://www.youtube.com/watch?v=QX1-xGVFqmw)可配合本章示意圖觀看。閱讀時分清 `wavefun` 的取樣精細度與 DWT 的資料分解層數。
+
+# %% tags=["remove-cell"]
+# source-cells: 36
 
 # %% [markdown]
 # ## 延伸閱讀
-#
-# Gaussian／Laplacian pyramids、小波與多尺度影像處理的更多例子，可參考電腦視覺教科書 {cite}`szeliski2022,forsyth2012`。各函式的尺度、邊界與輸出格式則以本章連結的 SciPy、PyWavelets 與 scikit-image 文件為準。
+
+# %% tags=["remove-cell"]
+# source-cells: 37
+
+# %% [markdown]
+# - **Szeliski, R.（2022），*Computer Vision: Algorithms and Applications*, 2nd ed.** [作者網站](https://szeliski.org/Book/)；以第 3.4 節 Fourier、第 3.5 節金字塔與小波、第 7.1 節影像對齊連起頻域、尺度及影像比較 {cite}`szeliski2022`。
+# - **PyWavelets 官方文件**：[小波物件與 wavefun](https://pywavelets.readthedocs.io/en/stable/ref/wavelets.html)、[DWT](https://pywavelets.readthedocs.io/en/stable/ref/dwt-discrete-wavelet-transform.html)、[CWT](https://pywavelets.readthedocs.io/en/stable/ref/cwt.html)。對照回傳值、邊界模式、尺度與 pseudo-frequency；兩種 level 的意義要分開。
+# - **scikit-image restoration 文件**：[denoise_wavelet](https://scikit-image.org/docs/stable/api/skimage.restoration.html#skimage.restoration.denoise_wavelet)。查看 BayesShrink、VisuShrink、sigma、channel_axis 與色彩轉換的參數，對照本章 Lucario 的五種結果。
+# - **Dey, S.（2018），*Hands-On Image Processing with Python*.** [配套程式](https://github.com/PacktPublishing/Hands-On-Image-Processing-with-Python)提供影像處理與小波範例，可由相應章節對照資料讀取與重建。
+# - **Stanford／課本延伸**：先重看上一章的頻域與金字塔，再用上述官方文件核對小波家族；本章前面保留的 Kaggle 教學與時間–頻率影片，適合作為不同角度的補充閱讀。

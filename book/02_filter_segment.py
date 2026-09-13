@@ -13,715 +13,906 @@
 #     name: cryoem-book
 # ---
 
-# %% [markdown]
-# # 濾波、邊緣、分割與匹配
-#
-# 本章從一個常見問題開始：影像有雜訊、背景不均或物件相連時，應該先做哪一步？我們會依序操作局部濾波、邊緣偵測、閾值化、形態學、物件分割與特徵匹配。每項操作負責不同任務：濾波改變像素，邊緣偵測估計強度變化，分割替像素或物件編號，匹配則產生候選位置。把結果圖和數值指標放在一起比較，就能依雜訊種類與分析目標選擇方法。{cite}`szeliski2022,forsyth2012`
-#
-# ```{admonition} 學習目標
-# :class: important
-#
-# - 比較 convolution 與 correlation，並說明 boundary mode 的影響。
-# - 依雜訊種類比較 box、Gaussian、median 與 bilateral filtering。
-# - 從 $G_x$、$G_y$ 建立梯度大小與方向，解釋 Sobel、Gaussian derivative、Laplacian、LoG、DoG、unsharp masking 與 Canny。
-# - 比較固定、Otsu 與局部閾值，並用 IoU 量化分割結果。
-# - 使用侵蝕、膨脹、開運算、閉運算、connected components 與 `regionprops()` 整理二值遮罩。
-# - 使用 local normalization、normalized cross-correlation（NCC）與 Difference of Gaussians（DoG）找候選物件。
-# - 用 distance transform、local maxima 與 masked watershed 分開相鄰物件。
-# - 推導 HOG 特徵向量的維度，並說明 template bias 與非線性前處理對 cryo-EM 分析的限制。
-# ```
+# %%
 
 # %%
-import matplotlib.pyplot as plt
+# source-cells: 1
+from pathlib import Path
+import sys
 import numpy as np
 import skimage as ski
+import matplotlib.pyplot as plt
+from matplotlib import patches
 from scipy import ndimage as ndi
+BOOK = Path('book') if Path('book').is_dir() else Path('.')
+sys.path.insert(0, str(BOOK.resolve()))
+from _support import image_path, show_images, lab
+plt.rcParams['image.cmap'] = 'gray'
 
-plt.rcParams["image.cmap"] = "gray"
-plt.rcParams["figure.figsize"] = (6, 5)
-
-
-def imshow_all(*images, titles=None, size=4, **kwargs):
-    """並排顯示影像，供教學比較使用。"""
-    if titles is None:
-        titles = [""] * len(images)
-    fig, axes = plt.subplots(1, len(images), figsize=(size * len(images), size))
-    axes = np.atleast_1d(axes)
-    for ax, image, title in zip(axes, images, titles):
-        ax.imshow(image, **kwargs)
-        ax.set_title(title)
-        ax.axis("off")
-    fig.tight_layout()
-    return fig, axes
+def imshow_all(*images, titles=None):
+    # Preserve the original comparison's common float-intensity range.
+    return show_images(*(ski.util.img_as_float(img) for img in images),
+                       titles=titles, shared=True)
 
 
 # %% [markdown]
+# source-cells: 2
+# # 影像濾波、形態學與分割
+
+# %% [markdown]
+# source-cells: 3
+# 前一章處理像素值、顯示與幾何變換。本章改看鄰近像素的關係：用平均抑制雜訊、以梯度找邊緣，再用形態學整理形狀、分割區域並擷取特徵。
+#
+# 濾波通常重新計算像素值，輸出仍是影像；分割為像素指定標籤，描述子則將外觀整理成數值向量。以下依序使用步階訊號、亮方塊、卡比獸（Snorlax）、硬幣與掃描文字。
+#
+# 濾波函式可查 [SciPy](https://docs.scipy.org/doc/scipy/reference/ndimage.html#filters) 與 [scikit-image](https://scikit-image.org/docs/stable/api/skimage.filters.html)。
+
+# %% [markdown]
+# source-cells: 4
+# ## 局部濾波
+
+# %% [markdown]
+# source-cells: 5
+# 局部濾波依鄰近像素計算輸出。Kernel 指定權重，footprint 指定參與運算的鄰居；形態學也常將 footprint 稱為結構元素。先看100點步階訊號，加入平均0、標準差0.35的Gaussian雜訊，使用seed42重現同一組擾動。
+
+# %%
+# source-cells: 6
+step_signal = np.zeros(100)
+step_signal[50:] = 1
+
+fig, ax = plt.subplots()
+ax.plot(step_signal)
+ax.margins(y=0.1)
+
+# Just to make sure we all see the same results
+rng_step = np.random.RandomState(42)
+
+noisy_signal = (step_signal + rng_step.normal(0, 0.35, step_signal.shape))
+fig, ax = plt.subplots()
+ax.plot(noisy_signal);
+plt.show()
+
+# %% [markdown]
+# source-cells: 7
+# 最簡單的平滑是相鄰兩點平均。鄰域內訊號相近時，正負雜訊會部分抵消；跨過步階的視窗也會混合兩側，使邊界變寬。再改成三點平均，比較平滑程度。
+
+# %%
+# source-cells: 8
+# Take the mean of neighboring pixels
+smooth_signal = (noisy_signal[:-1] + noisy_signal[1:])/2.0 #(0,1),(1,2),...(98,99)
+fig, ax = plt.subplots()
+ax.plot(smooth_signal);
+plt.show()
+
+# %%
+# source-cells: 9
+# What happens if we want to take the three neighboring pixels? We can do the same thing:
+smooth_signal3 = (noisy_signal[:-2] + noisy_signal[1:-1]
+                  + noisy_signal[2:])/3  #(0,1,2),(1,2,3),...(97,98,99)
+fig, ax = plt.subplots()
+ax.plot(smooth_signal, label='mean of 2')
+ax.plot(smooth_signal3, label='mean of 3')
+ax.legend(loc='upper left');
+plt.show()
+
+# %% [markdown]
+# source-cells: 10
+# ### 用卷積表示鄰域平均
+#
+# 三點平均等於對每個完整視窗乘上 $[1/3,1/3,1/3]$ 後加總：
+#
+# $$m[i]=\frac{x[i]+x[i+1]+x[i+2]}3,\quad i=0,\ldots,N-3.$$
+#
+# 因此 `valid` 結果長度為 $N-2$。本例兩點、三點平均分別有99、98個輸出，不是與原訊號等長。下面先驗證手算和卷積相同，再用動畫逐步查看kernel覆蓋的樣本。
+
+# %%
+# source-cells: 11
+# Same as above, using a convolution kernel
+# Neighboring pixels multiplied by 1/3 and summed
+mean_kernel3 = np.full((3,), 1/3)
+smooth_signal32 = np.convolve(noisy_signal, mean_kernel3, mode='valid')
+fig, ax = plt.subplots()
+ax.plot(smooth_signal32)
+
+print('smooth_signal3 and smooth_signal32 are equal:', np.allclose(smooth_signal3, smooth_signal32))
+plt.show()
+
+# %%
+# source-cells: 12
+# Static 3-point convolution is plotted above; the 11-point plot follows.
+mean_kernel11 = np.full((11,), 1/11)
+lab('convolution1d', signal=noisy_signal, kernels={'3-point': mean_kernel3, '11-point': mean_kernel11})
+
+# %% [markdown]
+# source-cells: 13
+# ### 換成十一點平均
+#
+# 十一點kernel讓更多鄰近樣本一起平均，平滑更明顯，步階也變得較寬。這次仍使用valid，只有完整落在輸入內的90個視窗會產生輸出。
+
+# %%
+# source-cells: 13
+# The advantage of convolution is that it's just as easy to take the average of 11 points as 3:
+mean_kernel11 = np.full((11,), 1/11)
+smooth_signal11 = np.convolve(noisy_signal, mean_kernel11, mode='valid')
+fig, ax = plt.subplots()
+ax.plot(smooth_signal11);
+plt.show()
+
+# %% [markdown]
+# source-cells: 14-16
 # (filtering)=
-# ## Convolution、correlation 與邊界
 #
-# 對離散訊號 $x$ 與 kernel $h$，convolution 會翻轉 kernel；correlation 不翻轉。kernel 若對稱，兩者相同。影像是有限陣列，kernel 到邊緣時還需要指定陣列外的值：補零、重複邊緣、鏡射或週期延拓會得到不同答案。各種邊界模式的定義可查 [SciPy `ndimage` 文件](https://docs.scipy.org/doc/scipy/reference/ndimage.html)。
+# ### 邊界：valid 與 same
+#
+# valid不補邊界，所以三點、十一點核分別留下98、90個輸出。此例kernel短於輸入，same在兩端補零並保留100個輸出；邊界視窗混入補上的零，數值會受到影響。以下保留原圖比較，再直接核對三點same的第一個與最後一個值。
 
 # %%
-step = np.zeros(20)
-step[7:15] = 1
-asymmetric_kernel = np.array([1.0, 0.0, -1.0])
+# source-cells: 14
+# You can use mode='same' to pad the edges of the array with zero and compute a result of the same size as the input:
+smooth_signal3same = np.convolve(noisy_signal, mean_kernel3, mode='same')
+smooth_signal11same = np.convolve(noisy_signal, mean_kernel11, mode='same')
 
-conv = ndi.convolve1d(step, asymmetric_kernel, mode="reflect")
-corr = ndi.correlate1d(step, asymmetric_kernel, mode="reflect")
-assert np.allclose(conv, -corr)
-
-edge_signal = np.array([1.0, 0.0, 0.0, 0.0])
-mean_kernel = np.full(3, 1 / 3)
-boundary_results = {
-    mode: ndi.convolve1d(edge_signal, mean_kernel, mode=mode)
-    for mode in ("constant", "nearest", "reflect", "wrap")
-}
-for mode, values in boundary_results.items():
-    print(f"{mode:>8}:", np.round(values, 3))
-
-# %% [markdown]
-# ```{admonition} 邊界條件會改變結果
-# :class: caution
-#
-# 未補零時，FFT 相乘對應 circular convolution；一般空間域的 `same` convolution 則常假設陣列外為零。要比較兩者，必須先處理 padding 與 crop。粒子盒邊緣的訊號尤其容易因 boundary mode 產生假影。
-# ```
-
-
-# %% [markdown]
-# ## Gaussian filter 為什麼可以拆成兩次 1D filtering？
-#
-# Isotropic 2D Gaussian kernel 是兩個 1D Gaussian 的 outer product，因此是 separable filter。先沿列方向，再沿欄方向濾波，和直接套 2D kernel 應在浮點誤差內一致；計算量則從每像素約 $K^2$ 次乘加降到 $2K$。
+fig, ax = plt.subplots(1, 2)
+ax[0].plot(smooth_signal32)
+ax[0].plot(smooth_signal11)
+ax[0].set_title('mode=valid')
+ax[1].plot(smooth_signal3same)
+ax[1].plot(smooth_signal11same)
+ax[1].set_title('mode=same');
+plt.show()
 
 # %%
-radius = 4
-sigma = 1.5
-axis = np.arange(-radius, radius + 1)
-gaussian_1d = np.exp(-(axis**2) / (2 * sigma**2))
-gaussian_1d /= gaussian_1d.sum()
-gaussian_2d = np.outer(gaussian_1d, gaussian_1d)
-
-rng = np.random.default_rng(42)
-image = rng.normal(size=(48, 64))
-direct_2d = ndi.convolve(image, gaussian_2d, mode="reflect")
-separable = ndi.convolve1d(image, gaussian_1d, axis=0, mode="reflect")
-separable = ndi.convolve1d(separable, gaussian_1d, axis=1, mode="reflect")
-assert np.allclose(direct_2d, separable, atol=1e-12)
-print("max |2D - separable| =", np.max(np.abs(direct_2d - separable)))
-
-
-# %% [markdown]
-# ## 常用的平滑濾波器
-#
-# Box filter 對視窗內像素給相同權重；Gaussian filter 讓鄰近中心的像素占較大權重。兩者都是線性低通，會一併削弱雜訊與細節。Median filter 以鄰域中位數取代中心值，是非線性排序操作；bilateral filter 則同時依空間距離與像素差異加權，較不容易跨越強邊緣平均。濾波器的優劣要配合雜訊模型、想保留的結構與評估指標判斷。相關推導見 {cite}`szeliski2022,forsyth2012`；函式參數可查 [scikit-image restoration 文件](https://scikit-image.org/docs/stable/api/skimage.restoration.html)。
+# source-cells: 15
+print(np.isclose((0+noisy_signal[0]+noisy_signal[1])/3, smooth_signal3same[0]))
 
 # %%
-coins = ski.util.img_as_float(ski.data.coins())
-coins_impulse = ski.util.random_noise(coins, mode="s&p", amount=0.03, rng=0)
-box_filtered = ndi.uniform_filter(coins_impulse, size=5, mode="reflect")
-gaussian_filtered = ndi.gaussian_filter(coins_impulse, sigma=1.2, mode="reflect")
-median_filtered = ndi.median_filter(coins_impulse, size=3, mode="reflect")
-bilateral_filtered = ski.restoration.denoise_bilateral(
-    coins_impulse, sigma_color=0.08, sigma_spatial=3, channel_axis=None
-)
-imshow_all(
-    coins_impulse,
-    box_filtered,
-    gaussian_filtered,
-    median_filtered,
-    bilateral_filtered,
-    titles=["impulse noise", "box", "Gaussian", "median", "bilateral"],
-    size=3,
-)
-
+# source-cells: 16
+print(np.isclose((noisy_signal[-2]+noisy_signal[-1]+0)/3, smooth_signal3same[-1]))
 
 # %% [markdown]
-# ### 雜訊模型會改變比較結果
-#
-# 加性高斯雜訊會輕微擾動多數像素；salt-and-pepper noise 則把少數像素推到動態範圍兩端。下面使用同一張乾淨影像與固定亂數種子，再以 mean squared error（MSE）比較結果。圖中可先觀察邊緣模糊程度，接著讀取 MSE：這組參數下，Gaussian smoothing 對 Gaussian noise 的 MSE 較低，而 median filtering 對脈衝雜訊較有利。再改變雜訊強度、kernel 大小或影像細節尺度，便會看到兩者的排序可能改變。
+# source-cells: 17
+# ## 二維影像的局部濾波
+
+# %% [markdown]
+# source-cells: 18
+# 將一維視窗換成二維鄰域。先看7×7影像中央的3×3亮方塊。
 
 # %%
-clean = ski.util.img_as_float(ski.data.camera())[80:336, 80:336]
-rng = np.random.default_rng(2026)
-gaussian_noise = np.clip(clean + rng.normal(0, 0.08, clean.shape), 0, 1)
-impulse_noise = ski.util.random_noise(
-    clean, mode="s&p", amount=0.04, rng=2026
-)
-
-
-def compare_gaussian_median(clean_image, noisy_image):
-    """回傳 Gaussian 與 median filtering 的結果和 MSE。"""
-    smooth_gaussian = ndi.gaussian_filter(noisy_image, sigma=1, mode="reflect")
-    smooth_median = ndi.median_filter(noisy_image, size=3, mode="reflect")
-    errors = {
-        "noisy": ski.metrics.mean_squared_error(clean_image, noisy_image),
-        "Gaussian": ski.metrics.mean_squared_error(clean_image, smooth_gaussian),
-        "median": ski.metrics.mean_squared_error(clean_image, smooth_median),
-    }
-    return smooth_gaussian, smooth_median, errors
-
-
-gaussian_smooth, gaussian_median, gaussian_errors = compare_gaussian_median(
-    clean, gaussian_noise
-)
-impulse_smooth, impulse_median, impulse_errors = compare_gaussian_median(
-    clean, impulse_noise
-)
-
-assert gaussian_errors["Gaussian"] < gaussian_errors["median"]
-assert impulse_errors["median"] < impulse_errors["Gaussian"]
-print("Gaussian noise MSE:", {k: round(v, 5) for k, v in gaussian_errors.items()})
-print("Impulse noise MSE:", {k: round(v, 5) for k, v in impulse_errors.items()})
-
-fig, axes = plt.subplots(2, 4, figsize=(13, 7))
-rows_to_show = [
-    (gaussian_noise, gaussian_smooth, gaussian_median, "Gaussian noise"),
-    (impulse_noise, impulse_smooth, impulse_median, "impulse noise"),
-]
-for row_axes, (noisy, smooth_g, smooth_m, noise_name) in zip(axes, rows_to_show):
-    for ax, shown, title in zip(
-        row_axes,
-        (clean, noisy, smooth_g, smooth_m),
-        ("clean", noise_name, "Gaussian", "median"),
-    ):
-        ax.imshow(shown)
-        ax.set_title(title)
-        ax.axis("off")
-fig.tight_layout()
+# source-cells: 19
+bright_square = np.zeros((7, 7), dtype=float)
+bright_square[2:5, 2:5] = 1
+print(bright_square)
+fig, ax = plt.subplots()
+ax.imshow(bright_square);
+plt.show()
 
 # %% [markdown]
-# ```{admonition} 與 cryo-EM 的連結
-# :class: note
-#
-# 真實 micrograph 的背景常包含偵測器響應、冰層變化、beam-induced motion 與 CTF 效應，與獨立同分布白高斯雜訊的條件相差很大。上面的比較用來理解濾波器；cryo-EM 前處理還要配合資料特性與後續用途選擇參數。Median filter 在已確認脈衝型污染時才有明確對應；任何非線性濾波都可能改變微弱的高解析訊號。
-# ```
-
+# source-cells: 20
+# ### 平均濾波器
 
 # %% [markdown]
-# ## 從一階導數找邊緣
-#
-# 對影像 $I(x,y)$，水平與垂直偏導數可寫成 $G_x=\partial I/\partial x$、$G_y=\partial I/\partial y$。梯度大小與方向分別為
-#
-# $$
-# \lVert\nabla I\rVert=\sqrt{G_x^2+G_y^2},\qquad
-# \theta=\operatorname{atan2}(G_y,G_x).
-# $$
-#
-# Sobel kernel 同時做局部差分與少量平滑。另一種做法是以 Gaussian derivative 直接估計平滑後影像的導數；`sigma` 越大，對雜訊越不敏感，但定位也會變得較粗。邊緣偵測與尺度選擇的關係可參考 {cite}`szeliski2022,forsyth2012`。
+# source-cells: 21
+# 3×3平均核對九個像素給相同權重。視窗跨過亮方塊邊界時，亮暗像素會混在一起。以下保留靜態原圖、逐像素視窗及完整輸出，也提供可播放的掃描動畫。邊界採零補值，仍除以9。
 
 # %%
-edge_input = clean
-gx = ndi.sobel(edge_input, axis=1, mode="reflect") / 8
-gy = ndi.sobel(edge_input, axis=0, mode="reflect") / 8
-gradient_magnitude = np.hypot(gx, gy)
-gradient_orientation = np.arctan2(gy, gx)
+# source-cells: 22
+mean_kernel = np.full((3, 3), 1/9)
 
-gaussian_gx = ndi.gaussian_filter(
-    edge_input, sigma=1.2, order=(0, 1), mode="reflect"
-)
-gaussian_gy = ndi.gaussian_filter(
-    edge_input, sigma=1.2, order=(1, 0), mode="reflect"
-)
-gaussian_gradient = np.hypot(gaussian_gx, gaussian_gy)
+print(mean_kernel)
 
-assert gradient_magnitude.shape == edge_input.shape
-assert np.isfinite(gradient_orientation).all()
-assert np.all(gradient_magnitude + 1e-15 >= np.abs(gx))
-
-fig, axes = plt.subplots(2, 3, figsize=(11, 7))
-edge_panels = [
-    (edge_input, "input", {}),
-    (gx, "$G_x$ (Sobel)", {"cmap": "coolwarm"}),
-    (gy, "$G_y$ (Sobel)", {"cmap": "coolwarm"}),
-    (gradient_magnitude, "gradient magnitude", {}),
-    (gradient_orientation, "orientation", {"cmap": "twilight", "vmin": -np.pi, "vmax": np.pi}),
-    (gaussian_gradient, "Gaussian derivative", {}),
-]
-for ax, (shown, title, options) in zip(axes.flat, edge_panels):
-    ax.imshow(shown, **options)
+# %%
+# source-cells: 23
+mean_square = ndi.convolve(bright_square, mean_kernel, mode='constant', cval=0)
+fig, axes = plt.subplots(1, 3, figsize=(11, 4))
+for ax, values, title in zip(axes, [bright_square, bright_square, mean_square],
+                            ['input', 'window at (2, 2)', 'mean output']):
+    ax.imshow(values, vmin=0, vmax=1)
     ax.set_title(title)
-    ax.axis("off")
-fig.tight_layout()
+    for (r, c), value in np.ndenumerate(values):
+        ax.text(c, r, f'{value:.2f}', ha='center', va='center', fontsize=7,
+                color='black' if value > .5 else 'white')
+axes[1].add_patch(patches.Rectangle((.5, .5), 3, 3, fill=False, edgecolor='orange', linewidth=3))
+axes[1].add_patch(patches.Rectangle((1.5, 1.5), 1, 1, fill=False, edgecolor='green', linewidth=2))
+plt.tight_layout()
+plt.show()
+lab('convolution2d', image=bright_square, kernel=mean_kernel)
 
 
 # %% [markdown]
-# ## 二階導數、DoG 與銳化
-#
-# Laplacian $\nabla^2 I$ 是二階導數，會在快速變化處產生正負響應，也會強烈放大高頻雜訊。Laplacian of Gaussian（LoG）先用 Gaussian 控制尺度，再計算 Laplacian。Difference of Gaussians（DoG）以兩個相近尺度的 Gaussian 結果相減，可近似尺度正規化後的 LoG；它既可用來找 blob，也可看成帶通響應。Unsharp masking 則把原圖與低通影像之差加回原圖：
-#
-# $$I_{\mathrm{sharp}}=I+\alpha\left(I-G_\sigma*I\right).$$
-#
-# 銳化增加局部對比，也會放大雜訊與 ringing，處理過程沒有新增解析資訊。
-
-# %%
-smoothed_for_second_order = ndi.gaussian_filter(edge_input, sigma=1.2)
-laplacian_response = ndi.laplace(smoothed_for_second_order, mode="reflect")
-log_response = ndi.gaussian_laplace(edge_input, sigma=1.2, mode="reflect")
-dog_response = (
-    ndi.gaussian_filter(edge_input, sigma=1.0, mode="reflect")
-    - ndi.gaussian_filter(edge_input, sigma=1.6, mode="reflect")
-)
-unsharp = ski.filters.unsharp_mask(edge_input, radius=1.5, amount=1.2)
-
-assert np.isfinite(log_response).all()
-assert abs(dog_response.mean()) < 1e-3
-
-imshow_all(
-    laplacian_response,
-    log_response,
-    dog_response,
-    unsharp,
-    titles=["Laplacian after smoothing", "LoG", "DoG", "unsharp masking"],
-    size=3.2,
-)
-
-
-# %% [markdown]
-# ## Canny：從梯度到單像素邊緣
-#
-# Canny detector 串起四個步驟：Gaussian smoothing、梯度估計、non-maximum suppression，以及由高低兩個閾值控制的 hysteresis。高閾值先保留可靠邊緣；低閾值只接受與可靠邊緣相連的弱響應。這比直接對梯度大小切一個閾值多了邊緣細化與連通性判斷。完整參數定義見 [scikit-image Canny 文件](https://scikit-image.org/docs/stable/api/skimage.feature.html#skimage.feature.canny)。
-
-# %%
-canny_without_smoothing = ski.feature.canny(
-    gaussian_noise, sigma=0, low_threshold=0.05, high_threshold=0.15
-)
-canny_smoothed = ski.feature.canny(
-    gaussian_noise, sigma=2, low_threshold=0.05, high_threshold=0.15
-)
-assert canny_smoothed.sum() < canny_without_smoothing.sum()
-imshow_all(
-    gaussian_noise,
-    canny_without_smoothing,
-    canny_smoothed,
-    titles=["noisy input", "Canny, sigma=0", "Canny, sigma=2"],
-)
-
-
-# %% [markdown]
-# ## Local normalization 與 whitening 解決的問題不同
-#
-# Local normalization 以局部平均與標準差校正緩慢變化的背景：
-#
-# $$z(\mathbf{x})=\frac{I(\mathbf{x})-\mu_{\mathrm{local}}(\mathbf{x})}
-# {\sqrt{\sigma^2_{\mathrm{local}}(\mathbf{x})+\epsilon}}.$$
-#
-# Whitening 則在頻域依背景 power spectrum 重新加權頻率。兩者都可能出現在粒子挑選（particle picking）的前處理，分別處理空間上的局部亮度變化與頻譜不均勻。先執行下面的 local normalization，比較漸層背景在處理前後的變化；第 3 章再從傅立葉域觀察頻譜重新加權。
-
-# %%
-def local_normalize(image, sigma=12.0, eps=1e-6):
-    """以 Gaussian-weighted local moments 做正規化。"""
-    image = np.asarray(image, dtype=float)
-    mean = ndi.gaussian_filter(image, sigma=sigma, mode="reflect")
-    mean_square = ndi.gaussian_filter(image**2, sigma=sigma, mode="reflect")
-    variance = np.maximum(mean_square - mean**2, 0.0)
-    return (image - mean) / np.sqrt(variance + eps)
-
-
-rows, cols = coins.shape
-background_ramp = np.linspace(0, 0.7, cols)[None, :]
-uneven = coins + background_ramp
-normalized = local_normalize(uneven)
-assert np.isfinite(normalized).all()
-imshow_all(uneven, normalized, titles=["uneven background", "local normalization"])
-
-
-# %% [markdown]
-# ## Normalized cross-correlation（NCC）
-#
-# Raw correlation 會偏好整體較亮或能量較大的區域。NCC 先扣除局部與模板平均，再除以兩者能量；理想情況下分數落在 $[-1,1]$，較能比較背景亮度不同的位置。`match_template()` 實作的就是這類正規化匹配。
-
-# %%
-search_image = ski.util.img_as_float(ski.data.coins())
-template = search_image[170:215, 75:120]
-ncc = ski.feature.match_template(search_image, template, pad_input=True)
-peak_row, peak_col = np.unravel_index(np.argmax(ncc), ncc.shape)
-assert ncc.max() <= 1 + 1e-12
-
-fig, axes = plt.subplots(1, 2, figsize=(10, 4))
-axes[0].imshow(search_image)
-axes[0].plot(peak_col, peak_row, "r+")
-axes[0].set_title("best NCC location")
-axes[1].imshow(ncc, vmin=-1, vmax=1)
-axes[1].set_title("NCC score")
-for ax in axes:
-    ax.axis("off")
-fig.tight_layout()
-
-# %% [markdown]
-# ```{admonition} 模板偏差（template bias）
-# :class: caution
-#
-# NCC 只會找「像模板」的區域。模板來源、低通截止、取向覆蓋與分數閾值都會改變候選座標，還可能偏向預先期待的結構。高 NCC 分數表示與模板相似；接著要查看候選座標的空間分布、陰性對照與 2D classification，排除碳膜、冰晶和重複外觀造成的高分。
+# source-cells: 24
+# ```{dropdown} 固定 kernel 與 CNN
+# CNN也會計算局部加權和，但kernel由資料學得，通常還搭配多個通道、非線性函數與多層運算。本例則固定平均核，只示範局部加權；不能把整個CNN視為只有這一次平均。
 # ```
 
+# %% [markdown]
+# source-cells: 25
+# ## 基礎濾波器
 
 # %% [markdown]
-# (particle-picking)=
-# ## Difference of Gaussians（DoG）blob detection
-#
-# 兩個尺度的 Gaussian-smoothed images 相減，形成 band-pass-like response。`blob_dog()` 在位置與尺度上找 extrema，適合產生近圓形物件的候選點。這項計算只使用影像外觀；分子種類與冰污染需要另外辨識。
+# source-cells: 26
+# 改變鄰域的權重或計算方式，就能得到不同的平滑與邊緣響應。先比較Gaussian和平均濾波，再看差分與中位數。
+
+# %% [markdown]
+# source-cells: 27
+# ### Gaussian filter
+
+# %% [markdown]
+# source-cells: 28
+# Gaussian filter讓越靠近中心的像素占較大權重，和平均濾波一樣會平滑影像，也會改變邊界。下例標準差固定為1。Rank mean使用整數影像，程式明確轉成uint8，再將結果以浮點強度比較。
 
 # %%
-blobs = ski.feature.blob_dog(search_image, min_sigma=5, max_sigma=18,
-                             sigma_ratio=1.4, threshold=0.08, overlap=0.5)
-assert blobs.ndim == 2 and blobs.shape[1] == 3
+# source-cells: 29
+bright_square_uint8 = ski.util.img_as_ubyte(bright_square)
+smooth_mean = ski.filters.rank.mean(bright_square_uint8, np.ones((3, 3), dtype=np.uint8))
+sigma = 1
+smooth = ski.filters.gaussian(ski.util.img_as_float(bright_square_uint8), sigma)
+imshow_all(bright_square_uint8, smooth_mean, smooth,
+           titles=['original', 'result of mean filter', 'result of gaussian filter'])
 
-fig, ax = plt.subplots(figsize=(7, 5))
-ax.imshow(search_image)
-for row, col, sigma_found in blobs[:80]:
-    circle = plt.Circle((col, row), np.sqrt(2) * sigma_found,
-                        fill=False, color="tab:red", linewidth=0.8)
-    ax.add_patch(circle)
-ax.set_title(f"DoG candidates (showing {min(len(blobs), 80)} of {len(blobs)})")
-ax.axis("off")
-fig.tight_layout()
-
-
-# %% [markdown]
-# ## 固定、Otsu 與局部閾值
-#
-# 閾值化只根據強度把像素分成前景與背景。固定閾值容易解釋，卻依賴影像尺度；Otsu 方法從全域直方圖選出能最大化類別間變異的閾值；局部閾值則讓閾值隨位置改變，較能處理緩慢變化的背景。它們都不會自動理解「物件」是什麼。方法背景見 {cite}`szeliski2022,forsyth2012,howse2020`，API 行為見 [scikit-image `threshold_otsu` 文件](https://scikit-image.org/docs/stable/api/skimage.filters.html#skimage.filters.threshold_otsu)。
-#
-# 已知真值時，可用 intersection over union（IoU）量化二值分割：
-#
-# $$\operatorname{IoU}(A,B)=\frac{|A\cap B|}{|A\cup B|}.$$
-#
-# 下例刻意加入由左至右變亮的背景。這組固定參數有利於局部方法；背景比較均勻或視窗大小選得不合適時，比較結果可能改變。
+plt.show()
 
 # %%
-def binary_iou(prediction, truth):
-    """計算兩個二值遮罩的 intersection over union。"""
-    prediction = np.asarray(prediction, dtype=bool)
-    truth = np.asarray(truth, dtype=bool)
-    union = np.logical_or(prediction, truth).sum()
-    if union == 0:
-        return 1.0
-    return np.logical_and(prediction, truth).sum() / union
+# source-cells: 30
+snorlax = ski.io.imread(image_path('snorlax.png'))
+img_rgb = ski.color.rgba2rgb(snorlax)
+gray = ski.color.rgb2gray(img_rgb)
+plt.imshow(gray, cmap='gray')
 
-
-height, width = 192, 256
-yy_threshold, xx_threshold = np.mgrid[:height, :width]
-threshold_truth = (
-    (yy_threshold - 62) ** 2 + (xx_threshold - 55) ** 2 < 25**2
-) | (
-    (yy_threshold - 130) ** 2 + (xx_threshold - 140) ** 2 < 30**2
-) | (
-    (np.abs(yy_threshold - 62) < 18) & (np.abs(xx_threshold - 205) < 22)
-)
-
-rng_threshold = np.random.default_rng(2027)
-illumination = 0.12 + 0.48 * xx_threshold / (width - 1)
-uneven_objects = np.clip(
-    illumination
-    + 0.25 * threshold_truth
-    + rng_threshold.normal(0, 0.025, threshold_truth.shape),
-    0,
-    1,
-)
-
-fixed_mask = uneven_objects > 0.52
-otsu_value = ski.filters.threshold_otsu(uneven_objects)
-otsu_mask = uneven_objects > otsu_value
-local_surface = ski.filters.threshold_local(
-    uneven_objects, block_size=91, method="gaussian", offset=-0.03
-)
-local_mask = uneven_objects > local_surface
-
-threshold_scores = {
-    "fixed": binary_iou(fixed_mask, threshold_truth),
-    "Otsu": binary_iou(otsu_mask, threshold_truth),
-    "local": binary_iou(local_mask, threshold_truth),
-}
-assert threshold_scores["local"] > threshold_scores["fixed"]
-assert threshold_scores["local"] > threshold_scores["Otsu"]
-print("segmentation IoU:", {k: round(v, 3) for k, v in threshold_scores.items()})
-
-imshow_all(
-    uneven_objects,
-    threshold_truth,
-    fixed_mask,
-    otsu_mask,
-    local_mask,
-    titles=["uneven input", "known truth", "fixed", "Otsu", "local"],
-    size=3,
-)
-
-
-# %% [markdown]
-# ## 形態學：用結構元素描述鄰域
-#
-# 形態學運算以 structuring element（scikit-image 稱為 footprint）定義鄰域形狀。侵蝕要求 footprint 覆蓋處都屬於前景，因此會縮小前景；膨脹只要鄰域碰到前景就擴張。開運算是先侵蝕再膨脹，常用來移除比 footprint 小的亮點；閉運算是先膨脹再侵蝕，可接合窄縫或填平小缺口。圓盤、菱形與矩形對方向的偏好不同，footprint 必須配合要保留的結構。詳細定義見 [scikit-image morphology 文件](https://scikit-image.org/docs/stable/api/skimage.morphology.html)。
+plt.show()
 
 # %%
-disk_footprint = ski.morphology.disk(4)
-diamond_footprint = ski.morphology.diamond(4)
-rectangle_footprint = ski.morphology.footprint_rectangle((7, 11))
-imshow_all(
-    disk_footprint,
-    diamond_footprint,
-    rectangle_footprint,
-    titles=["disk", "diamond", "rectangle"],
-    size=2.7,
-)
-
-morphology_demo = np.zeros((96, 128), dtype=bool)
-morphology_demo[24:72, 35:93] = True
-morphology_demo[43:53, 58:68] = False
-morphology_demo[12:15, 14:17] = True
-morphology_demo[79:82, 110:113] = True
-small_disk = ski.morphology.disk(3)
-eroded = ski.morphology.erosion(morphology_demo, small_disk)
-dilated = ski.morphology.dilation(morphology_demo, small_disk)
-opened = ski.morphology.opening(morphology_demo, small_disk)
-closed = ski.morphology.closing(morphology_demo, small_disk)
-assert eroded.sum() < morphology_demo.sum() < dilated.sum()
-
-imshow_all(
-    morphology_demo,
-    eroded,
-    dilated,
-    opened,
-    closed,
-    titles=["input", "erosion", "dilation", "opening", "closing"],
-    size=2.8,
-)
-
-
-# %% [markdown]
-# ## Connected components、孔洞清理與 `regionprops`
-#
-# 二值遮罩仍只記錄前景與背景。Connected-component labeling 會依指定連通性替每個物件編號；`regionprops()` 再從 label image 計算面積、質心、bounding box、eccentricity 等幾何量。`remove_small_objects()` 與 `remove_small_holes()` 的面積參數都以像素計，換成另一個 pixel size 時，代表的物理尺度也會改變。
+# source-cells: 31
+# Create lower reolution image
+pixelated = gray[::2, ::2]
+imshow_all(gray, pixelated)
+plt.show()
 
 # %%
-mask_with_defects = threshold_truth.copy()
-rng_morphology = np.random.default_rng(2028)
-noise_rows = rng_morphology.integers(0, height, size=180)
-noise_cols = rng_morphology.integers(0, width, size=180)
-mask_with_defects[noise_rows, noise_cols] = True
-mask_with_defects[(yy_threshold - 62) ** 2 + (xx_threshold - 55) ** 2 < 5**2] = False
-
-without_small_objects = ski.morphology.remove_small_objects(
-    mask_with_defects, max_size=250
-)
-clean_mask = ski.morphology.remove_small_holes(
-    without_small_objects, max_size=150
-)
-component_labels = ski.measure.label(clean_mask, connectivity=2)
-component_properties = ski.measure.regionprops(component_labels)
-
-assert len(component_properties) == 3
-assert clean_mask[62, 55]
-for prop in component_properties:
-    row, col = prop.centroid
-    print(
-        f"label {prop.label}: area={prop.area:.0f} px, "
-        f"centroid=({row:.1f}, {col:.1f}), eccentricity={prop.eccentricity:.3f}"
-    )
-
-imshow_all(
-    mask_with_defects,
-    without_small_objects,
-    clean_mask,
-    component_labels,
-    titles=["defects", "remove small objects", "fill small holes", "labels"],
-    size=3.2,
-)
-
+# source-cells: 32
+# The Gaussian filter returns a float image, regardless of input.
+# Cast to float so the images have comparable intensity ranges.
+pixelated_float = ski.util.img_as_float(pixelated)
+smooth = ski.filters.gaussian(pixelated_float, sigma=1)
+imshow_all(pixelated_float, smooth)
+plt.show()
 
 # %% [markdown]
-# ## 用 watershed 分開相鄰物件
-#
-# 二值 mask 只回答前景／背景。要讓每個相鄰物件得到獨立 label，可以對前景做 Euclidean distance transform，以局部 maxima 當作物件 seeds，再在 `-distance` 上執行 masked watershed。背景維持 label 0，`regionprops()` 就不會把背景當成一個物件。
+# source-cells: 33
+# ## 基礎邊緣濾波
+
+# %% [markdown]
+# source-cells: 34
+# 邊緣是亮度快速改變的位置。前面的Snorlax先由RGBA合成RGB、轉灰階，再每兩個像素取一個，最後平滑；接著用同一張像素化影像觀察邊界。直接間隔取樣沒有預先anti-aliasing，事後平滑無法消除已經發生的aliasing。
+
+# %% [markdown]
+# source-cells: 35
+# ### 差分濾波器
+
+# %% [markdown]
+# source-cells: 36
+# 垂直排列的 $[-1,0,1]^{\mathsf T}$ 比較下方與上方像素，近似沿列方向的導數。本例使用correlation，所以符號是下方減上方；若改成convolution，同一kernel會翻轉，差分的正負號也會相反。平均核對稱，所以前面的平均卷積沒有這個差異。
 
 # %%
-def split_touching_objects(mask, min_distance=12):
-    """回傳 distance map、seed markers 與 instance labels。"""
-    mask = np.asarray(mask, dtype=bool)
-    distance = ndi.distance_transform_edt(mask)
-    coordinates = ski.feature.peak_local_max(
-        distance, labels=mask, min_distance=min_distance, exclude_border=False
-    )
-    seeds = np.zeros(mask.shape, dtype=bool)
-    seeds[tuple(coordinates.T)] = True
-    markers, marker_count = ndi.label(seeds)
-    labels = ski.segmentation.watershed(-distance, markers, mask=mask)
-    return distance, markers, labels, marker_count
-
-
-yy, xx = np.mgrid[:160, :220]
-touching_mask = (
-    (yy - 80) ** 2 + (xx - 75) ** 2 < 42**2
-) | (
-    (yy - 80) ** 2 + (xx - 137) ** 2 < 42**2
-)
-distance, markers, instance_labels, marker_count = split_touching_objects(
-    touching_mask, min_distance=35
-)
-props = ski.measure.regionprops(instance_labels)
-
-assert marker_count == 2
-assert len(props) == 2
-assert instance_labels[~touching_mask].max(initial=0) == 0
-print("instance count:", len(props), "areas:", [p.area for p in props])
-
-imshow_all(touching_mask, distance, markers, instance_labels,
-           titles=["binary mask", "distance", "seeds", "watershed labels"])
-
-
-# %% [markdown]
-# ## Gaussian pyramid：同一影像的多個尺度
-#
-# Gaussian pyramid 在每次縮小前先做低通，降低 decimation 造成的 aliasing。較粗層級保留大尺度輪廓，細節與像素數則逐層減少。這是 scale-space 與多尺度偵測的入門；Laplacian pyramid 與小波會在第 4 章展開。若物件在 micrograph 中的直徑範圍很廣，多尺度搜尋可以減少單一模板尺寸造成的遺漏，但每一層的座標都要正確換回原影像。
+# source-cells: 37
+vertical_kernel = np.array([
+    [-1],
+    [ 0],
+    [ 1],
+])
+plt.imshow(vertical_kernel, cmap='gray');
+plt.show()
 
 # %%
-gaussian_pyramid = tuple(
-    ski.transform.pyramid_gaussian(
-        search_image, downscale=2, max_layer=3, preserve_range=True
-    )
-)
-assert len(gaussian_pyramid) == 4
-assert all(
-    coarse.shape[0] < fine.shape[0] and coarse.shape[1] < fine.shape[1]
-    for fine, coarse in zip(gaussian_pyramid, gaussian_pyramid[1:])
-)
-
-fig, axes = plt.subplots(1, len(gaussian_pyramid), figsize=(13, 3.5))
-for level, (ax, pyramid_image) in enumerate(zip(axes, gaussian_pyramid)):
-    ax.imshow(pyramid_image)
-    ax.set_title(f"level {level}\n{pyramid_image.shape}")
-    ax.axis("off")
-fig.tight_layout()
-
+# source-cells: 38
+# We should use correlate to meet our convention
+# https://medium.com/@aybukeyalcinerr/correlation-vs-convolution-filtering-2711d8bb3666
+#gradient_vertical = ndi.convolve(pixelated.astype(float), vertical_kernel)
+gradient_vertical = ndi.correlate(pixelated_float, vertical_kernel)
+imshow_all(pixelated, gradient_vertical)
+plt.show()
 
 # %% [markdown]
-# ## HOG：從梯度到固定長度的特徵向量
+# source-cells: 39
+# ### Sobel 邊緣濾波器
+
+# %% [markdown]
+# source-cells: 40
+# Sobel在一個方向估計差分，同時沿另一方向做少量平滑，再合併兩個方向的梯度大小。先做Gaussian smoothing能降低雜訊造成的零碎響應，也會使邊界變寬。
 #
-# Histogram of Oriented Gradients（HOG）先計算梯度，再於每個 cell 累積方向直方圖，最後把相鄰 cells 組成 block 做正規化。對 $H\times W$ 影像、`pixels_per_cell=(p_r,p_c)`、`cells_per_block=(b_r,b_c)` 與 $K$ 個方向 bins，完整 cell 的數量是
-#
-# $$n_r=\left\lfloor H/p_r\right\rfloor,\qquad
-# n_c=\left\lfloor W/p_c\right\rfloor,$$
-#
-# 因而 feature length 為
-#
-# $$(n_r-b_r+1)(n_c-b_c+1)b_rb_cK.$$
-#
-# 下面使用 `(2,2)` cells per block，因此正規化確實跨越相鄰 cells。實作選項見 [scikit-image HOG 文件](https://scikit-image.org/docs/stable/api/skimage.feature.html#skimage.feature.hog)。HOG 是通用電腦視覺描述子，可摘要局部邊緣方向；現代 cryo-EM picking 還需要處理低訊雜比、CTF、污染與粒子外觀變化。
+# 下面保留原本平滑前後的比較，右圖乘1.8只是顯示倍率，不表示平滑後梯度變大。Kernel設計可讀 [Sobel中文介紹](https://medium.com/@allen73/%E5%BF%83%E5%BE%97-edge-detection-%E8%88%87-sobel-operator-%E7%B0%A1%E4%BB%8B-bd69204e1352) 與 [Sobel設計討論](https://stackoverflow.com/questions/17078131/why-sobel-operator-looks-that-way)。
 
 # %%
-def expected_hog_length(
-    image_shape, orientations, pixels_per_cell, cells_per_block
-):
-    """依 cell 與 block 幾何計算灰階 HOG 特徵長度。"""
-    cell_rows = image_shape[0] // pixels_per_cell[0]
-    cell_cols = image_shape[1] // pixels_per_cell[1]
-    block_rows = cell_rows - cells_per_block[0] + 1
-    block_cols = cell_cols - cells_per_block[1] + 1
-    return (
-        block_rows
-        * block_cols
-        * cells_per_block[0]
-        * cells_per_block[1]
-        * orientations
-    )
-
-
-hog_orientations = 9
-hog_pixels_per_cell = (16, 16)
-hog_cells_per_block = (2, 2)
-features, hog_image = ski.feature.hog(
-    search_image,
-    orientations=hog_orientations,
-    pixels_per_cell=hog_pixels_per_cell,
-    cells_per_block=hog_cells_per_block,
-    visualize=True,
-)
-calculated_hog_length = expected_hog_length(
-    search_image.shape,
-    hog_orientations,
-    hog_pixels_per_cell,
-    hog_cells_per_block,
-)
-assert features.ndim == 1
-assert features.size == calculated_hog_length
-print("HOG feature length:", features.size)
-imshow_all(search_image, hog_image, titles=["input", "HOG visualization"])
-
+# source-cells: 41
+pixelated_gradient = ski.filters.sobel(pixelated)
+gradient = ski.filters.sobel(smooth)
+titles = ['gradient before smoothing', 'gradient after smoothing']
+# Scale smoothed gradient up so they're of comparable brightness.
+imshow_all(pixelated_gradient, gradient*1.8, titles=titles)
+plt.show()
 
 # %% [markdown]
-# ## 與 cryo-EM 的連結
+# source-cells: 42
+# 比較輪廓的連續性與寬度。平滑後的邊緣通常較連續，也可能失去較細的轉折。
+
+# %% [markdown]
+# source-cells: 43
+# 局部運算不一定是線性加權。接下來用中位數取代鄰域平均，看看能否減少極端像素的影響，同時保留較分明的亮暗邊界。什麼應當算成雜訊，仍要依影像與任務判斷。
+
+# %% [markdown]
+# source-cells: 44
+# ### Median filter
+
+# %% [markdown]
+# source-cells: 45
+# Median filter回傳鄰域中位數。在亮暗兩側分明的邊界，中位數較不容易產生平均後的中間灰階；少量極端值也較不會拉動結果。不過它仍可能刪掉細線或改變小物件，並非所有邊緣都能完整保留。先對Snorlax使用disk(1)，再對coins使用disk(10)，比較平均與中位數。
+
+# %%
+# source-cells: 46
+neighborhood = ski.morphology.disk(radius=1)  # "selem" is often the name used for "structuring element"
+median = ski.filters.rank.median(ski.util.img_as_ubyte(pixelated), neighborhood)
+titles = ['image', 'gaussian', 'median']
+imshow_all(pixelated, smooth, median, titles=titles)
+plt.show()
+
+# %%
+# source-cells: 47
+neighborhood = ski.morphology.disk(10)
+coins = ski.data.coins()
+mean_coin = ski.filters.rank.mean(coins, neighborhood)
+median_coin = ski.filters.rank.median(coins, neighborhood)
+titles = ['image', 'mean', 'median']
+imshow_all(coins, mean_coin, median_coin, titles=titles)
+plt.show()
+
+# %% [markdown]
+# source-cells: 48
+# 較大的圓盤讓平均後的硬幣邊緣模糊；中位數保留較明確的亮暗轉換，但邊界與局部紋理也會改變。
+
+# %% [markdown]
+# source-cells: 49
+# 更多kernel互動範例可見：[https://setosa.io/ev/image-kernels/](https://setosa.io/ev/image-kernels/)，以及 [https://generic-github-user.github.io/Image-Convolution-Playground/src/](https://generic-github-user.github.io/Image-Convolution-Playground/src/)
+
+# %% [markdown]
+# source-cells: 50
+# ## 形態學運算
+
+# %% [markdown]
+# source-cells: 51
+# 形態學用鄰域的形狀處理影像。灰階侵蝕取局部最小值，灰階膨脹取最大值；二值影像以1表示前景時，分別對應縮小與擴張前景。
 #
-# 把這些工具放進單粒子 cryo-EM 流程時，可以先問它要解決哪種影像現象。背景亮度緩慢改變可嘗試 local normalization，背景頻譜不均勻可考慮 whitening，粒子大小不一則可用多尺度搜尋。Gaussian 與 median filter 在本章用來比較濾波定義；median filter 對應已確認的脈衝型污染。非線性濾波可能連微弱的高解析訊號一起改變，因此進入三維重建前，應比較處理前後的頻譜與 half-set 結果。
+# 定義與API可查 [OpenCV morphology](https://docs.opencv.org/3.4/d9/d61/tutorial_py_morphological_ops.html)、[scikit-image morphology](https://scikit-image.org/docs/stable/api/skimage.morphology.html) 與 [SciPy morphology](https://docs.scipy.org/doc/scipy/reference/ndimage.html#morphology)。
+
+# %%
+# source-cells: 52
+# plt.rcParams['image.cmap'] = 'cubehelix'
+plt.rcParams['image.interpolation'] = 'none'
+plt.show()
+
+# %%
+# source-cells: 53
+image = np.array([[0, 0, 0, 0, 0, 0, 0],
+                  [0, 0, 0, 0, 0, 0, 0],
+                  [0, 0, 1, 1, 1, 0, 0],
+                  [0, 0, 1, 1, 1, 0, 0],
+                  [0, 0, 1, 1, 1, 0, 0],
+                  [0, 0, 0, 0, 0, 0, 0],
+                  [0, 0, 0, 0, 0, 0, 0]], dtype=np.uint8)
+plt.imshow(image);
+plt.show()
+
+# %% [markdown]
+# source-cells: 54
+# 結構元素中的非零位置指定參與運算的鄰居。保留原本3×3方形、半徑3菱形與半徑30圓盤。菱形按 $|\Delta r|+|\Delta c|\leq3$ 選鄰居，因此也包含 $(1,1)$ 這種對角偏移；半徑1的菱形才是上下左右的十字。
 #
-# Edge detector 與 thresholding 可用來建立碳膜邊緣、厚冰或污染區域的初始遮罩，再以 opening、closing 與 connected components 整理碎片。這類遮罩的 footprint 與面積門檻都對應物理尺度；micrograph 經過 binning 後，參數也要跟著換算。
+# 目前API用 `footprint_rectangle((3,3))` 取代 `square(3)`，尺寸與形狀不變。
+
+# %%
+# source-cells: 55
+sq = ski.morphology.footprint_rectangle((3, 3))
+dia = ski.morphology.diamond(radius=3)
+disk = ski.morphology.disk(radius=30)
+imshow_all(sq, dia, disk)
+plt.show()
+
+# %% [markdown]
+# source-cells: 56
+# ### 侵蝕
+
+# %% [markdown]
+# source-cells: 57
+# Kernel滑過影像時，只有被覆蓋的像素全部為1，中心才留下1。因此主物件縮小，比kernel小的亮點可能消失，狹窄連接也可能斷開。
+
+# %% [markdown]
+# source-cells: 58
+# Footprint中心對應目前輸出位置；其中的1表示納入鄰域，0表示忽略。先用3×3方形侵蝕亮方塊。
+
+# %%
+# source-cells: 59
+imshow_all(image, ski.morphology.erosion(image, sq))
+plt.show()
+
+# %% [markdown]
+# source-cells: 60
+# ### 膨脹
+
+# %% [markdown]
+# source-cells: 61
+# 只要鄰域有一個1，中心就設為1。先使用3×3方形，再換半徑3的菱形，比較擴張範圍與新邊界的形狀。
+
+# %%
+# source-cells: 62
+imshow_all(image, ski.morphology.dilation(image, sq))
+plt.show()
+
+# %%
+# source-cells: 63
+imshow_all(image, ski.morphology.dilation(image, dia))
+plt.show()
+
+# %% [markdown]
+# source-cells: 64
+# ### 開運算
+
+# %% [markdown]
+# source-cells: 65
+# 開運算先侵蝕、再膨脹。侵蝕移除小亮點後，膨脹只擴張剩下的區域，不會找回已完全消失的亮點。
+
+# %% [markdown]
+# source-cells: 66
+# 以下小矩陣同時包含主物件、孤立亮點與暗缺口。依序看原圖、侵蝕與開運算。
+
+# %%
+# source-cells: 67
+image = np.array([[1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                  [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+				  [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                  [0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0],
+                  [0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0],
+                  [0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0],
+                  [0, 0, 0, 0, 1, 1, 1, 0, 0, 1, 0, 0, 0, 0],
+                  [1, 0, 0, 0, 1, 1, 1, 0, 0, 1, 0, 0, 0, 0],
+                  [0, 0, 0, 0, 1, 1, 1, 0, 0, 1, 0, 0, 0, 1],
+                  [0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0],
+                  [1, 0, 0, 0, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0],
+                  [0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0],
+                  [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+				  [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                  [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                  [0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0]], np.uint8)
+plt.imshow(image);
+plt.show()
+
+# %%
+# source-cells: 68
+imshow_all(image, ski.morphology.erosion(image, sq), ski.morphology.opening(image, sq)) # erosion -> dilation
+plt.show()
+
+# %% [markdown]
+# source-cells: 69
+# ### 閉運算
+
+# %% [markdown]
+# source-cells: 70
+# 閉運算先膨脹、再侵蝕，可以填平比footprint小的暗缺口或接合窄縫。順序與開運算相反，效果也不同。
+
+# %%
+# source-cells: 71
+imshow_all(image, ski.morphology.dilation(image, sq), ski.morphology.closing(image, sq)) # dilation -> erosion
+plt.show()
+
+# %% [markdown]
+# source-cells: 72
+# ### 先閉運算，再開運算
 #
-# 模板匹配與 blob detection 可以產生候選座標。模板偏差、偏好取向、污染與冰層厚度都會影響挑選結果的分布，因此候選座標還要經過後續檢查。Gaussian pyramid 能支援多尺度搜尋，模板外觀的覆蓋範圍仍會影響結果。形態學與 watershed 適合清理污染遮罩或示範 instance segmentation；物理上重疊的粒子投影已經混合成同一組像素值，這些幾何工具無法還原各自的訊號。
+# 先修補小缺口，再移除小亮點。觀察內部孔洞、主物件輪廓與孤立像素如何變化；形態學處理的是指定尺度的形狀，不會自行判斷什麼才是真實物件。
+
+# %%
+# source-cells: 73
+imshow_all(image, ski.morphology.opening(ski.morphology.closing(image, sq), sq))
+plt.show()
+
+# %% [markdown]
+# source-cells: 74
+# ## 影像分割
+
+# %% [markdown]
+# source-cells: 75
+# 分割API與方法索引：[https://scikit-image.org/docs/stable/api/skimage.segmentation.html](https://scikit-image.org/docs/stable/api/skimage.segmentation.html)
+
+# %% [markdown]
+# source-cells: 76
+# ### 全域閾值：硬幣與背景
+
+# %% [markdown]
+# source-cells: 77
+# 全域閾值讓每個像素和同一個數比較，再指定前景或背景。先看coins的灰階直方圖，再比較閾值100與150：較低閾值保留更多硬幣，也可能混入背景；較高閾值則會漏掉硬幣內部的暗區。這裡尚未為每一枚硬幣編號。
+
+# %%
+# source-cells: 78
+coins = ski.data.coins()
+hist, hist_centers = ski.exposure.histogram(coins)
+
+fig, axes = plt.subplots(1, 2, figsize=(8, 3))
+axes[0].imshow(coins, cmap=plt.cm.gray)
+axes[0].axis('off')
+axes[1].plot(hist_centers, hist, lw=2)
+axes[1].set_title('histogram of gray values');
+plt.show()
+
+# %%
+# source-cells: 79
+fig, axes = plt.subplots(1, 2, figsize=(8, 3), sharey=True)
+
+axes[0].imshow(coins > 100, cmap=plt.cm.gray)
+axes[0].set_title('coins > 100')
+
+axes[1].imshow(coins > 150, cmap=plt.cm.gray)
+axes[1].set_title('coins > 150')
+
+for a in axes:
+    a.axis('off')
+
+plt.tight_layout()
+plt.show()
+
+# %% [markdown]
+# source-cells: 80
+# 結果是二值影像；白色代表通過目前規則的像素，不保證每一區都是完整硬幣。
+
+# %% [markdown]
+# source-cells: 81
+# ### 掃描文字：固定、Yen 與 Sauvola 閾值
 #
-# ## 延伸閱讀
+# 紙張的亮度不均。先看page原圖及直方圖，再用固定閾值100選出暗文字。
+
+# %%
+# source-cells: 82
+text = ski.data.page()
+
+plt.imshow(text, cmap='gray');
+plt.show()
+
+# %%
+# source-cells: 83
+fig, ax = plt.subplots(1, 1)
+ax.hist(text.ravel(), bins=256, range=[0, 255])
+ax.set_xlim(0, 256);
+plt.show()
+
+# %%
+# source-cells: 84
+text_segmented = text < 100
+
+plt.imshow(text_segmented, cmap='gray');
+plt.show()
+
+# %% [markdown]
+# source-cells: 85
+# 陰影使單一全域閾值難以兼顧整頁。自動方法可從資料估計閾值，但不一定能處理空間上變化的背景。
+
+# %% [markdown]
+# source-cells: 86
+# Yen根據全域直方圖選一個數，仍是全域方法。Sauvola利用局部平均與標準差，為不同位置產生不同閾值。兩者都不需標註，但局部方法仍有視窗等參數，不能把自動方法理解成完全無設定。
+
+# %%
+# source-cells: 87
+text_threshold = ski.filters.threshold_yen(text)
+print(text_threshold)
+plt.imshow(text < text_threshold, cmap='gray');
+plt.show()
+
+# %% [markdown]
+# source-cells: 88
+# [原稿的thresholding guide](https://scikit-image.org/docs/0.25.x/auto_examples/applications/plot_thresholding_guide.html) 比較全域與局部方法，可將輸出是一個數或一張閾值圖作為辨認起點。
+
+# %%
+# source-cells: 89
+text_threshold = ski.filters.threshold_sauvola(text)
+print(text_threshold.shape)
+plt.imshow(text < text_threshold, cmap='gray');
+plt.show()
+
+# %% [markdown]
+# source-cells: 90
+# ### 背景估計與 black tophat
+
+# %% [markdown]
+# source-cells: 91
+# 除了調整閾值，也可以先移除不均勻的背景。文字比周圍紙張暗，且筆畫比背景變化細，因此用31×31矩形做灰階閉運算，填掉暗筆畫，近似紙張背景。
 #
-# - 濾波、邊緣、形態學與分割的影像處理背景可接著讀 {cite}`szeliski2022,forsyth2012`。
-# - 實作時可查 [SciPy `ndimage`](https://docs.scipy.org/doc/scipy/reference/ndimage.html) 與
-#   [scikit-image API](https://scikit-image.org/docs/stable/api/api.html) 的參數和邊界模式。
+# 灰階膨脹取最大值，使亮區向暗筆畫擴張，再由侵蝕修回較大的亮度輪廓。Black tophat取閉運算減原圖，使暗文字在結果中變亮；white tophat取原圖減開運算，用來凸顯暗背景上的亮物件。
 #
-# ## 理解檢查
+# $$B_{\mathrm{black}}=\operatorname{closing}(I)-I,\qquad B_{\mathrm{white}}=I-\operatorname{opening}(I).$$
+
+# %%
+# source-cells: 92
+# Lets start with a tiny filter, defined by the footprint argument, and work our way up.
+# We're using rectangle filters because they are much faster.
+
+plt.imshow(ski.morphology.closing(text, footprint=ski.morphology.footprint_rectangle((31,31))), cmap='gray');
+plt.show()
+
+# %% [markdown]
+# source-cells: 93
+# 先檢查估得的背景是否仍留有文字痕跡，再看black tophat能否凸顯筆畫。
+
+# %%
+# source-cells: 94
+bth = ski.morphology.black_tophat(text, footprint=ski.morphology.footprint_rectangle((31,31)))
+plt.imshow(bth, cmap='gray');
+plt.show()
+
+# %% [markdown]
+# source-cells: 95
+# 文字強度仍可能隨位置不同，但緩慢變動的背景已減少。接著比較各種自動閾值法。
+
+# %%
+# source-cells: 96
+fig, ax = ski.filters.try_all_threshold(bth, figsize=(10, 8), verbose=True)
+plt.show();
+plt.show()
+
+# %% [markdown]
+# source-cells: 97
+# ```{dropdown} 如何調整背景估計的 footprint？
+# 鄰域要大到能跨過文字，卻不能大到抹平背景本身的變化。長寬比例可依前景形狀與背景變化方向調整，亮度漸層本身不足以決定要用高矩形或寬矩形。比較估得的背景、tophat與二值結果，才能判斷尺寸是否合適。
+# ```
 #
-# 1. 為什麼同一個 mean kernel 在 `constant` 與 `reflect` 邊界會得到不同結果？
+# 原稿的 [tophat notebook](https://github.com/scikit-image/skimage-tutorials/blob/main/lectures/5_tophat_filters.ipynb) 可接著閱讀背景估計與尺寸選擇。
+
+# %% [markdown]
+# source-cells: 98
+# ### 從邊緣到區域：Canny
+
+# %% [markdown]
+# source-cells: 99
+# Canny先平滑影像，計算梯度，再沿梯度方向做非極大值抑制，讓邊緣變細。雙閾值把候選分成強、弱兩組；強邊緣留下，弱邊緣只有連到強邊緣時才保留，稱為hysteresis tracking。
 #
-#    ```{dropdown} 參考答案
-#    二維卷積可寫成
+# 先對Snorlax使用sigma=1.0，比較原圖、平滑後Sobel（顯示乘1.8）與Canny，再看coins預設Canny。讀法可對照 [官方Canny範例](https://scikit-image.org/docs/stable/auto_examples/edges/plot_canny.html) 與 [原稿CS131作業範例](https://github.com/Hugstar/Solutions-Stanford-cs131-Computer-Vision-Foundations-and-Application/blob/master/hw2_release/hw2.ipynb)。
+
+# %%
+# source-cells: 100
+print('pixelated shape:', pixelated.shape)
+
+# %%
+# source-cells: 101
+edges = ski.feature.canny(pixelated, sigma=1.0, low_threshold=None, high_threshold=None)
+gradient = ski.filters.sobel(smooth)
+titles = ['original', 'gradient after smoothing', 'canny']
+# Scale smoothed gradient up so they're of comparable brightness.
+imshow_all(pixelated, gradient*1.8, edges, titles=titles)
+plt.show()
+
+# %%
+# source-cells: 102
+edges = ski.feature.canny(coins)
+
+fig, ax = plt.subplots(figsize=(4, 3))
+ax.imshow(edges, cmap=plt.cm.gray)
+ax.set_title('Canny detector')
+ax.axis('off');
+plt.show()
+
+# %% [markdown]
+# source-cells: 103
+# `binary_fill_holes` 填的是不與影像外部連通的背景孔洞。膨脹會擴張前景；填孔洞則依背景是否能連到外部決定哪些位置填滿，兩者的操作不同。
+
+# %%
+# source-cells: 104
+fill_coins = ndi.binary_fill_holes(edges)
+#sq = ski.morphology.disk(4)
+#fill_coins = ski.morphology.binary_dilation(edges, sq)
+
+
+fig, ax = plt.subplots(figsize=(4, 3))
+ax.imshow(fill_coins, cmap=plt.cm.gray)
+ax.set_title('filling the holes')
+ax.axis('off');
+plt.show()
+
+# %% [markdown]
+# source-cells: 105
+# 移除面積小於21 pixels的連通前景，可清掉小碎片。這個規則不會修補未封閉的硬幣輪廓。
+
+# %%
+# source-cells: 106
+min_area = 21
+# Original min_size=21 means area <21; current max_size is inclusive.
+coins_cleaned = ski.morphology.remove_small_objects(fill_coins, max_size=min_area - 1)
+fig, ax = plt.subplots(figsize=(4, 3))
+ax.imshow(coins_cleaned, cmap=plt.cm.gray)
+ax.set_title('removing small objects')
+ax.axis('off')
+
+plt.show()
+
+# %% [markdown]
+# source-cells: 107
+# 保留這個失敗結果：若邊緣有缺口，硬幣內部仍和外部背景連通，就無法填滿。小物件清理也不能補回缺口，因此接下來改用區域與markers。
+
+# %% [markdown]
+# source-cells: 108
+# ### 以區域擴張：Watershed
+
+# %% [markdown]
+# source-cells: 109
+# [Watershed](https://scikit-image.org/docs/stable/auto_examples/segmentation/plot_watershed.html) 使用地形圖與markers。下面保留原講義的地形示意；硬幣例子則以Sobel梯度當作地形高度。
 #
-#    $$y[i,j]=\sum_{m,n}h[m,n]\,x[i-m,j-n].$$
+# ```{figure} images/original_notebooks/ch02-cell109-1.png
+# :name: fig-ch02-original-watershed
+# :width: 90%
+# :alt: 原講義地形示意，對照谷地、集水區與分水嶺。
 #
-#    當 $(i-m,j-n)$ 超出影像範圍時，就需要邊界條件來補上 $x$ 的值。`constant` 使用固定值，常見設定是 0；`reflect` 則將邊界內側的像素鏡射到外側。因此，mean kernel 在邊緣附近加總的數值不同。`constant=0` 常會將亮背景的邊緣拉暗，`reflect` 在強度平滑延伸時通常較連續。
+# 由markers向低處擴張，區域相遇後形成分界。
+# ```
+
+# %% [markdown]
+# source-cells: 110
+# Watershed從標記開始擴張，優先經過地形較低的位置。用梯度當地形時，物件內部較平坦、邊緣較高。地形與markers共同決定分割結果；只有地形而沒有合適markers，仍可能產生不需要的細碎區域。
+
+# %%
+# source-cells: 111
+elevation_map = ski.filters.sobel(coins)
+
+fig, ax = plt.subplots(figsize=(4, 3))
+ax.imshow(elevation_map, cmap=plt.cm.gray)
+ax.set_title('elevation map')
+ax.axis('off');
+plt.show()
+
+# %% [markdown]
+# source-cells: 112
+# 依直方圖兩端選取比較確定的像素：`coins < 30`指定label 1（背景），`coins > 150`指定label 2（亮硬幣區域）。0表示尚未指定marker，不是第三類。
+
+# %%
+# source-cells: 113
+coins = ski.data.coins()
+hist, hist_centers = ski.exposure.histogram(coins)
+
+fig, axes = plt.subplots(1, 2, figsize=(8, 3))
+axes[0].imshow(coins, cmap=plt.cm.gray)
+axes[0].axis('off')
+axes[1].plot(hist_centers, hist, lw=2)
+axes[1].set_title('histogram of gray values');
+plt.show()
+
+# %%
+# source-cells: 114
+markers = np.zeros_like(coins)
+markers[coins < 30] = 1
+markers[coins > 150] = 2
+
+fig, ax = plt.subplots(figsize=(4, 3))
+im = ax.imshow(markers, cmap=plt.cm.nipy_spectral)
+plt.colorbar(im, ax=ax)
+ax.set_title('markers')
+ax.axis('off');
+plt.show()
+
+# %%
+# source-cells: 115
+print('marker values:', np.unique(markers))  # 0 means unmarked
+
+# %% [markdown]
+# source-cells: 116
+# 從markers填完整張地形後，每個像素得到label 1或2。`regionprops`依label量面積及周長，因此下面有兩筆統計。Label 2即使包含多枚不相連的硬幣，仍合成同一筆；目前沒有逐顆硬幣編號。
+
+# %%
+# source-cells: 117
+segmentation_coins = ski.segmentation.watershed(elevation_map, markers)
+
+fig, ax = plt.subplots(figsize=(4, 3))
+ax.imshow(segmentation_coins, cmap=plt.cm.gray)
+ax.set_title('segmentation')
+ax.axis('off');
+plt.show()
+
+# %%
+# source-cells: 118
+# compute the size and perimeter of the two segmented regions
+properties = ski.measure.regionprops(segmentation_coins)
+print([prop.area for prop in properties])
+print([prop.perimeter for prop in properties])
+
+# %% [markdown]
+# source-cells: 119
+# 分割後可接續閱讀markers與地形選擇：
 #
-#    距離邊界足夠遠的像素不需要外推值，兩種模式的結果應相同。邊界差異的影響範圍與 kernel 半徑有關。`mode` 會參與數值計算，和繪圖排版無關。
-#    ```
+# > [https://github.com/scikit-image/skimage-tutorials/blob/main/lectures/6\_watershed\_tricks.ipynb](https://github.com/scikit-image/skimage-tutorials/blob/main/lectures/6_watershed_tricks.ipynb)
 #
-# 2. Gaussian noise 與 impulse noise 需要用什麼方式分別處理與比較？
+# > [https://github.com/scikit-image/skimage-tutorials/tree/main/lectures](https://github.com/scikit-image/skimage-tutorials/tree/main/lectures)
+
+# %% [markdown]
+# source-cells: 120
+# ## 影像描述子與特徵擷取
+
+# %% [markdown]
+# source-cells: 121
+# 分割指出像素所屬區域，特徵偵測則找出容易重複辨認的位置或外觀，供物件偵測、拼接與匹配使用。
 #
-#    ```{dropdown} 參考答案
-#    Gaussian noise 會讓多數像素出現幅度較小的擾動。Gaussian filter 用局部加權平均降低變異，同時會壓低邊緣與高頻細節。Impulse noise 只將少數像素改成極大或極小值；median filter 使用區域中位數，對少數極端值較穩健。
+# 平坦區域向哪裡移動都差不多；直邊緣沿邊緣移動時也難定位；角點在兩個方向都有變化，通常較容易定位。好的特徵需要有區別力、可重複偵測，對指定範圍的雜訊或變換穩定，也要考慮計算與儲存成本。實際能承受的旋轉、尺度變化與遮擋範圍，仍需依方法與資料檢查。
 #
-#    比較時要同時看雜訊減少量和結構保留情形。有已知真值 $x$ 時，可計算
+# 偵測先找位置，例如Harris、Shi–Tomasi；描述再將附近外觀編成向量，例如SIFT、SURF、ORB。原稿連結的 [OpenCV Understanding Features](https://docs.opencv.org/4.x/df/d54/tutorial_py_features_meaning.html) 用平坦區域、邊緣與角點比較定位能力。
+
+# %% [markdown]
+# source-cells: 122
+# ### HOG：梯度方向直方圖
+
+# %% [markdown]
+# source-cells: 123
+# HOG以固定網格摘要影像的梯度。先計算水平、垂直梯度，再將影像分成cells；像素依梯度大小向對應的方向bin投票。將cells組成block正規化後，最後展平成特徵向量。部分方法會先做gamma壓縮，本例沿用原設定，不額外啟用。
 #
-#    $$\operatorname{MSE}=\frac{1}{N}\sum_p(\hat x[p]-x[p])^2$$
+# 保留原本 **8 bins、每cell為8×8 pixels、每block為1×1 cell**。因此這裡只在單一cell內正規化，沒有跨相鄰cells。右圖顯示局部梯度方向，`fd`才是供分類器使用的數值向量。
 #
-#    並併看 PSNR、SSIM、邊緣剖面與 residual image。單看平滑程度會偏好過度模糊的結果。Median filter 的優勢來自脈衝型污染模型；面對一般 cryo-EM 背景時，要先從影像與頻譜判斷雜訊特性。
-#    ```
+# 若有 $n_r,n_c$ 個完整cell rows/columns，本例特徵長度為 $8n_rn_c$。
 #
-# 3. Canny 邊緣偵測比直接對 gradient magnitude 切閾值多了哪些步驟？每一步解決什麼問題？
+# ```{dropdown} 與2×2 block比較
+# 一般 $b_r\times b_c$ cells的block，特徵長度為 $(n_r-b_r+1)(n_c-b_c+1)b_rb_cK$。2×2 block共同正規化相鄰四個cells，且相鄰blocks重疊；這是另一組參數設定，不是本例1×1 block的行為。
+# ```
+
+# %%
+# source-cells: 124
+fd, hog_image = ski.feature.hog(pixelated, orientations=8, pixels_per_cell=(8, 8),
+                    cells_per_block=(1, 1), visualize=True)
+
+fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(8, 4), sharex=True, sharey=True)
+
+ax1.axis('off')
+ax1.imshow(pixelated, cmap=plt.cm.gray)
+ax1.set_title('Input image')
+
+# Rescale histogram for better display
+hog_image_rescaled = ski.exposure.rescale_intensity(hog_image, in_range=(0, 10))
+
+ax2.axis('off')
+ax2.imshow(hog_image_rescaled, cmap=plt.cm.gray)
+ax2.set_title('Histogram of Oriented Gradients')
+plt.show()
+plt.show()
+
+# %%
+# source-cells: 125
+print('image and descriptor shapes:', pixelated.shape, fd.shape)
+print('expected HOG size:', 8 * (pixelated.shape[0]//8) * (pixelated.shape[1]//8))
+
+# %% [markdown]
+# source-cells: 126
+# [HOG／SVM中文說明](https://medium.com/curiosity-and-exploration/hog-svm-c2fb01304c0) 可接著看描述子如何交給分類器；注意比較文中的block設定與本例的1×1。
+
+# %% [markdown]
+# source-cells: 127
+# 更多描述子可對照API與作業範例：
 #
-#    ```{dropdown} 參考答案
-#    Canny 的主要流程是：Gaussian smoothing、計算 gradient magnitude 與 orientation、nonmaximum suppression（NMS）、雙閾值與 hysteresis tracking。
+# > [https://scikit-image.org/docs/stable/api/skimage.feature.html](https://scikit-image.org/docs/stable/api/skimage.feature.html)
 #
-#    1. Gaussian smoothing 先降低高頻雜訊，因為微分會放大高頻變化。
-#    2. Gradient 提供邊緣強度與法線方向。
-#    3. NMS 沿 gradient 方向只保留局部最大值，將厚邊緣細化。
-#    4. 高閾值選出強邊緣，低閾值保留可能連到強邊緣的弱候選。Hysteresis 只接受與強邊緣連通的弱邊緣。
+# > [https://github.com/mikucy/CS131/blob/master/hw3\_release/hw3.ipynb](https://github.com/mikucy/CS131/blob/master/hw3_release/hw3.ipynb)
+
+# %% [markdown]
+# source-cells: 128
+# ## 可訓練式分割：局部特徵與隨機森林
+
+# %% [markdown]
+# source-cells: 129
+# 固定閾值只看亮度，可訓練式分割則能同時利用局部亮度、邊緣及紋理。先標註少量前景、背景或其他類別，計算每個像素的多尺度局部特徵，再用random forest學習特徵與標籤的關係，預測未標註像素。
 #
-#    直接切 gradient magnitude 會留下較厚的邊緣，也很難同時保留弱邊緣連續性與排除雜訊。Canny 仍需要選擇 smoothing scale 和兩個閾值；它沒有免除參數對結果的影響。
-#    ```
+# 它有標註提供監督資訊，與前面的自動閾值不同。應在未參與訓練的影像或區域檢查結果，避免把記住訓練紋理誤當成能處理新資料。原稿的 [trainable segmentation範例](https://scikit-image.org/docs/stable/auto_examples/segmentation/plot_trainable_segmentation.html#sphx-glr-auto-examples-segmentation-plot-trainable-segmentation-py) 示範特徵、標註與分類器的搭配。
+
+# %% [markdown]
+# source-cells: 130
+# ## 三維影像分析
+
+# %% [markdown]
+# source-cells: 131
+# 三維影像是切片堆疊，鄰域、分割與區域量測也要增加一個維度。圓盤可改成球形鄰域，面積改成體積；切片間距與平面像素大小可能不同，相同格數不一定代表相同物理長度。
 #
-# 4. 影像有緩慢變化的背景、相鄰物件與小雜點時，如何串接閾值化、形態學與 watershed？
-#
-#    ```{dropdown} 參考答案
-#    全域 Otsu 以單一閾值最大化類間變異。背景亮度隨位置改變時，同一個物件強度可能在影像左右兩側落到閾值的不同側。局部閾值根據每個位置周圍視窗的統計量來決定切分值，需要多選視窗大小、加權方式與 offset。
-#
-#    取得二值遮罩後，opening 以結構元素檢查形狀：先侵蝕再膨脹，細小或無法容納該結構元素的部分會被移除。`remove_small_objects()` 則先找 connected components，再依像素面積移除小於門檻的物件。兩者的判斷依據分別是局部形狀與連通區面積。
-#
-#    相鄰物件可先計算前景的 distance transform，在每個物件內找局部極大值作為獨立 marker，再對負的 distance map 做 watershed。若所有前景只有同一個 marker label，watershed 只會得到一個流域；要分開兩個相鄰物件，通常需要兩個可靠的前景 markers。物理上重疊的透明投影會把訊號混在同一組像素裡，單靠這個幾何模型無法拆回原來的投影。
-#    ```
-#
-# 5. Local normalization、whitening 與 NCC 在粒子挑選中各自處理什麼？
-#
-#    ```{dropdown} 參考答案
-#    Local normalization 在每個位置估計局部平均 $\mu(x)$ 與標準差 $\sigma(x)$，形式類似
-#
-#    $$I_{\mathrm{local}}(x)=\frac{I(x)-\mu(x)}{\sigma(x)+\epsilon}.$$
-#
-#    它主要校正實空間中緩慢變化的平均與局部對比。Whitening 估計背景功率譜 $S_n(k)$，再以約 $1/\sqrt{S_n(k)}$ 的權重縮放各頻率，使背景的頻譜較平坦。前者著重位置，後者著重空間頻率。
-#
-#    NCC 比較模板 $t$ 與局部影像 $p$ 在去除平均、調整尺度後的相似程度：
-#
-#    $$\operatorname{NCC}(p,t)=\frac{\langle p-\bar p,t-\bar t\rangle}{\|p-\bar p\|\,\|t-\bar t\|}.$$
-#
-#    高分表示這個局部方框與模板相似。污染、碳膜邊緣、冰晶或模板偏好的取向也可以得到高分。後續應查看座標分布、挑選影像與 2D 分類結果，確認高分來自哪些影像內容。NCC 是相似度，公式本身沒有把分數解釋成「真實粒子的機率」。
-#    ```
+# 閱讀原稿指定的 [Data Umbrella notebook](https://github.com/scikit-image/skimage-tutorials/blob/main/workshops/2022-data-umbrella/2022_10-skimage_data_umbrella.ipynb) 時，先看軸順序、voxel spacing與視覺化，再對照分割標籤及區域量測。
+
+# %% [markdown]
+# source-cells: 132
+# ## 延伸閱讀與參考資料
+
+# %% [markdown]
+# source-cells: 133
+# - **Szeliski，Computer Vision: Algorithms and Applications**：依原稿第3.2–3.3節讀濾波及局部運算、第7.1–7.2與7.5節讀特徵、匹配與追蹤；使用不同版本時先核對目錄。也可搭配Forsyth／Ponce與Howse／Minichino的影像處理說明 {cite}`szeliski2022,forsyth2012,howse2020`。
+# - **OpenCV影像處理與特徵**：[image processing](https://docs.opencv.org/4.x/d2/d96/tutorial_py_table_of_contents_imgproc.html)、[feature2d](https://docs.opencv.org/4.x/db/d27/tutorial_py_table_of_contents_feature2d.html)。按濾波、形態學、特徵的次序查API與範例。
+# - **完整課程**：[scikit-image tutorials](https://github.com/scikit-image/skimage-tutorials)、[Stanford CS131 Fall 2021](http://vision.stanford.edu/teaching/cs131_fall2021/)。前者可接續本章分割案例，後者補足特徵與電腦視覺背景。下一章再從頻率觀點看影像與濾波。

@@ -1,99 +1,44 @@
-"""Executable checks for the four Jupytext foundation chapters.
-
-The chapter sources contain their own numerical assertions.  Running them here
-keeps prose examples and tested computations on the same code path.
-"""
-
-from contextlib import contextmanager
-from pathlib import Path
-import os
-import runpy
-
-import matplotlib
+"""Original Fourier and wavelet experiments; SPA helper checks live separately."""
 import numpy as np
-import pytest
+import pywt
 
+def test_original_basis_and_real_symmetric_masks(restored_chapter):
+    c=restored_chapter('03_fourier.py')
+    fn=c['coefficient_basis']
+    for kx,ky in [(0,0),(5,2),(-32,17),(64,0)]:
+        for kind in ['sine','cosine']:
+            result=fn(128,kx,ky,.6,kind)
+            # helper returns (frequency coefficients, real spatial image).
+            H,h=result
+            assert np.max(np.abs(np.fft.ifft2(H).imag))<1e-12
+            np.testing.assert_allclose(h,np.fft.ifft2(H).real,atol=1e-12)
+    for shape in [(80,80),(79,82)]:
+        for cutoff in [1,20,24]:
+            M=c['square_lowpass'](shape,cutoff)
+            np.testing.assert_array_equal(M,M[np.ix_((-np.arange(shape[0]))%shape[0],(-np.arange(shape[1]))%shape[1])])
 
-matplotlib.use("Agg")
-import matplotlib.pyplot as plt
+def test_all_original_cutoffs_and_feature_methods_present(restored_chapter):
+    c=restored_chapter('03_fourier.py')
+    assert list(c['cutoffs'])==list(range(1,25))
+    assert len(c['lowpass_results'])==len(c['highpass_results'])==24
+    for lo,hi in zip(c['lowpass_results'],c['highpass_results']):
+        np.testing.assert_allclose(lo+hi,c['gengar'],atol=1e-10)
+    assert c['harris_response'].ndim==2
+    assert all(x.shape[1]==3 for x in c['blobs_list'])
 
-REPOSITORY = Path(__file__).resolve().parents[1]
-BOOK = REPOSITORY / "book"
+def test_original_ecg_and_lucario_wavelets(restored_chapter):
+    c=restored_chapter('04_wavelet.py')
+    np.testing.assert_allclose(c['reconstructed_signals'][:c['signals'].size],c['signals'],atol=1e-9)
+    assert c['original'].shape==(110,80,3)
+    assert all(np.isfinite(c[k]) for k in ['psnr_noisy','psnr_bayes','psnr_visushrink','psnr_visushrink2','psnr_visushrink4'])
+    assert c['psnr_bayes']>c['psnr_noisy']
 
-
-@contextmanager
-def working_directory(path):
-    previous = Path.cwd()
-    os.chdir(path)
-    try:
-        yield
-    finally:
-        os.chdir(previous)
-
-
-def run_chapter(filename):
-    with working_directory(BOOK):
-        namespace = runpy.run_path(str(BOOK / filename))
-    plt.close("all")
-    return namespace
-
-
-@pytest.mark.parametrize(
-    "filename",
-    [
-        "01_image_basics.py",
-        "02_filter_segment.py",
-        "03_fourier.py",
-        "04_wavelet.py",
-    ],
-)
-def test_foundation_chapter_executes(filename):
-    run_chapter(filename)
-
-
-def test_rectangular_dft_and_parseval():
-    namespace = run_chapter("03_fourier.py")
-    image = np.arange(24, dtype=float).reshape(4, 6)
-    direct = namespace["direct_dft2"](image)
-    transformed = np.fft.fft2(image)
-
-    assert np.allclose(direct, transformed)
-    assert np.allclose(np.fft.ifft2(transformed).real, image)
-    assert transformed[0, 0] == pytest.approx(image.sum())
-    assert np.sum(image**2) == pytest.approx(
-        np.sum(np.abs(transformed) ** 2) / image.size
-    )
-
-
-def test_watershed_returns_individual_objects_and_zero_background():
-    namespace = run_chapter("02_filter_segment.py")
-    yy, xx = np.mgrid[:100, :140]
-    mask = ((yy - 50) ** 2 + (xx - 45) ** 2 < 28**2) | (
-        (yy - 50) ** 2 + (xx - 88) ** 2 < 28**2
-    )
-    _, _, labels, marker_count = namespace["split_touching_objects"](
-        mask, min_distance=24
-    )
-
-    assert marker_count == 2
-    assert labels.max() == 2
-    assert np.all(labels[~mask] == 0)
-
-
-def test_dwt_round_trip_for_odd_length_signal():
-    namespace = run_chapter("04_wavelet.py")
-    signal = np.random.default_rng(10).normal(size=259)
-
-    for mode in ("zero", "symmetric", "periodization"):
-        reconstructed, _ = namespace["dwt_round_trip"](signal, mode=mode)
-        assert np.allclose(reconstructed, signal, atol=1e-10)
-
-
-def test_phase_flip_preserves_observed_magnitude_away_from_zeros():
-    namespace = run_chapter("03_fourier.py")
-    observed = np.arange(16).reshape(4, 4) + 1j
-    ctf = np.linspace(-1, 1, 16).reshape(4, 4)
-    corrected = namespace["phase_flip_spectrum"](observed, ctf)
-    nonzero = ctf != 0
-
-    assert np.allclose(np.abs(corrected[nonzero]), np.abs(observed[nonzero]))
+def test_spa_phase_flip_helper_is_not_in_general_chapter():
+    from pathlib import Path
+    import sys
+    book=Path(__file__).resolve().parents[1]/'book';sys.path.insert(0,str(book))
+    from _support.spa_filters import phase_flip_spectrum,wiener_ctf_spectrum
+    x=np.ones((8,8),complex)*(2+1j);H=np.linspace(-1,1,64).reshape(8,8)
+    np.testing.assert_allclose(np.abs(phase_flip_spectrum(x,H)),np.abs(x))
+    assert np.isfinite(wiener_ctf_spectrum(x,H,.03)).all()
+    assert 'def phase_flip_spectrum' not in (book/'03_fourier.py').read_text()

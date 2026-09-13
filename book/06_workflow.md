@@ -116,7 +116,7 @@ $$
 
 較大的離焦能加強部分低頻對比，也使高頻的 CTF 振盪更密集，增加頻率取樣與尺度校準的要求，並加強 delocalization。離焦值本身需要多準，則由目標頻率與電子波長決定：$|\delta\chi|=\pi\lambda s^2|\delta f|$ 在固定 $s,\lambda$ 下不依賴原先的離焦量。提高目標解析度時，必須降低離焦估計誤差，才能控制相位誤差。
 
-**前置概念**：{doc}`03_fourier` 的卷積定理、phase flipping 與 Wiener filter；成像模型見 {doc}`05_image_formation`。
+**前置概念**：{doc}`03_fourier`介紹通用的卷積與影像復原；CTF、phase flipping 與其 Wiener 校正見{doc}`05_image_formation`。
 
 ## Particle picking 與選樣偏差
 

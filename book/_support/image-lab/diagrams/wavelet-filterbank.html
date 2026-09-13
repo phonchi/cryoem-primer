@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>兩層小波濾波器組</title><style>*{box-sizing:border-box}html,body{margin:0;background:#fff;color:#192c43;font-family:system-ui,"Noto Sans TC",sans-serif}main{max-width:672px;margin:auto;padding:16px}h1{font-size:28px;line-height:1.35;margin:0 0 12px;font-weight:700}h2{font-size:24px;margin:28px 0 12px}p{font-size:20px;line-height:1.65;margin:12px 0}.intro{color:#40566d}.diagram{width:100%;overflow-x:auto;margin:16px 0}.diagram svg{display:block;width:100%;min-width:384px;height:auto}svg text{font-family:system-ui,"Noto Sans TC",sans-serif;fill:#192c43;font-size:20px}svg .name{font-size:24px;font-weight:700}svg .note{fill:#40566d}svg .blue{fill:#1769aa}svg .green{fill:#237858}svg .accent{fill:#cc6517}svg .wire{fill:none;stroke:#40566d;stroke-width:2;stroke-linejoin:round;stroke-linecap:round}svg .node{fill:#fff;stroke:#192c43;stroke-width:1.2}svg .filter{fill:#fff4e9;stroke:#cc6517;stroke-width:1.2}svg .coefficient{fill:#edf7f2;stroke:#237858;stroke-width:1.2}.order{border-left:4px solid #237858;padding:8px 12px;background:#f3f8f5;font-variant-numeric:tabular-nums}.math{font-variant-numeric:tabular-nums;white-space:nowrap}.foot{border-top:1px solid #d6e0e9;padding-top:12px}@media(max-width:440px){main{padding:12px}h1{font-size:24px}.diagram{padding-bottom:4px}}@media print{main{max-width:none}.diagram{overflow:visible}.diagram svg{min-width:0}}</style></head><body><main><h1>小波濾波器組：只繼續分解近似係數</h1>
+<p class="intro">ECG 的同一段訊號，分成近似與細節兩支；下一層只處理近似支。</p>
+<h2>分析：訊號拆成多個尺度</h2>
+<div class="diagram">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 640" role="img" aria-labelledby="wavelet-analysis-title wavelet-analysis-desc">
+<title id="wavelet-analysis-title">ECG 的兩層離散小波分解</title>
+<desc id="wavelet-analysis-desc">ECG 經低通與高通濾波後各降採樣二倍，得到 cA1 和 cD1；只有 cA1 再次分解成 cA2 和 cD2，cD1 直接保留。</desc>
+<defs>
+<marker id="wavelet-analysis-arrow" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0,8 3,0 6" fill="#40566d"/></marker>
+<marker id="wavelet-analysis-arrow-accent" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0,8 3,0 6" fill="#cc6517"/></marker>
+<marker id="wavelet-analysis-arrow-link" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0,8 3,0 6" fill="#1769aa"/></marker>
+</defs>
+<!-- Connectors precede the nine nodes. Separate ports never share a stroke. -->
+<g class="wire" marker-end="url(#wavelet-analysis-arrow)">
+<path d="M272 80 V104 Q272 112 264 112 H184 Q176 112 176 120 V144"/>
+<path d="M368 80 V104 Q368 112 376 112 H456 Q464 112 464 120 V144"/>
+<path d="M176 224 V280"/><path d="M464 224 V280"/>
+<path d="M144 344 V368 Q144 376 136 376 Q128 376 128 384 V416"/>
+<path d="M208 344 V360 Q208 368 216 368 H392 Q400 368 400 376 V416"/>
+<path d="M128 496 V560"/><path d="M400 496 V560"/>
+</g>
+<rect class="node" x="224" y="16" width="192" height="64" rx="8"/>
+<text class="name blue" x="320" y="56" text-anchor="middle">ECG　x[n]</text>
+<rect class="filter" x="64" y="144" width="224" height="80" rx="8"/>
+<text x="176" y="176" text-anchor="middle">分析低通濾波</text><text x="176" y="208" text-anchor="middle">↓2 降採樣</text>
+<rect class="node" x="352" y="144" width="224" height="80" rx="8"/>
+<text x="464" y="176" text-anchor="middle">分析高通濾波</text><text x="464" y="208" text-anchor="middle">↓2 降採樣</text>
+<rect class="coefficient" x="96" y="280" width="160" height="64" rx="8"/>
+<text class="name green" x="176" y="320" text-anchor="middle">cA1 近似</text>
+<rect class="coefficient" x="384" y="280" width="160" height="64" rx="8"/>
+<text class="name green" x="464" y="320" text-anchor="middle">cD1 細節</text>
+<text class="note" x="464" y="376" text-anchor="middle">直接保留</text>
+<rect class="filter" x="16" y="416" width="224" height="80" rx="8"/>
+<text x="128" y="448" text-anchor="middle">分析低通濾波</text><text x="128" y="480" text-anchor="middle">↓2 降採樣</text>
+<rect class="node" x="288" y="416" width="224" height="80" rx="8"/>
+<text x="400" y="448" text-anchor="middle">分析高通濾波</text><text x="400" y="480" text-anchor="middle">↓2 降採樣</text>
+<rect class="coefficient" x="48" y="560" width="160" height="64" rx="8"/>
+<text class="name green" x="128" y="600" text-anchor="middle">cA2 近似</text>
+<rect class="coefficient" x="320" y="560" width="160" height="64" rx="8"/>
+<text class="name green" x="400" y="600" text-anchor="middle">cD2 細節</text>
+</svg></div>
+<p class="order">兩層 wavedec 的回傳順序：<br><strong>[cA2, cD2, cD1]</strong><br>最粗近似在前，細節由粗到細排列。</p>
+<p>↓2 表示每隔一個取樣保留一個值。有限長濾波器有過渡頻帶；「低通／高通」不表示理想的頻率硬切割。輸出長度也受濾波器長度與邊界延拓方式影響，不一定恰好等於輸入的一半。</p>
+<h2>合成：從最粗層逐層接回來</h2>
+<div class="diagram">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 688" role="img" aria-labelledby="wavelet-synthesis-title wavelet-synthesis-desc">
+<title id="wavelet-synthesis-title">由 cA2、cD2、cD1 重建 ECG</title>
+<desc id="wavelet-synthesis-desc">先將 cA2 與 cD2 各上採樣並通過配對的合成低通和高通濾波器，相加得到 cA1；再用 cA1 與 cD1 重複合成，得到重建的 ECG。</desc>
+<defs>
+<marker id="wavelet-synthesis-arrow" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0,8 3,0 6" fill="#40566d"/></marker>
+<marker id="wavelet-synthesis-arrow-accent" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0,8 3,0 6" fill="#cc6517"/></marker>
+<marker id="wavelet-synthesis-arrow-link" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0,8 3,0 6" fill="#1769aa"/></marker>
+</defs>
+<g class="wire" marker-end="url(#wavelet-synthesis-arrow)">
+<path d="M104 80 V160"/><path d="M336 80 V160"/>
+<path d="M232 256 V304"/>
+<path d="M232 368 V448"/><path d="M536 368 V448"/>
+<path d="M384 544 V608"/>
+</g>
+<rect class="coefficient" x="24" y="16" width="160" height="64" rx="8"/>
+<text class="name green" x="104" y="56" text-anchor="middle">cA2</text>
+<rect class="coefficient" x="256" y="16" width="160" height="64" rx="8"/>
+<text class="name green" x="336" y="56" text-anchor="middle">cD2</text>
+<rect class="filter" x="24" y="160" width="416" height="96" rx="8"/>
+<text x="232" y="192" text-anchor="middle">兩支各 ↑2，再通過合成濾波器</text>
+<text x="232" y="224" text-anchor="middle">近似走低通，細節走高通，再相加</text>
+<rect class="coefficient" x="152" y="304" width="160" height="64" rx="8"/>
+<text class="name green" x="232" y="344" text-anchor="middle">cA1</text>
+<rect class="coefficient" x="456" y="304" width="160" height="64" rx="8"/>
+<text class="name green" x="536" y="344" text-anchor="middle">cD1</text>
+<rect class="filter" x="152" y="448" width="464" height="96" rx="8"/>
+<text x="384" y="480" text-anchor="middle">兩支各 ↑2，再通過合成濾波器</text>
+<text x="384" y="512" text-anchor="middle">近似走低通，細節走高通，再相加</text>
+<rect class="node" x="304" y="608" width="160" height="64" rx="8"/>
+<text class="name blue" x="384" y="648" text-anchor="middle">重建 ECG</text>
+</svg></div>
+<p>↑2 在相鄰係數間插入零，再由合成濾波器組合。分析與合成的小波、邊界方式相配，且係數未被修改時，可以在數值誤差內恢復原訊號；必要時依原始長度裁切。</p>
+<p class="foot">A 是 approximation（近似），D 是 detail（細節），數字是分解層數。這裡是標準 DWT 的近似支遞迴；細節支不再分解。</p></main></body></html>
