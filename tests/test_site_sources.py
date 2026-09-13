@@ -123,7 +123,8 @@ def test_general_chapters_follow_originals_without_spa_or_quizzes():
         assert "參考答案" not in prose, name
         assert not re.search(r"cryo|\bSPA\b|\bCTF\b|\bMRC\b", prose, re.I), name
         assert "延伸閱讀" in prose, name
-        assert "source-cells:" in (BOOK / f"{name}.py").read_text(), name
+        assert "source-cells:" not in (BOOK / f"{name}.py").read_text(), name
+        assert "source-cells:" not in (BOOK / f"{name}.ipynb").read_text(), name
 
 
 def test_restored_notebooks_are_paired_and_executed():

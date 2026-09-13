@@ -16,11 +16,9 @@
 # %%
 
 # %% tags=["hide-input"]
-# source-cells: 0
 # 套件由教學環境統一安裝；本章不執行舊 imread plugin 安裝。
 
 # %%
-# source-cells: 1
 from pathlib import Path
 import sys
 import numpy as np
@@ -39,7 +37,6 @@ plt.rcParams['image.cmap'] = 'gray'
 
 
 # %% tags=["remove-cell"]
-# source-cells: 2
 
 # %% [markdown]
 # # 小波分析：從時間與尺度到影像去雜訊
@@ -47,7 +44,6 @@ plt.rcParams['image.cmap'] = 'gray'
 # 上一章用 Fourier 表示頻率，並用金字塔分開影像尺度。本章把分析函數放到訊號的不同位置，再調整它的尺度，觀察局部變化。先比較時間與頻率的取捨，再從小波家族、ECG 分解走到 Lucario 影像的四子帶與去雜訊。
 
 # %% tags=["remove-cell"]
-# source-cells: 3
 
 # %% [markdown]
 # ## 為什麼還需要局部的頻率描述？
@@ -59,12 +55,10 @@ plt.rcParams['image.cmap'] = 'gray'
 # **短時傅立葉轉換（STFT）**先用移動視窗截取訊號，再逐窗計算 Fourier transform。這讓頻譜帶有時間位置，但定位精度受視窗寬度限制。例如將訊號分成 10 個不重疊區間，第二個區間對應總時長的 1/10 到 2/10；頻率在該窗出現，仍無法由單一窗確定更精細的起止時間。
 
 # %%
-# source-cells: 3
 # 原教學示意圖：https://drive.google.com/uc?id=1C8ITJkJtXxewppV0I-7AGm2qHRYCkk_J
 show_images(ski.io.imread(image_path('ch04-cell3-1.png')))
 
 # %% tags=["remove-cell"]
-# source-cells: 4
 
 # %% [markdown]
 # ## STFT 與小波的解析度取捨
@@ -74,18 +68,15 @@ show_images(ski.io.imread(image_path('ch04-cell3-1.png')))
 # 下圖以格子示意各種表示的分析範圍。小波沒有同時取得任意高的時間與頻率解析度，而是讓取捨隨尺度改變：低頻處通常有較細頻率解析、較粗時間定位，高頻處則有較細時間定位、較粗頻率解析。原始時間序列和完整 Fourier 表示都保有訊號資訊，差別在於哪些特徵容易直接讀出。
 
 # %%
-# source-cells: 4
 # 原教學示意圖：https://drive.google.com/uc?id=1C8ZHTWEzMP2ccNgVxkuE6ShcRu4ut9JT
 show_images(ski.io.imread(image_path('ch04-cell4-1.png')))
 
 # %% tags=["remove-cell"]
-# source-cells: 5
 
 # %% [markdown]
 # ## 小波如何分析訊號？
 
 # %% tags=["remove-cell"]
-# source-cells: 6
 
 # %% [markdown]
 # Fourier 基底的正弦波延伸到整個時間軸；小波則是集中在有限區間或快速衰減的局部振盪。把小波移到不同位置，和訊號計算內積，便能量出該位置含有多少相似的局部形狀。
@@ -93,12 +84,10 @@ show_images(ski.io.imread(image_path('ch04-cell4-1.png')))
 # 固定尺度後沿時間移動，這個內積可寫成和反轉共軛核的卷積；再改變尺度，便得到時間與尺度兩個軸。這種圖稱為 **scalogram（尺度圖）**。尺度越大通常對應越低頻率，但確切的 pseudo-frequency 需要母小波與取樣週期共同換算；例如 PyWavelets 可用 `scale2frequency(wavelet, scale) / sampling_period` 取得 Hz。
 
 # %%
-# source-cells: 6
 # 原教學示意圖：https://drive.google.com/uc?id=1C8pVteFtFA2ElDVq-tTAuSEc4hqIToOX
 show_images(ski.io.imread(image_path('ch04-cell6-1.png')))
 
 # %% tags=["remove-cell"]
-# source-cells: 7
 
 # %% [markdown]
 # ### 連續小波轉換的式子
@@ -112,24 +101,20 @@ show_images(ski.io.imread(image_path('ch04-cell6-1.png')))
 # 常見的 dyadic family 選 $a=2^j$、$b=k2^j$，得到 $\psi_{j,k}(t)=2^{-j/2}\psi(2^{-j}t-k)$。尺度變大時，平移網格也跟著變粗。可逆的離散小波轉換（DWT）還需要合適的分析與合成濾波器，並非任意離散取幾個 CWT 係數即可。
 
 # %%
-# source-cells: 7
 # 原教學示意圖：https://drive.google.com/uc?id=1UBQ-rJAtcM8GxzzkOvKcS47Z2ZGM2K9S
 show_images(ski.io.imread(image_path('ch04-cell7-1.png')))
 
 # %% tags=["remove-cell"]
-# source-cells: 8
 
 # %% [markdown]
 # ## 小波家族
 
 # %% tags=["remove-cell"]
-# source-cells: 9
 
 # %% [markdown]
 # 小波的支撐長度、平滑性、對稱性與消失動差會影響它對局部形狀的反應。[PyWavelets 文件](https://pywavelets.readthedocs.io/en/latest/)整理了各家族與參數；[Wavelet Browser](http://wavelets.pybytes.com/)提供家族圖形，可與下面的程式結果對照。先列出目前安裝版本提供的連續與離散小波，再看每個家族的成員。
 
 # %%
-# source-cells: 10
 wavelet_families = pywt.families(short=False)
 discrete_mother_wavelets = pywt.wavelist(kind='discrete')
 continuous_mother_wavelets = pywt.wavelist(kind='continuous')
@@ -144,7 +129,6 @@ for family in pywt.families():
     print("    * The {} family contains: {}".format(family, pywt.wavelist(family)))
 
 # %% tags=["remove-cell"]
-# source-cells: 11
 
 # %% [markdown]
 # 有限能量 $\int|\psi(t)|^2dt<\infty$ 讓小波可與平方可積訊號取內積；零平均 $\int\psi(t)dt=0$ 則讓它不回應常數背景。有限能量本身不保證緊支撐，也不等同於絕對可積。常把母小波正規化成單位能量，以便比較尺度。
@@ -158,13 +142,11 @@ for family in pywt.families():
 # ```
 
 # %% tags=["remove-cell"]
-# source-cells: 12
 
 # %% [markdown]
 # 下面第一列是 `db5`、`sym5`、`coif5`、`bior2.4`，第二列是 `mexh`、`morl`、`cgau5`、`gaus5`。離散小波的 `wavefun()` 同時回傳 scaling function 與 wavelet；圖中取小波 $\psi$。雙正交家族另有分析與合成小波，複數小波則分開畫實部與虛部。
 
 # %%
-# source-cells: 13
 discrete_wavelets = ['db5', 'sym5', 'coif5', 'bior2.4']
 continuous_wavelets = ['mexh', 'morl', 'cgau5', 'gaus5']
 fig, axarr = plt.subplots(nrows=2, ncols=4, figsize=(16, 8))
@@ -196,7 +178,6 @@ fig.tight_layout()
 plt.show()
 
 # %% tags=["remove-cell"]
-# source-cells: 14
 
 # %% [markdown]
 # ### 同一家族的階數與取樣精細度
@@ -204,7 +185,6 @@ plt.show()
 # 濾波器係數數目、消失動差數目與分解層數是不同量。以 Daubechies 的 `dbN` 為例，N 表示消失動差數，濾波器長度為 2N。下面用 `db1` 到 `db5`，分別在 `wavefun(level=1)` 到 `level=5` 畫出母小波，共 25 張圖。
 
 # %%
-# source-cells: 15
 fig, axarr = plt.subplots(ncols=5, nrows=5, figsize=(20,16))
 fig.suptitle('Daubechies family of wavelets', fontsize=16)
 
@@ -224,7 +204,6 @@ plt.tight_layout()
 plt.subplots_adjust(top=0.9);
 
 # %% tags=["remove-cell"]
-# source-cells: 16
 
 # %% [markdown]
 # `db3` 有三個消失動差，`db5` 有五個。較高階能消去較高次多項式的影響，但通常需要更長的濾波器，邊界影響也會擴大。
@@ -232,13 +211,11 @@ plt.subplots_adjust(top=0.9);
 # 上圖的 `wavefun(level=...)` 控制近似同一個母小波的取樣精細度，level 越高，畫圖的樣本越多。後面 `wavedec(..., level=...)` 才控制**資料分解層數**：每層繼續分解低通分支，係數通常越來越少。省略 `wavedec` 的 level 時，PyWavelets 依資料長度與濾波器長度選取 `dwt_max_level`；它是避免所有係數都受邊界延拓影響的實用上限，仍可要求更深分解，但邊界效應會更明顯。
 
 # %% tags=["remove-cell"]
-# source-cells: 17
 
 # %% [markdown]
 # ## CWT：閱讀時間與尺度
 
 # %% tags=["remove-cell"]
-# source-cells: 18
 
 # %% [markdown]
 # CWT 適合觀察頻率隨時間改變的訊號。讀尺度圖時，先確認橫軸時間、縱軸尺度或換算後的 pseudo-frequency，再看亮帶的位置、寬度與持續時間。大尺度小波覆蓋較長區間，靠近訊號兩端時更依賴補值；邊界附近的亮帶要配合支撐範圍判讀。
@@ -246,19 +223,16 @@ plt.subplots_adjust(top=0.9);
 # [A gentle introduction to wavelet for data analysis](https://www.kaggle.com/code/asauve/a-gentle-introduction-to-wavelet-for-data-analysis/notebook)提供 CWT 範例。可沿著母小波、取樣週期與尺度網格讀程式，再用前面的時間–頻率示意理解結果。本章接著使用 DWT 示範可重建的分解與去雜訊。
 
 # %% tags=["remove-cell"]
-# source-cells: 19
 
 # %% [markdown]
 # ## DWT：用濾波器分解訊號
 
 # %% tags=["remove-cell"]
-# source-cells: 20
 
 # %% [markdown]
 # DWT 以分析濾波器組把訊號分成近似與細節，並搭配降採樣。保留全部係數時可以重建；若量化、捨棄或縮小部分係數，就能用於壓縮或去雜訊。[這則 DWT 說明](https://dsp.stackexchange.com/a/48141)可對照下面的濾波樹閱讀。
 
 # %% tags=["remove-cell"]
-# source-cells: 21
 
 # %% [markdown]
 # 一階分解先做低通與高通濾波，再將兩個分支各降採樣，得到近似 $cA_1$ 與細節 $cD_1$。下一階只繼續分解 $cA_1$，所以較深層描述較粗的尺度。每階係數長度大致減半，精確長度還受濾波器與邊界模式影響。
@@ -268,7 +242,6 @@ plt.subplots_adjust(top=0.9);
 # 降採樣可以減少儲存與計算，但單一分支可能含混疊項；可逆濾波器組會在合成時讓這些項相消。分解越深，越多係數受到邊界延拓影響，因此需要配合訊號長度選層數。
 
 # %% tags=["remove-cell"]
-# source-cells: 22
 
 # %% [markdown]
 # (dwt-perfect-reconstruction)=
@@ -278,12 +251,10 @@ plt.subplots_adjust(top=0.9);
 # 下面先用完整 ECG 與 `db1`、`smooth` 延拓做一次 DWT／IDWT，再以 `wavedec(level=8)` 分解，確認未修改係數時能還原訊號。`smooth` 用邊界趨勢外推，和多階例子採用的預設 `symmetric` 模式不同；各自重建時維持相同模式。
 
 # %%
-# source-cells: 22
 # 原教學示意圖：https://drive.google.com/uc?id=1CBbSFKCbAd1aeHM0Iwr0cqMlPhV2USl8
 show_images(ski.io.imread(image_path('ch04-cell22-1.png')))
 
 # %%
-# source-cells: 22
 # 原教學示意圖：https://drive.google.com/uc?id=1CSQ4p28-P0LAV94d_cJ-qLHKTw29_S2A
 show_images(ski.io.imread(image_path('ch04-cell22-2.png')))
 
@@ -291,7 +262,6 @@ show_images(ski.io.imread(image_path('ch04-cell22-2.png')))
 diagram('wavelet-filterbank')
 
 # %%
-# source-cells: 23
 signals = pywt.data.ecg()
 (cA1, cD1) = pywt.dwt(signals, 'db1', 'smooth')
 reconstructed_signals = pywt.idwt(cA1, cD1, 'db1', 'smooth')
@@ -302,14 +272,12 @@ assert np.allclose(reconstructed_signals[:signals.size], signals)
 plt.legend(['approximation cA1', 'detail cD1'])
 
 # %%
-# source-cells: 24
 fig, ax = plt.subplots(figsize=(8,4))
 ax.plot(signals, label='signal')
 ax.plot(reconstructed_signals, label='reconstructed signal', linestyle='--')
 ax.legend(loc='upper left');
 
 # %%
-# source-cells: 25
 coeffs = pywt.wavedec(signals, 'db1', level=8)
 reconstructed_signals = pywt.waverec(coeffs, 'db1')
 
@@ -321,7 +289,6 @@ ax.set_title('de- and reconstruction using wavedec()');
 assert np.allclose(reconstructed_signals[:signals.size], signals)
 
 # %% tags=["remove-cell"]
-# source-cells: 26
 
 # %% [markdown]
 # ## 修改細節係數：從重建到去雜訊
@@ -337,12 +304,10 @@ assert np.allclose(reconstructed_signals[:signals.size], signals)
 # 本例閾值設為 `0.1 * max(noisy_signal)`，是依訊號振幅選定的啟發式，沒有把雜訊標準差直接代入風險公式。再用 `db4`、四層分解的 BayesShrink 作比較。
 
 # %%
-# source-cells: 26
 # 原教學示意圖：https://drive.google.com/uc?id=1CKm-W2KyjcBTtq8HJ5BtihIkX8_qFjfw
 show_images(ski.io.imread(image_path('ch04-cell26-1.png')))
 
 # %%
-# source-cells: 27
 def lowpassfilter(signal, thresh=0.63, wavelet='db4'):
     """依輸入最大值設定 soft threshold，只縮減細節係數。"""
     signal = np.asarray(signal, dtype=float)
@@ -355,14 +320,12 @@ def lowpassfilter(signal, thresh=0.63, wavelet='db4'):
     return pywt.waverec(coefficients, wavelet, mode='periodization')[:signal.size]
 
 # %%
-# source-cells: 28
 x = pywt.data.ecg().astype(float) / 256
 sigma = 0.05  # 雜訊標準差；變異數為 sigma**2
 rng = np.random.default_rng(42)
 x_noisy = x + sigma * rng.standard_normal(x.size)
 
 # %%
-# source-cells: 29
 rec = lowpassfilter(x_noisy, 0.1)
 x_denoise = denoise_wavelet(
     x_noisy, method='BayesShrink', mode='soft', wavelet_levels=4,
@@ -370,7 +333,6 @@ x_denoise = denoise_wavelet(
 )
 
 # %%
-# source-cells: 30
 plt.figure(figsize=(10, 5), dpi=100)
 plt.plot(x_noisy, label='noisy ECG, sigma=0.05')
 plt.plot(rec, label='db4: threshold = 0.1 * max(noisy)')
@@ -381,13 +343,11 @@ plt.ylabel('ECG / 256')
 plt.show()
 
 # %% tags=["remove-cell"]
-# source-cells: 31
 
 # %% [markdown]
 # ## 二維 DWT：影像的四個子帶
 
 # %% tags=["remove-cell"]
-# source-cells: 32
 
 # %% [markdown]
 # 二維 DWT 沿兩軸各做低通與高通，得到近似及三種細節。PyWavelets 回傳 `(cA, (cH, cV, cD))`。下方沿用變數 `LL, LH, HL, HH`，其順序對應這個 API；不同教材對 LH／HL 的命名可能相反，要以套件的軸向定義與圖形確認。
@@ -395,12 +355,10 @@ plt.show()
 # [2D discrete wavelet transformation](https://medium.com/@koushikc2000/2d-discrete-wavelet-transformation-and-its-applications-in-digital-image-processing-using-matlab-1f5c68672de3)用濾波器組介紹二維分解，可對照本節的四子帶。先將 Lucario 與白背景混合並轉成灰階，再使用 `bior1.3`。
 
 # %%
-# source-cells: 32
 # 原教學示意圖：https://drive.google.com/uc?id=1CCfQ-3lE1A3aHwnuI5rXipH6kF6SRnAr
 show_images(ski.io.imread(image_path('ch04-cell32-1.png')))
 
 # %%
-# source-cells: 33
 # Load image
 original = ski.color.rgb2gray(ski.color.rgba2rgb(ski.io.imread(image_path('lucario.png'))))
 
@@ -429,7 +387,6 @@ assert np.allclose(restored, original)
 # 六格依序顯示含雜訊、BayesShrink、VisuShrink、原圖，以及將 VisuShrink 的 sigma 參數除以 2、4 的結果。各方法在 YCbCr 中處理後換回 RGB；`rescale_sigma=True` 配合內部量尺轉換調整 sigma，無需把它當成雜訊變異數再次平方。PSNR 使用固定 `data_range=1`。
 
 # %%
-# source-cells: 34
 original = ski.util.img_as_float(
     ski.color.rgba2rgb(ski.io.imread(image_path('lucario.png')))
 )[40:150, 80:160]
@@ -500,7 +457,6 @@ ax[1, 2].set_title(
 fig.tight_layout();
 
 # %% tags=["remove-cell"]
-# source-cells: 35
 
 # %% [markdown]
 # ## 如何比較閾值與重建結果？
@@ -512,13 +468,11 @@ fig.tight_layout();
 # [A guide for using the Wavelet Transform in Machine Learning](https://ataspinar.com/2018/12/21/a-guide-for-using-the-wavelet-transform-in-machine-learning/)把小波家族、CWT 與 DWT 連在一起；[小波介紹影片](https://www.youtube.com/watch?v=QX1-xGVFqmw)可配合本章示意圖觀看。閱讀時分清 `wavefun` 的取樣精細度與 DWT 的資料分解層數。
 
 # %% tags=["remove-cell"]
-# source-cells: 36
 
 # %% [markdown]
 # ## 延伸閱讀
 
 # %% tags=["remove-cell"]
-# source-cells: 37
 
 # %% [markdown]
 # - **Szeliski, R.（2022），*Computer Vision: Algorithms and Applications*, 2nd ed.** [作者網站](https://szeliski.org/Book/)；以第 3.4 節 Fourier、第 3.5 節金字塔與小波、第 7.1 節影像對齊連起頻域、尺度及影像比較 {cite}`szeliski2022`。
